@@ -1,0 +1,16 @@
+{
+  "name": "masterz-gym",
+  "private": true,
+  "workspaces": ["apps/web", "packages/*"],
+  "overrides": {
+    "postcss": "^8.5.23",
+    "sharp": "^0.35.0"
+  },
+  "scripts": {
+    "dev:web": "npm run dev --workspace @masterz/web",
+    "build:web": "npm run build --workspace @masterz/web",
+    "lint:web": "npm run lint --workspace @masterz/web",
+    "format:web": "npm run format --workspace @masterz/web",
+    "test:e2e": "npm run test:e2e --workspace @masterz/web"
+  }
+}

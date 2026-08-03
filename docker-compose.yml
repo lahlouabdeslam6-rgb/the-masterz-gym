@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-masterz_gym}
+      POSTGRES_USER: ${POSTGRES_USER:-masterz}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-masterz_local_only}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-masterz} -d ${POSTGRES_DB:-masterz_gym}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ./apps/api
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://masterz:masterz_local_only@postgres:5432/masterz_gym}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+    ports:
+      - "${MASTERZ_API_PORT:-8000}:8000"
+    volumes:
+      - ./apps/api:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "${MASTERZ_WEB_PORT:-3000}:3000"
+    volumes:
+      - ./apps/web:/workspace/apps/web
+      - ./packages:/workspace/packages
+      - web_node_modules:/workspace/node_modules
+      - web_next:/workspace/apps/web/.next
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  web_node_modules:
+  web_next:
