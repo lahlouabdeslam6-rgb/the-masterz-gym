@@ -38,9 +38,11 @@ La configuration technique provient de l'environnement. Les prix, horaires, capa
 
 ## Temps, observabilité et audit
 
-Les instants sont timezone-aware et stockés en UTC ; le fuseau IANA de la salle pilote l'affichage et les règles locales. Une future couche d'audit enregistrera acteur, action, cible, horodatage, résultat et changements pertinents sans exposer de secrets.
+Les instants sont timezone-aware et stockés en UTC ; le fuseau IANA de la salle pilote
+l'affichage et les règles locales. La Phase 2 ajoute un journal append-only contenant
+acteur, rôle, action, cible, valeurs précédente/nouvelle, motif et horodatage, sans mot
+de passe, jeton ou OTP en clair.
 
 ## Évolution
 
 Les migrations sont gérées par Alembic. L'OpenAPI versionnée gouverne la compatibilité. L'extraction en service séparé n'est envisagée que si des contraintes opérationnelles mesurées la justifient ; elle n'est pas prévue actuellement.
-

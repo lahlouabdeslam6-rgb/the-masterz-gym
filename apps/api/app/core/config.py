@@ -8,7 +8,19 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     database_url: str = "postgresql+psycopg://masterz:masterz_local_only@localhost:5432/masterz_gym"
     redis_url: str = "redis://localhost:6379/0"
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:13000",
+        "http://127.0.0.1:13000",
+    ]
+    environment: str = "development"
+    gym_timezone: str = "Africa/Casablanca"
+    jwt_secret_key: str = "masterz-local-jwt-secret-change-me-2026"
+    jwt_refresh_secret_key: str = "masterz-local-refresh-secret-change-me-2026"
+    access_token_minutes: int = 30
+    refresh_token_days: int = 30
+    otp_expiry_minutes: int = 10
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

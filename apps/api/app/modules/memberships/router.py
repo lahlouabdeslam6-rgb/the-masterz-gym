@@ -1,0 +1,80 @@
+import uuid
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query
+
+from app.core.dependencies import CurrentUser, DbSession, require_roles
+from app.core.errors import api_error
+from app.modules.memberships.repository import MembershipRepository
+from app.modules.memberships.schemas import (
+    MembershipPlanCreate,
+    MembershipPlanRead,
+    MembershipPlanUpdate,
+    SettingRead,
+    SettingUpdate,
+    SubscriptionEventRead,
+    SubscriptionRead,
+    SubscriptionStatusUpdate,
+)
+from app.modules.memberships.service import MembershipService
+from app.modules.users.models import User
+from app.shared.enums import UserRole
+
+router = APIRouter(tags=["Memberships"])
+Admin = Annotated[User, Depends(require_roles(UserRole.ADMIN))]
+Reception = Annotated[User, Depends(require_roles(UserRole.ADMIN, UserRole.RECEPTIONIST))]
+
+
+@router.get("/membership-plans", response_model=list[MembershipPlanRead])
+def list_plans(session: DbSession, active_only: Annotated[bool, Query()] = True):
+    return MembershipRepository(session).list_plans(active_only=active_only)
+
+
+@router.post("/membership-plans", response_model=MembershipPlanRead, status_code=201)
+def create_plan(data: MembershipPlanCreate, session: DbSession, actor: Admin):
+    return MembershipService(session).create_plan(data, actor)
+
+
+@router.patch("/membership-plans/{plan_id}", response_model=MembershipPlanRead)
+def update_plan(plan_id: uuid.UUID, data: MembershipPlanUpdate, session: DbSession, actor: Admin):
+    return MembershipService(session).update_plan(plan_id, data, actor)
+
+
+@router.get("/members/{member_id}/subscriptions", response_model=list[SubscriptionRead])
+def list_member_subscriptions(member_id: uuid.UUID, session: DbSession, actor: CurrentUser):
+    if actor.role == UserRole.MEMBER and actor.id != member_id:
+        raise api_error(403, "permission_denied", "Accès interdit.")
+    if actor.role not in {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.MEMBER}:
+        raise api_error(403, "permission_denied", "Accès interdit.")
+    memberships = MembershipRepository(session)
+    service = MembershipService(session)
+    return [
+        SubscriptionRead.model_validate(item).model_copy(
+            update={"effective_status": service.effective_status(item)}
+        )
+        for item in memberships.list_member_subscriptions(member_id)
+    ]
+
+
+@router.patch("/subscriptions/{subscription_id}/status", response_model=SubscriptionRead)
+def update_subscription_status(
+    subscription_id: uuid.UUID,
+    data: SubscriptionStatusUpdate,
+    session: DbSession,
+    actor: Reception,
+):
+    service = MembershipService(session)
+    subscription = service.update_status(subscription_id, data, actor)
+    return SubscriptionRead.model_validate(subscription).model_copy(
+        update={"effective_status": service.effective_status(subscription)}
+    )
+
+
+@router.get("/subscriptions/{subscription_id}/events", response_model=list[SubscriptionEventRead])
+def list_subscription_events(subscription_id: uuid.UUID, session: DbSession, actor: Reception):
+    return MembershipRepository(session).list_events(subscription_id)
+
+
+@router.put("/membership-settings/{key}", response_model=SettingRead)
+def update_membership_setting(key: str, data: SettingUpdate, session: DbSession, actor: Admin):
+    return MembershipService(session).update_setting(key, data, actor)

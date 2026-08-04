@@ -4,17 +4,22 @@ build-backend = "hatchling.build"
 
 [project]
 name = "masterz-gym-api"
-version = "0.1.0"
+version = "0.2.0"
 description = "API du monolithe modulaire The Masterz Gym"
 requires-python = ">=3.12"
 dependencies = [
   "alembic>=1.16,<2",
   "fastapi[standard]>=0.116,<1",
+  "pyjwt>=2.10,<3",
   "psycopg[binary]>=3.2,<4",
+  "pwdlib[argon2]>=0.2,<1",
   "pydantic-settings>=2.10,<3",
   "redis>=6,<7",
   "sqlalchemy>=2.0,<3",
 ]
+
+[project.scripts]
+masterz-seed = "app.seed:main"
 
 [project.optional-dependencies]
 dev = [
@@ -37,4 +42,3 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
-

@@ -1,3 +1,8 @@
 # API Client
 
-Ce package accueillera le client TypeScript généré depuis le contrat OpenAPI FastAPI. Aucun endpoint ne doit être ajouté manuellement.
+Le schéma TypeScript est généré depuis `openapi.json`, lui-même exporté par FastAPI.
+Aucun endpoint ou DTO n'est défini manuellement côté frontend.
+
+```bash
+npm run generate:api-client
+```

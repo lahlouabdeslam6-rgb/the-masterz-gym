@@ -30,9 +30,15 @@ The Masterz Gym est une salle mixte premium à Kénitra. Le produit regroupera u
 13. Analytique
 14. Contenu et paramètres du site public
 
-## Périmètre de la phase 1
+## Périmètre livré en phase 2
 
-La phase 1 livre uniquement le socle exécutable, les conventions et la documentation. Sont exclus : authentification, permissions métier, CRUD métier, paiements réels, OTP WhatsApp, JWT, notifications et jobs métier.
+Le socle Phase 1 est complété par l'authentification et les utilisateurs, les demandes
+d'adhésion, formules, abonnements, paiements locaux, reçus, présences et audit. Le
+paiement reste exclusivement enregistré en réception. L'OTP utilise une abstraction et
+un fournisseur de développement ; aucune connexion WhatsApp/SMS payante n'est active.
+
+Coaching, programmes, recovery, café, finance, messagerie, notifications, analytique,
+IA et contenu administrable restent des phases futures.
 
 ## Exigences transverses
 
@@ -46,4 +52,3 @@ La phase 1 livre uniquement le socle exécutable, les conventions et la document
 ## Critères de réussite du socle
 
 Le site répond sur le port 3000, l'API et Swagger sur le port 8000, le health check répond sur `/api/v1/health`, PostgreSQL et Redis sont sains, et les contrôles automatisés passent.
-

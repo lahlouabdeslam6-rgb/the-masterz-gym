@@ -1,0 +1,90 @@
+import uuid
+
+from fastapi import status
+from sqlalchemy.orm import Session
+
+from app.core.errors import api_error
+from app.modules.applications.models import MembershipApplication
+from app.modules.applications.repository import ApplicationRepository
+from app.modules.applications.schemas import ApplicationCreate, ApplicationReview
+from app.modules.audit.service import AuditService
+from app.modules.memberships.repository import MembershipRepository
+from app.modules.users.models import User
+from app.shared.enums import ApplicationStatus
+
+REVIEWABLE_STATUSES = {
+    ApplicationStatus.PENDING,
+    ApplicationStatus.MORE_INFORMATION_REQUIRED,
+    ApplicationStatus.APPROVED,
+}
+
+
+class ApplicationService:
+    def __init__(self, session: Session) -> None:
+        self.session = session
+        self.applications = ApplicationRepository(session)
+        self.plans = MembershipRepository(session)
+        self.audit = AuditService(session)
+
+    def submit(self, data: ApplicationCreate) -> MembershipApplication:
+        plan = self.plans.get_plan(data.selected_plan_id)
+        if not plan or not plan.is_active:
+            raise api_error(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "inactive_plan",
+                "La formule sélectionnée n'est pas disponible.",
+            )
+        return self.applications.add(MembershipApplication(**data.model_dump()))
+
+    def review(
+        self, application_id: uuid.UUID, data: ApplicationReview, actor: User
+    ) -> MembershipApplication:
+        application = self.applications.get(application_id)
+        if not application:
+            raise api_error(
+                status.HTTP_404_NOT_FOUND, "application_not_found", "Demande introuvable."
+            )
+        if application.status not in REVIEWABLE_STATUSES:
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "application_not_reviewable",
+                "Cette demande ne peut plus être révisée.",
+            )
+        if data.status not in {
+            ApplicationStatus.APPROVED,
+            ApplicationStatus.REJECTED,
+            ApplicationStatus.MORE_INFORMATION_REQUIRED,
+        }:
+            raise api_error(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "invalid_application_transition",
+                "Transition de demande invalide.",
+            )
+        if (
+            data.status
+            in {
+                ApplicationStatus.REJECTED,
+                ApplicationStatus.MORE_INFORMATION_REQUIRED,
+            }
+            and not data.reason
+        ):
+            raise api_error(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "review_reason_required",
+                "Un motif est requis.",
+            )
+        previous = application.status
+        application.status = data.status
+        application.review_reason = data.reason
+        application.reviewed_by_id = actor.id
+        self.session.flush()
+        self.audit.record(
+            actor=actor,
+            action=f"application.{data.status.value}",
+            entity_type="membership_application",
+            entity_id=application.id,
+            previous_value={"status": previous.value},
+            new_value={"status": data.status.value},
+            reason=data.reason,
+        )
+        return application

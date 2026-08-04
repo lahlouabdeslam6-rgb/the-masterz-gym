@@ -27,6 +27,11 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://masterz:masterz_local_only@postgres:5432/masterz_gym}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      GYM_TIMEZONE: ${GYM_TIMEZONE:-Africa/Casablanca}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-masterz-local-jwt-secret-change-me-2026}
+      JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY:-masterz-local-refresh-secret-change-me-2026}
+      CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost:3000","http://localhost:13000"]}'
       API_HOST: 0.0.0.0
       API_PORT: 8000
     ports:

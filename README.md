@@ -4,7 +4,10 @@ Fondation technique du site public premium et de la future plateforme de gestion
 
 ## Périmètre actuel
 
-Cette phase fournit uniquement le monorepo, une page d'accueil temporaire, l'API de santé, PostgreSQL, Redis, Alembic et les outils de qualité. L'authentification et les modules métier ne sont pas encore implémentés.
+La Phase 2 ajoute au socle : authentification JWT/OTP, utilisateurs et rôles, demandes
+d'adhésion, formules, abonnements et renouvellements, paiements en réception, reçus,
+présences et audit. Coaching, recovery, Healthy Cafe, finance, messagerie,
+notifications, analytique et IA restent volontairement hors périmètre.
 
 ## Prérequis
 
@@ -37,6 +40,25 @@ python -m pip install -e ".[dev]"
 fastapi dev app/main.py --port 8000
 ```
 
+## Initialisation Phase 2
+
+```bash
+docker compose run --rm api alembic upgrade head
+docker compose run --rm api python -m app.seed
+npm run generate:api-client
+```
+
+Comptes strictement locaux créés par le seed :
+
+| Rôle | Téléphone | Mot de passe de développement |
+|---|---|---|
+| Admin | `+212600000001` | `AdminLocal123!` |
+| Réception | `+212600000002` | `ReceptionLocal123!` |
+| Membre | `+212600000003` | `MemberLocal123!` |
+
+Le fournisseur OTP local écrit le code dans les logs de développement avec le numéro
+masqué. Il refuse de fonctionner lorsque `ENVIRONMENT` n'est pas `development`.
+
 ## Qualité
 
 ```bash
@@ -51,4 +73,5 @@ npm run build:web
 ```
 
 La documentation d'architecture et de cadrage est disponible dans [`docs/`](docs/PROJECT_SPEC.md).
-
+Les workflows et commandes de la Phase 2 sont détaillés dans
+[`docs/PHASE_2.md`](docs/PHASE_2.md).

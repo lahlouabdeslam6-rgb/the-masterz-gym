@@ -1,6 +1,20 @@
-# Schéma de données conceptuel
+# Schéma de données
 
-La phase 1 ne crée aucune table métier. Les entités suivantes forment le modèle conceptuel à affiner avant migrations.
+La migration `714b8fb996a5` matérialise les tables Phase 2 suivantes dans PostgreSQL :
+
+- `users`, `refresh_sessions`, `otp_challenges` ;
+- `membership_applications`, `membership_plans`, `system_settings` ;
+- `subscriptions`, `subscription_events` ;
+- `payments`, `receipts` ;
+- `attendances`, `audit_logs`.
+
+Les prix sont des `NUMERIC(12,2)`, les identifiants des UUID et les instants des
+`TIMESTAMPTZ`. Les formules sont copiées dans l'abonnement pour préserver le contrat
+historique. L'idempotence paiement, les numéros de téléphone, membre et reçu sont
+protégés par des contraintes uniques.
+
+Les entités ci-dessous restent la cible conceptuelle globale ; seules celles listées
+ci-dessus sont implémentées à ce stade.
 
 | Domaine | Entités prévues | Relations principales |
 |---|---|---|
@@ -30,4 +44,3 @@ La phase 1 ne crée aucune table métier. Les entités suivantes forment le mod�
 ## Transactions prioritaires
 
 Les agrégats Payment/Receipt, Reservation/Capacity, PackPurchase/PackLedgerEntry et CafeOrder/StockMovement définissent les premières frontières transactionnelles. Les migrations Alembic seront introduites module par module après validation détaillée du modèle.
-

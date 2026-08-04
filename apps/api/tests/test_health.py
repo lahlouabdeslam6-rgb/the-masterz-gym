@@ -20,3 +20,6 @@ def test_health_endpoint() -> None:
 def test_openapi_exposes_health_endpoint() -> None:
     response = asyncio.run(get("/openapi.json"))
     assert "/api/v1/health" in response.json()["paths"]
+    assert "/api/v1/auth/login" in response.json()["paths"]
+    assert "/api/v1/payments/memberships" in response.json()["paths"]
+    assert "/api/v1/attendance/check-ins" in response.json()["paths"]

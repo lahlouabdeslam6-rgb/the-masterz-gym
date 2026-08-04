@@ -11,6 +11,7 @@
     "build:web": "npm run build --workspace @masterz/web",
     "lint:web": "npm run lint --workspace @masterz/web",
     "format:web": "npm run format --workspace @masterz/web",
+    "generate:api-client": "npm run generate --workspace @masterz/api-client",
     "test:e2e": "npm run test:e2e --workspace @masterz/web"
   }
 }

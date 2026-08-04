@@ -2,20 +2,20 @@
 
 Ces parcours décrivent les frontières fonctionnelles sans créer d'API dans cette phase.
 
-## Vente d'un abonnement
+## Vente d'un abonnement — Phase 2
 
 1. La réception identifie ou crée le membre.
 2. Le système charge la formule et ses règles courantes.
 3. Le service calcule l'instantané contractuel et le montant dû.
 4. Une transaction enregistre souscription, paiement et reçu.
-5. Après validation, audit et notification sont planifiés de manière idempotente.
+5. La demande éventuelle passe à « convertie » et les audits sont écrits dans la même transaction.
 
 ## Check-in
 
 1. La réception identifie le membre.
 2. Le service vérifie statut, validité et règles d'accès à l'heure courante.
 3. La présence acceptée ou refusée est enregistrée avec son motif.
-4. Les alertes éventuelles sont produites après transaction.
+4. Un doublon dans la fenêtre configurée est empêché ; toute exception exige un motif audité.
 
 ## Réservation coaching ou recovery
 
@@ -43,4 +43,3 @@ Ces parcours décrivent les frontières fonctionnelles sans créer d'API dans ce
 1. L'admin prépare contenu et paramètres.
 2. Une validation empêche les contenus incomplets ou invalides.
 3. La publication rend une version active et conserve l'historique éditorial.
-
