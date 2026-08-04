@@ -8,9 +8,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#11110f",
-        sand: "#f2eee5",
-        gold: "#c99a42",
+        background: "#050505",
+        foreground: "#ffffff",
+        primary: {
+          DEFAULT: "#00d4ff", // cyan
+          dark: "#00b3d6",
+        },
+        secondary: {
+          DEFAULT: "#0047ff", // electric blue
+          dark: "#003bcf",
+        },
+        surface: "#121212",
+        "surface-hover": "#1e1e1e",
+        border: "#262626"
       },
     },
   },
