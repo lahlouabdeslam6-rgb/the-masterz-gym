@@ -10,15 +10,17 @@ from app.modules.memberships.schemas import (
     MembershipPlanCreate,
     MembershipPlanRead,
     MembershipPlanUpdate,
+    MemberSubscriptionSummary,
     SettingRead,
     SettingUpdate,
+    SubscriptionDatesUpdate,
     SubscriptionEventRead,
     SubscriptionRead,
     SubscriptionStatusUpdate,
 )
 from app.modules.memberships.service import MembershipService
 from app.modules.users.models import User
-from app.shared.enums import UserRole
+from app.shared.enums import ServiceType, UserRole
 
 router = APIRouter(tags=["Memberships"])
 Admin = Annotated[User, Depends(require_roles(UserRole.ADMIN))]
@@ -26,8 +28,14 @@ Reception = Annotated[User, Depends(require_roles(UserRole.ADMIN, UserRole.RECEP
 
 
 @router.get("/membership-plans", response_model=list[MembershipPlanRead])
-def list_plans(session: DbSession, active_only: Annotated[bool, Query()] = True):
-    return MembershipRepository(session).list_plans(active_only=active_only)
+def list_plans(
+    session: DbSession,
+    active_only: Annotated[bool, Query()] = True,
+    service_type: Annotated[ServiceType | None, Query()] = None,
+):
+    return MembershipRepository(session).list_plans(
+        active_only=active_only, service_type=service_type
+    )
 
 
 @router.post("/membership-plans", response_model=MembershipPlanRead, status_code=201)
@@ -38,6 +46,16 @@ def create_plan(data: MembershipPlanCreate, session: DbSession, actor: Admin):
 @router.patch("/membership-plans/{plan_id}", response_model=MembershipPlanRead)
 def update_plan(plan_id: uuid.UUID, data: MembershipPlanUpdate, session: DbSession, actor: Admin):
     return MembershipService(session).update_plan(plan_id, data, actor)
+
+
+@router.get("/members/subscription-summaries", response_model=list[MemberSubscriptionSummary])
+def list_member_subscription_summaries(
+    session: DbSession,
+    actor: Reception,
+    query: Annotated[str | None, Query(max_length=160)] = None,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+):
+    return MembershipService(session).list_member_subscription_summaries(query=query, limit=limit)
 
 
 @router.get("/members/{member_id}/subscriptions", response_model=list[SubscriptionRead])
@@ -70,6 +88,20 @@ def update_subscription_status(
     )
 
 
+@router.patch("/subscriptions/{subscription_id}/dates", response_model=SubscriptionRead)
+def update_subscription_dates(
+    subscription_id: uuid.UUID,
+    data: SubscriptionDatesUpdate,
+    session: DbSession,
+    actor: Reception,
+):
+    service = MembershipService(session)
+    subscription = service.update_dates(subscription_id, data, actor)
+    return SubscriptionRead.model_validate(subscription).model_copy(
+        update={"effective_status": service.effective_status(subscription)}
+    )
+
+
 @router.get("/subscriptions/{subscription_id}/events", response_model=list[SubscriptionEventRead])
 def list_subscription_events(subscription_id: uuid.UUID, session: DbSession, actor: Reception):
     return MembershipRepository(session).list_events(subscription_id)
@@ -78,3 +110,8 @@ def list_subscription_events(subscription_id: uuid.UUID, session: DbSession, act
 @router.put("/membership-settings/{key}", response_model=SettingRead)
 def update_membership_setting(key: str, data: SettingUpdate, session: DbSession, actor: Admin):
     return MembershipService(session).update_setting(key, data, actor)
+
+
+@router.get("/membership-settings", response_model=list[SettingRead])
+def list_membership_settings(session: DbSession, actor: Admin):
+    return MembershipRepository(session).list_settings()

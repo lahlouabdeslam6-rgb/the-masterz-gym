@@ -6,7 +6,7 @@ from app.core.database import SessionLocal
 from app.core.security import hash_password
 from app.modules.memberships.models import MembershipPlan, SystemSetting
 from app.modules.users.models import User
-from app.shared.enums import AccountStatus, UserRole
+from app.shared.enums import AccountStatus, ServiceType, UserRole
 
 DEVELOPMENT_ACCOUNTS = (
     {
@@ -29,6 +29,27 @@ DEVELOPMENT_ACCOUNTS = (
         "password": "MemberLocal123!",
         "role": UserRole.MEMBER,
         "member_number": "TMG-DEV-0001",
+    },
+    {
+        "full_name": "Coach Développement",
+        "phone": "+212600000004",
+        "password": "CoachLocal123!",
+        "role": UserRole.COACH,
+        "member_number": None,
+    },
+    {
+        "full_name": "Recovery Développement",
+        "phone": "+212600000005",
+        "password": "RecoveryLocal123!",
+        "role": UserRole.RECOVERY_CLIENT,
+        "member_number": None,
+    },
+    {
+        "full_name": "Café Développement",
+        "phone": "+212600000006",
+        "password": "CafeLocal123!",
+        "role": UserRole.CAFE_EMPLOYEE,
+        "member_number": None,
     },
 )
 
@@ -63,7 +84,10 @@ def seed() -> None:
                 )
         for name, months, price in DEMO_PLANS:
             plan = session.scalar(
-                select(MembershipPlan).where(MembershipPlan.duration_months == months)
+                select(MembershipPlan).where(
+                    MembershipPlan.duration_months == months,
+                    MembershipPlan.service_type == ServiceType.GYM,
+                )
             )
             if not plan:
                 session.add(
@@ -72,6 +96,7 @@ def seed() -> None:
                         duration_months=months,
                         price=price,
                         currency="MAD",
+                        service_type=ServiceType.GYM,
                         is_active=True,
                     )
                 )

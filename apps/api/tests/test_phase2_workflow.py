@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.modules.auth.otp import OTPProvider
 from app.modules.memberships.models import MembershipPlan, Subscription
 from app.modules.users.models import User
-from app.shared.enums import AccountStatus, SubscriptionStatus, UserRole
+from app.shared.enums import AccountStatus, ServiceType, SubscriptionStatus, UserRole
 from app.shared.time import add_months, local_today
 
 
@@ -90,6 +90,456 @@ def test_reception_cannot_create_membership_plan(
     assert response.status_code == 403
 
 
+def test_admin_can_list_membership_settings(
+    client: TestClient,
+    admin_headers: dict[str, str],
+    reception_headers: dict[str, str],
+) -> None:
+    response = client.get("/api/v1/membership-settings", headers=admin_headers)
+    assert response.status_code == 200
+    assert {item["key"] for item in response.json()} == {
+        "attendance_duplicate_window_minutes",
+        "subscription_expiring_soon_days",
+        "subscription_grace_days",
+    }
+
+    forbidden = client.get("/api/v1/membership-settings", headers=reception_headers)
+    assert forbidden.status_code == 403
+
+
+def test_admin_can_update_member_profile_with_audit(
+    client: TestClient,
+    db_session: Session,
+    admin_headers: dict[str, str],
+    reception_headers: dict[str, str],
+) -> None:
+    member = db_session.query(User).filter(User.phone == "+212600000003").one()
+    new_phone = f"+21262{uuid.uuid4().int % 100_000_000:08d}"
+    payload = {
+        "full_name": "Membre Profil Modifie",
+        "phone": new_phone,
+        "email": "profil-modifie@example.com",
+        "date_of_birth": "2000-05-10",
+        "gender": "male",
+        "reason": "Correction du dossier membre",
+    }
+
+    forbidden = client.patch(
+        f"/api/v1/users/{member.id}/member-profile",
+        headers=reception_headers,
+        json=payload,
+    )
+    assert forbidden.status_code == 403
+
+    updated = client.patch(
+        f"/api/v1/users/{member.id}/member-profile",
+        headers=admin_headers,
+        json=payload,
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["full_name"] == payload["full_name"]
+    assert updated.json()["phone"] == new_phone
+    assert updated.json()["email"] == payload["email"]
+
+    summary = client.get(
+        "/api/v1/members/subscription-summaries",
+        headers=admin_headers,
+        params={"query": new_phone},
+    )
+    assert summary.status_code == 200, summary.text
+    assert summary.json()[0]["date_of_birth"] == payload["date_of_birth"]
+    assert summary.json()[0]["gender"] == payload["gender"]
+    assert summary.json()[0]["account_status"] == "active"
+
+    audit_logs = client.get("/api/v1/audit-logs", headers=admin_headers)
+    assert audit_logs.status_code == 200
+    assert "member.profile_updated" in {entry["action"] for entry in audit_logs.json()}
+
+
+def test_coaching_assignment_can_be_created_changed_and_ended(
+    client: TestClient,
+    db_session: Session,
+    admin_headers: dict[str, str],
+    reception_headers: dict[str, str],
+) -> None:
+    first_coach = (
+        db_session.query(User).filter(User.role == UserRole.COACH).order_by(User.created_at).first()
+    )
+    assert first_coach is not None
+    second_coach = User(
+        full_name="Coach Deuxieme",
+        phone=f"+21261{uuid.uuid4().int % 100_000_000:08d}",
+        email="coach-deuxieme@example.com",
+        password_hash=None,
+        role=UserRole.COACH,
+        status=AccountStatus.ACTIVE,
+        member_number=None,
+    )
+    db_session.add(second_coach)
+    member_suffix = uuid.uuid4().hex[:8].upper()
+    member = User(
+        full_name="Membre Coaching Test",
+        phone=f"+21262{uuid.uuid4().int % 100_000_000:08d}",
+        email=f"coaching-{member_suffix.lower()}@example.com",
+        password_hash=None,
+        role=UserRole.MEMBER,
+        status=AccountStatus.ACTIVE,
+        member_number=f"TMG-COACH-{member_suffix}",
+    )
+    db_session.add(member)
+    db_session.flush()
+
+    blocked_without_coaching = client.post(
+        "/api/v1/coaching/assignments",
+        headers=admin_headers,
+        json={
+            "coach_id": str(first_coach.id),
+            "member_id": str(member.id),
+            "reason": "Choix confirme avec le membre",
+        },
+    )
+    assert blocked_without_coaching.status_code == 409
+    assert (
+        blocked_without_coaching.json()["detail"]["code"] == "active_coaching_subscription_required"
+    )
+
+    admin = db_session.query(User).filter(User.phone == "+212600000001").one()
+    coaching_plan = MembershipPlan(
+        name="Coaching test",
+        duration_months=3,
+        price="900.00",
+        currency="MAD",
+        service_type=ServiceType.COACHING,
+        is_active=True,
+    )
+    db_session.add(coaching_plan)
+    db_session.flush()
+    today = local_today()
+    db_session.add(
+        Subscription(
+            member_id=member.id,
+            plan_id=coaching_plan.id,
+            status=SubscriptionStatus.ACTIVE,
+            starts_on=today,
+            ends_on=add_months(today, 3) - timedelta(days=1),
+            grace_ends_on=add_months(today, 3) + timedelta(days=3),
+            plan_name=coaching_plan.name,
+            duration_months=coaching_plan.duration_months,
+            price=coaching_plan.price,
+            currency=coaching_plan.currency,
+            service_type=ServiceType.COACHING,
+            created_by_id=admin.id,
+        )
+    )
+    db_session.flush()
+
+    coaches = client.get("/api/v1/coaching/coaches", headers=admin_headers)
+    assert coaches.status_code == 200, coaches.text
+    assert {item["id"] for item in coaches.json()} >= {
+        str(first_coach.id),
+        str(second_coach.id),
+    }
+
+    assigned = client.post(
+        "/api/v1/coaching/assignments",
+        headers=reception_headers,
+        json={
+            "coach_id": str(first_coach.id),
+            "member_id": str(member.id),
+            "reason": "Choix confirme avec le membre",
+        },
+    )
+    assert assigned.status_code == 201, assigned.text
+    assert assigned.json()["coach_id"] == str(first_coach.id)
+    assert assigned.json()["member_id"] == str(member.id)
+
+    duplicate = client.post(
+        "/api/v1/coaching/assignments",
+        headers=reception_headers,
+        json={
+            "coach_id": str(first_coach.id),
+            "member_id": str(member.id),
+            "reason": "Tentative de doublon",
+        },
+    )
+    assert duplicate.status_code == 409
+    assert duplicate.json()["detail"]["code"] == "member_already_assigned"
+
+    reassigned = client.post(
+        "/api/v1/coaching/assignments",
+        headers=admin_headers,
+        json={
+            "coach_id": str(second_coach.id),
+            "member_id": str(member.id),
+            "reason": "Changement demande par le membre",
+        },
+    )
+    assert reassigned.status_code == 201, reassigned.text
+    assert reassigned.json()["coach_id"] == str(second_coach.id)
+
+    active = client.get(
+        "/api/v1/coaching/assignments",
+        headers=admin_headers,
+        params={"member_id": str(member.id)},
+    )
+    assert active.status_code == 200, active.text
+    assert [item["id"] for item in active.json()] == [reassigned.json()["id"]]
+
+    history = client.get(
+        "/api/v1/coaching/assignments",
+        headers=admin_headers,
+        params={"member_id": str(member.id), "active_only": False},
+    )
+    assert history.status_code == 200, history.text
+    assert len(history.json()) == 2
+    assert any(item["ended_at"] for item in history.json())
+
+    ended = client.patch(
+        f"/api/v1/coaching/assignments/{reassigned.json()['id']}/end",
+        headers=admin_headers,
+        json={"reason": "Fin du suivi coaching"},
+    )
+    assert ended.status_code == 200, ended.text
+    assert ended.json()["ended_at"] is not None
+
+    audit_logs = client.get("/api/v1/audit-logs", headers=admin_headers)
+    assert audit_logs.status_code == 200
+    actions = {entry["action"] for entry in audit_logs.json()}
+    assert "coaching.member_assigned" in actions
+    assert "coaching.member_reassigned" in actions
+    assert "coaching.assignment_ended" in actions
+
+
+def test_payment_member_summaries_prioritize_renewals(
+    client: TestClient,
+    db_session: Session,
+    reception_headers: dict[str, str],
+) -> None:
+    initial = client.get("/api/v1/members/subscription-summaries", headers=reception_headers)
+    assert initial.status_code == 200, initial.text
+
+    receptionist = db_session.query(User).filter(User.phone == "+212600000002").one()
+    plan = db_session.query(MembershipPlan).filter(MembershipPlan.duration_months == 1).one()
+    today = local_today()
+    members: list[User] = []
+    for index, days_remaining in enumerate((20, 2)):
+        member = User(
+            full_name=f"Priorite Renouvellement {index}",
+            phone=f"+21265500000{index}",
+            password_hash=None,
+            role=UserRole.MEMBER,
+            status=AccountStatus.ACTIVE,
+            member_number=f"TMG-PRIORITE-{index}",
+        )
+        db_session.add(member)
+        db_session.flush()
+        db_session.add(
+            Subscription(
+                member_id=member.id,
+                plan_id=plan.id,
+                status=SubscriptionStatus.ACTIVE,
+                starts_on=today - timedelta(days=10),
+                ends_on=today + timedelta(days=days_remaining),
+                grace_ends_on=today + timedelta(days=days_remaining + 4),
+                plan_name=plan.name,
+                duration_months=plan.duration_months,
+                price=plan.price,
+                currency=plan.currency,
+                created_by_id=receptionist.id,
+            )
+        )
+        members.append(member)
+    db_session.flush()
+
+    response = client.get(
+        "/api/v1/members/subscription-summaries",
+        headers=reception_headers,
+        params={"query": "Priorite Renouvellement"},
+    )
+    assert response.status_code == 200, response.text
+    items = response.json()
+    assert [item["id"] for item in items] == [str(members[1].id), str(members[0].id)]
+    assert [item["days_remaining"] for item in items] == [2, 20]
+    assert items[0]["plan_name"] == plan.name
+
+
+def test_payment_requires_an_inactive_subscription_and_honors_the_new_start_date(
+    client: TestClient,
+    db_session: Session,
+    reception_headers: dict[str, str],
+) -> None:
+    receptionist = db_session.query(User).filter(User.phone == "+212600000002").one()
+    plan = db_session.query(MembershipPlan).filter(MembershipPlan.duration_months == 1).one()
+    today = local_today()
+    member = User(
+        full_name="Membre Renouvellement Annule",
+        phone=f"+21264{uuid.uuid4().int % 100_000_000:08d}",
+        password_hash=None,
+        role=UserRole.MEMBER,
+        status=AccountStatus.ACTIVE,
+        member_number=f"TMG-ANN-{uuid.uuid4().hex[:8].upper()}",
+    )
+    db_session.add(member)
+    db_session.flush()
+    old_subscription = Subscription(
+        member_id=member.id,
+        plan_id=plan.id,
+        status=SubscriptionStatus.ACTIVE,
+        starts_on=today - timedelta(days=10),
+        ends_on=today + timedelta(days=100),
+        grace_ends_on=today + timedelta(days=104),
+        plan_name="Ancienne formule longue",
+        duration_months=12,
+        price=plan.price,
+        currency=plan.currency,
+        created_by_id=receptionist.id,
+    )
+    db_session.add(old_subscription)
+    db_session.flush()
+
+    blocked = client.post(
+        "/api/v1/payments/memberships",
+        headers=reception_headers,
+        json={
+            "idempotency_key": f"active-blocked-{uuid.uuid4()}",
+            "member_id": str(member.id),
+            "plan_id": str(plan.id),
+            "starts_on": today.isoformat(),
+            "method": "cash",
+        },
+    )
+    assert blocked.status_code == 409
+    assert blocked.json()["detail"]["code"] == "active_subscription"
+
+    coaching_plan = MembershipPlan(
+        name="Coaching individuel",
+        duration_months=3,
+        price="900.00",
+        currency="MAD",
+        service_type=ServiceType.COACHING,
+        is_active=True,
+    )
+    db_session.add(coaching_plan)
+    db_session.flush()
+    coaching_paid = client.post(
+        "/api/v1/payments/memberships",
+        headers=reception_headers,
+        json={
+            "idempotency_key": f"coaching-parallel-{uuid.uuid4()}",
+            "member_id": str(member.id),
+            "plan_id": str(coaching_plan.id),
+            "starts_on": today.isoformat(),
+            "method": "cash",
+        },
+    )
+    assert coaching_paid.status_code == 201, coaching_paid.text
+    assert coaching_paid.json()["service_type"] == "coaching"
+
+    duplicate_coaching = client.post(
+        "/api/v1/payments/memberships",
+        headers=reception_headers,
+        json={
+            "idempotency_key": f"coaching-blocked-{uuid.uuid4()}",
+            "member_id": str(member.id),
+            "plan_id": str(coaching_plan.id),
+            "starts_on": today.isoformat(),
+            "method": "cash",
+        },
+    )
+    assert duplicate_coaching.status_code == 409
+    assert duplicate_coaching.json()["detail"]["code"] == "active_subscription"
+
+    cancelled = client.patch(
+        f"/api/v1/subscriptions/{old_subscription.id}/status",
+        headers=reception_headers,
+        json={"status": "cancelled", "reason": "Remplacement confirme par le membre"},
+    )
+    assert cancelled.status_code == 200, cancelled.text
+
+    paid = client.post(
+        "/api/v1/payments/memberships",
+        headers=reception_headers,
+        json={
+            "idempotency_key": f"inactive-renewal-{uuid.uuid4()}",
+            "member_id": str(member.id),
+            "plan_id": str(plan.id),
+            "starts_on": today.isoformat(),
+            "method": "cash",
+        },
+    )
+    assert paid.status_code == 201, paid.text
+    assert paid.json()["starts_on"] == today.isoformat()
+    assert (
+        paid.json()["ends_on"]
+        == (add_months(today, plan.duration_months) - timedelta(days=1)).isoformat()
+    )
+
+    summary = client.get(
+        "/api/v1/members/subscription-summaries",
+        headers=reception_headers,
+        params={"query": member.member_number},
+    )
+    assert summary.status_code == 200, summary.text
+    assert summary.json()[0]["effective_status"] in {"active", "expiring_soon"}
+    assert summary.json()[0]["starts_on"] == today.isoformat()
+    assert summary.json()[0]["plan_name"] == plan.name
+
+
+def test_finished_subscription_is_expired_but_keeps_configured_grace_access(
+    client: TestClient,
+    db_session: Session,
+    reception_headers: dict[str, str],
+) -> None:
+    receptionist = db_session.query(User).filter(User.phone == "+212600000002").one()
+    plan = db_session.query(MembershipPlan).filter(MembershipPlan.duration_months == 1).one()
+    today = local_today()
+    member = User(
+        full_name="Membre Expiration Automatique",
+        phone=f"+21263{uuid.uuid4().int % 100_000_000:08d}",
+        password_hash=None,
+        role=UserRole.MEMBER,
+        status=AccountStatus.ACTIVE,
+        member_number=f"TMG-EXP-{uuid.uuid4().hex[:8].upper()}",
+    )
+    db_session.add(member)
+    db_session.flush()
+    subscription = Subscription(
+        member_id=member.id,
+        plan_id=plan.id,
+        status=SubscriptionStatus.ACTIVE,
+        starts_on=today - timedelta(days=32),
+        ends_on=today - timedelta(days=1),
+        grace_ends_on=today + timedelta(days=3),
+        plan_name=plan.name,
+        duration_months=plan.duration_months,
+        price=plan.price,
+        currency=plan.currency,
+        created_by_id=receptionist.id,
+    )
+    db_session.add(subscription)
+    db_session.flush()
+
+    summary = client.get(
+        "/api/v1/members/subscription-summaries",
+        headers=reception_headers,
+        params={"query": member.member_number},
+    )
+    assert summary.status_code == 200, summary.text
+    assert summary.json()[0]["effective_status"] == "expired"
+    assert summary.json()[0]["days_remaining"] is None
+
+    check_in = client.post(
+        "/api/v1/attendance/check-ins",
+        headers=reception_headers,
+        json={"member_id": str(member.id)},
+    )
+    assert check_in.status_code == 201, check_in.text
+    assert check_in.json()["decision"] == "allowed_with_warning"
+    assert check_in.json()["subscription_status_at_entry"] == "expired"
+    db_session.refresh(subscription)
+    assert subscription.status == SubscriptionStatus.EXPIRED
+
+
 def test_future_subscription_does_not_allow_early_attendance(
     client: TestClient,
     db_session: Session,
@@ -100,21 +550,20 @@ def test_future_subscription_does_not_allow_early_attendance(
     plan = db_session.query(MembershipPlan).filter(MembershipPlan.duration_months == 1).one()
     starts_on = local_today() + timedelta(days=10)
     ends_on = add_months(starts_on, plan.duration_months) - timedelta(days=1)
-    db_session.add(
-        Subscription(
-            member_id=member.id,
-            plan_id=plan.id,
-            status=SubscriptionStatus.ACTIVE,
-            starts_on=starts_on,
-            ends_on=ends_on,
-            grace_ends_on=ends_on + timedelta(days=4),
-            plan_name=plan.name,
-            duration_months=plan.duration_months,
-            price=plan.price,
-            currency=plan.currency,
-            created_by_id=receptionist.id,
-        )
+    subscription = Subscription(
+        member_id=member.id,
+        plan_id=plan.id,
+        status=SubscriptionStatus.ACTIVE,
+        starts_on=starts_on,
+        ends_on=ends_on,
+        grace_ends_on=ends_on + timedelta(days=4),
+        plan_name=plan.name,
+        duration_months=plan.duration_months,
+        price=plan.price,
+        currency=plan.currency,
+        created_by_id=receptionist.id,
     )
+    db_session.add(subscription)
     db_session.flush()
 
     response = client.post(
@@ -124,6 +573,36 @@ def test_future_subscription_does_not_allow_early_attendance(
     )
     assert response.status_code == 201
     assert response.json()["decision"] == "denied"
+
+    started_today = client.patch(
+        f"/api/v1/subscriptions/{subscription.id}/dates",
+        headers=reception_headers,
+        json={
+            "starts_on": local_today().isoformat(),
+            "reason": "Le membre commence son abonnement aujourd'hui",
+        },
+    )
+    assert started_today.status_code == 200, started_today.text
+    assert started_today.json()["starts_on"] == local_today().isoformat()
+    assert (
+        started_today.json()["ends_on"]
+        == (add_months(local_today(), plan.duration_months) - timedelta(days=1)).isoformat()
+    )
+
+    allowed = client.post(
+        "/api/v1/attendance/check-ins",
+        headers=reception_headers,
+        json={"member_id": str(member.id)},
+    )
+    assert allowed.status_code == 201, allowed.text
+    assert allowed.json()["decision"] == "allowed"
+
+    events = client.get(
+        f"/api/v1/subscriptions/{subscription.id}/events",
+        headers=reception_headers,
+    )
+    assert events.status_code == 200
+    assert events.json()[0]["event_type"] == "dates_changed"
 
 
 def test_application_payment_attendance_and_audit_workflow(
@@ -142,12 +621,12 @@ def test_application_payment_attendance_and_audit_workflow(
             "phone": phone,
             "email": "phase2@example.com",
             "selected_plan_id": plan["id"],
-            "fitness_objective": "Améliorer la condition physique générale",
         },
     )
     assert submitted.status_code == 201, submitted.text
     application_id = submitted.json()["id"]
     assert submitted.json()["status"] == "pending"
+    assert submitted.json()["fitness_objective"] is None
 
     approved = client.patch(
         f"/api/v1/membership-applications/{application_id}/review",
@@ -203,6 +682,18 @@ def test_application_payment_attendance_and_audit_workflow(
     )
     assert check_in.status_code == 201, check_in.text
     assert check_in.json()["decision"] == "allowed"
+
+    receipt_history = client.get(
+        f"/api/v1/payments/members/{member['id']}/receipts", headers=reception_headers
+    )
+    assert receipt_history.status_code == 200
+    assert [item["receipt_id"] for item in receipt_history.json()] == [receipt["receipt_id"]]
+
+    attendance_history = client.get(
+        f"/api/v1/attendance/members/{member['id']}", headers=reception_headers
+    )
+    assert attendance_history.status_code == 200
+    assert attendance_history.json()[0]["id"] == check_in.json()["id"]
 
     duplicate_attendance = client.post(
         "/api/v1/attendance/check-ins",

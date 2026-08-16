@@ -16,7 +16,13 @@ from app.modules.payments.repository import PaymentRepository
 from app.modules.payments.schemas import MembershipPaymentCreate, PrintableReceiptData
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
-from app.shared.enums import AccountStatus, ApplicationStatus, SubscriptionStatus, UserRole
+from app.shared.enums import (
+    AccountStatus,
+    ApplicationStatus,
+    ServiceType,
+    SubscriptionStatus,
+    UserRole,
+)
 from app.shared.time import add_months, local_today
 
 
@@ -72,7 +78,7 @@ class PaymentService:
                 "La formule n'est pas disponible.",
             )
 
-        starts_on = self._resolve_start_date(member, data.starts_on)
+        starts_on = self._resolve_start_date(member, data.starts_on, plan.service_type)
         ends_on = add_months(starts_on, plan.duration_months) - timedelta(days=1)
         grace_days = self.membership_service.get_setting_int("subscription_grace_days")
         subscription = self.memberships.add_subscription(
@@ -87,6 +93,7 @@ class PaymentService:
                 duration_months=plan.duration_months,
                 price=plan.price,
                 currency=plan.currency,
+                service_type=plan.service_type,
                 created_by_id=actor.id,
             )
         )
@@ -96,7 +103,11 @@ class PaymentService:
                 event_type="created_after_payment",
                 previous_status=None,
                 new_status=SubscriptionStatus.ACTIVE,
-                details={"plan_id": str(plan.id), "starts_on": starts_on.isoformat()},
+                details={
+                    "plan_id": str(plan.id),
+                    "service_type": plan.service_type.value,
+                    "starts_on": starts_on.isoformat(),
+                },
                 actor_id=actor.id,
             )
         )
@@ -133,6 +144,7 @@ class PaymentService:
                 "currency": payment.currency,
                 "method": payment.method.value,
                 "subscription_id": str(subscription.id),
+                "service_type": subscription.service_type.value,
                 "receipt_number": receipt.receipt_number,
             },
         )
@@ -143,6 +155,7 @@ class PaymentService:
             entity_id=subscription.id,
             new_value={
                 "status": subscription.status.value,
+                "service_type": subscription.service_type.value,
                 "starts_on": subscription.starts_on.isoformat(),
                 "ends_on": subscription.ends_on.isoformat(),
             },
@@ -185,20 +198,23 @@ class PaymentService:
         self.users.add(member)
         return member
 
-    def _resolve_start_date(self, member: User, requested_start):
+    def _resolve_start_date(self, member: User, requested_start, service_type: ServiceType):
         today = local_today()
-        current = self.memberships.current_subscription(member.id)
+        current = self.memberships.current_subscription(member.id, today, service_type)
         if not current:
             return requested_start or today
-        if today <= current.ends_on:
-            return current.ends_on + timedelta(days=1)
-        if requested_start is None:
+        current_status = self.membership_service.effective_status(current, today)
+        if current_status not in {
+            SubscriptionStatus.SUSPENDED,
+            SubscriptionStatus.EXPIRED,
+            SubscriptionStatus.CANCELLED,
+        }:
             raise api_error(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "renewal_start_date_required",
-                "La date de début doit être choisie pour un abonnement expiré.",
+                status.HTTP_409_CONFLICT,
+                "active_subscription",
+                "Un abonnement de cette categorie est encore valide pour ce membre.",
             )
-        return requested_start
+        return requested_start or today
 
     def printable_receipt(self, receipt_id: uuid.UUID) -> PrintableReceiptData:
         receipt = self.payments.get_receipt(receipt_id)
@@ -223,6 +239,7 @@ class PaymentService:
             subscription_id=subscription.id,
             subscription_status=self.membership_service.effective_status(subscription),
             plan_name=subscription.plan_name,
+            service_type=subscription.service_type,
             starts_on=subscription.starts_on,
             ends_on=subscription.ends_on,
             amount=payment.amount,

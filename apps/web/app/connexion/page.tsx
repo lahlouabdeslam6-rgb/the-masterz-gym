@@ -1,109 +1,121 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowRight, KeyRound, UserRoundCheck } from "lucide-react";
+import { Alert, Button, Input, Label, LoadingMessage } from "@masterz/ui";
+import { AuthShell } from "@/components/AuthShell";
 import { api } from "@/lib/api";
-import { SectionTitle, Card, CardContent, Button, Input, Label, Alert, LoadingMessage } from "@masterz/ui";
-import { Dumbbell } from "lucide-react";
+import { dashboardPath, saveSession } from "@/lib/auth";
 
-export default function LoginPage() {
+export default function ConnexionPage() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
       const { data, error: apiError } = await api.POST("/api/v1/auth/login", {
-        body: { phone, password }
+        body: { phone, password },
       });
 
       if (apiError) {
-        // Handling potentially structured error from API
         setError("Numéro de téléphone ou mot de passe incorrect.");
       } else if (data) {
-        // Success: store token, redirect based on role (for this phase, just redirect to home)
-        // Usually, we would set a cookie or localStorage here, but since this is frontend only and no specific backend setup for cookies is detailed:
-        if (typeof window !== "undefined") {
-          localStorage.setItem("access_token", data.access_token);
-        }
-        router.push("/");
+        saveSession({
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
+          user: data.user,
+        });
+        router.push(dashboardPath(data.user.role));
       }
     } catch {
-      setError("Une erreur inattendue s'est produite. Veuillez réessayer.");
+      setError("Une erreur inattendue s’est produite. Veuillez réessayer.");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="pt-32 pb-24 px-6 min-h-screen bg-background flex flex-col items-center justify-center">
-      <Link href="/" className="flex items-center space-x-2 text-white mb-12">
-        <Dumbbell className="h-10 w-10 text-primary" />
-        <span className="text-2xl font-black uppercase tracking-wider">
-          The Masterz Gym
-        </span>
-      </Link>
-      
-      <Card className="bg-surface border-border w-full max-w-md">
-        <CardContent className="pt-8">
-          <SectionTitle title="Connexion" className="!mb-8 !md:mb-8" />
-          
-          {error && <Alert type="error" message={error} className="mb-6" />}
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Numéro de téléphone</Label>
-              <Input 
-                id="phone" 
-                type="tel" 
-                placeholder="+212600000003" 
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label htmlFor="password">Mot de passe</Label>
-                <Link href="/mot-de-passe-oublie" className="text-sm text-primary hover:underline">
-                  Oublié ?
-                </Link>
-              </div>
-              <Input 
-                id="password" 
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            
-            <Button variant="primary" className="w-full" disabled={loading}>
-              {loading ? <LoadingMessage message="Connexion..." className="p-0 text-black" /> : "Se connecter"}
-            </Button>
-          </form>
-
-          <div className="mt-8 text-center text-sm text-gray-400">
-            Vous n&apos;avez pas de compte ?{" "}
-            <Link href="/inscription" className="text-primary font-semibold hover:underline">
-              S&apos;inscrire
+    <AuthShell
+      eyebrow="Connexion"
+      title="Bienvenue dans votre espace."
+      description="Retrouvez votre accès membre avec le numéro de téléphone associé à votre compte."
+    >
+      {error ? <Alert type="error" message={error} className="mb-6" /> : null}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-2.5">
+          <Label htmlFor="phone">Numéro de téléphone</Label>
+          <Input
+            id="phone"
+            type="tel"
+            placeholder="+212600000003"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            autoComplete="tel"
+            required
+          />
+        </div>
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Mot de passe</Label>
+            <Link
+              href="/mot-de-passe-oublie"
+              className="text-xs font-bold text-primary hover:underline"
+            >
+              Mot de passe oublié ?
             </Link>
           </div>
-          <div className="mt-4 text-center text-sm text-gray-400">
-            Déjà membre mais pas de compte en ligne ?{" "}
-            <Link href="/activation-membre" className="text-primary font-semibold hover:underline">
-              Activer mon compte
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            required
+          />
+        </div>
+        <Button type="submit" size="lg" className="w-full" disabled={loading}>
+          {loading ? (
+            <LoadingMessage message="Connexion…" className="p-0 text-black" />
+          ) : (
+            <>
+              Se connecter <ArrowRight className="h-4 w-4" />
+            </>
+          )}
+        </Button>
+      </form>
+      <div className="mt-8 grid gap-3 border-t border-white/10 pt-7 text-sm text-gray-400 sm:grid-cols-2">
+        <Link
+          href="/inscription"
+          className="group rounded-sm border border-white/10 p-4 transition hover:border-primary/35"
+        >
+          <UserRoundCheck className="h-5 w-5 text-primary" />
+          <span className="mt-3 block font-bold text-white">
+            Nouveau membre
+          </span>
+          <span className="mt-1 block text-xs">
+            Faire une demande d’adhésion
+          </span>
+        </Link>
+        <Link
+          href="/activation-membre"
+          className="group rounded-sm border border-white/10 p-4 transition hover:border-primary/35"
+        >
+          <KeyRound className="h-5 w-5 text-primary" />
+          <span className="mt-3 block font-bold text-white">Déjà membre</span>
+          <span className="mt-1 block text-xs">
+            Activer mon compte en ligne
+          </span>
+        </Link>
+      </div>
+    </AuthShell>
   );
 }

@@ -6,7 +6,12 @@ from fastapi import APIRouter, Depends, Query, status
 from app.core.dependencies import CurrentUser, DbSession, require_roles
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
-from app.modules.users.schemas import UserCreate, UserRead, UserUpdateRoleStatus
+from app.modules.users.schemas import (
+    MemberProfileUpdate,
+    UserCreate,
+    UserRead,
+    UserUpdateRoleStatus,
+)
 from app.modules.users.service import UserService
 from app.shared.enums import UserRole
 
@@ -38,3 +43,10 @@ def update_role_status(
     user_id: uuid.UUID, data: UserUpdateRoleStatus, session: DbSession, actor: Admin
 ):
     return UserService(session).update_role_status(user_id, data, actor)
+
+
+@router.patch("/{user_id}/member-profile", response_model=UserRead)
+def update_member_profile(
+    user_id: uuid.UUID, data: MemberProfileUpdate, session: DbSession, actor: Admin
+):
+    return UserService(session).update_member_profile(user_id, data, actor)

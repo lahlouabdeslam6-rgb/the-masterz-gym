@@ -56,7 +56,11 @@ class AttendanceService:
             decision = AttendanceDecision.ALLOWED
             if subscription_status == SubscriptionStatus.EXPIRING_SOON:
                 warning = "L'abonnement expire bientôt."
-        elif subscription_status == SubscriptionStatus.GRACE_PERIOD:
+        elif (
+            subscription_status == SubscriptionStatus.EXPIRED
+            and subscription
+            and subscription.ends_on < local_today() <= subscription.grace_ends_on
+        ):
             decision = AttendanceDecision.ALLOWED_WITH_WARNING
             warning = "Le membre est en période de grâce."
         elif data.exceptional_access_reason:

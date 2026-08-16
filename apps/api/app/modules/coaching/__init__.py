@@ -1,0 +1,1 @@
+"""Coaching member assignment module."""

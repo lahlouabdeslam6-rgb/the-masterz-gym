@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import status
 from sqlalchemy.orm import Session
@@ -16,12 +16,14 @@ from app.modules.memberships.repository import MembershipRepository
 from app.modules.memberships.schemas import (
     MembershipPlanCreate,
     MembershipPlanUpdate,
+    MemberSubscriptionSummary,
     SettingUpdate,
+    SubscriptionDatesUpdate,
     SubscriptionStatusUpdate,
 )
 from app.modules.users.models import User
-from app.shared.enums import SubscriptionStatus
-from app.shared.time import local_today
+from app.shared.enums import ServiceType, SubscriptionStatus
+from app.shared.time import add_months, local_today
 
 SETTING_KEYS = {
     "subscription_grace_days",
@@ -64,6 +66,7 @@ class MembershipService:
             "duration_months": plan.duration_months,
             "price": str(plan.price),
             "currency": plan.currency,
+            "service_type": plan.service_type.value,
             "is_active": plan.is_active,
         }
         changes = data.model_dump(exclude_none=True, exclude={"reason"})
@@ -78,7 +81,16 @@ class MembershipService:
             previous_value=previous,
             new_value={
                 **previous,
-                **{k: str(v) if k == "price" else v for k, v in changes.items()},
+                **{
+                    key: (
+                        str(value)
+                        if key == "price"
+                        else value.value
+                        if key == "service_type"
+                        else value
+                    )
+                    for key, value in changes.items()
+                },
             },
             reason=data.reason,
         )
@@ -101,9 +113,72 @@ class MembershipService:
             if (subscription.ends_on - today).days <= expiring_days:
                 return SubscriptionStatus.EXPIRING_SOON
             return SubscriptionStatus.ACTIVE
-        if today <= subscription.grace_ends_on:
-            return SubscriptionStatus.GRACE_PERIOD
-        return SubscriptionStatus.SUSPENDED
+        return SubscriptionStatus.EXPIRED
+
+    def list_member_subscription_summaries(
+        self, *, query: str | None = None, limit: int = 100
+    ) -> list[MemberSubscriptionSummary]:
+        today = local_today()
+        summaries: list[MemberSubscriptionSummary] = []
+        for member, subscription in self.repository.list_members_with_latest_subscription(
+            today, query
+        ):
+            coaching_subscription = self.repository.current_subscription(
+                member.id, today, ServiceType.COACHING
+            )
+            recovery_subscription = self.repository.current_subscription(
+                member.id, today, ServiceType.RECOVERY
+            )
+
+            def has_active_service(candidate: Subscription | None) -> bool:
+                if not candidate or candidate.starts_on > today:
+                    return False
+                return self.effective_status(candidate, today) in {
+                    SubscriptionStatus.ACTIVE,
+                    SubscriptionStatus.EXPIRING_SOON,
+                }
+
+            effective_status = self.effective_status(subscription, today) if subscription else None
+            days_remaining = (
+                max((subscription.ends_on - today).days, 0)
+                if subscription
+                and effective_status
+                in {SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRING_SOON}
+                else None
+            )
+            summaries.append(
+                MemberSubscriptionSummary(
+                    id=member.id,
+                    full_name=member.full_name,
+                    phone=member.phone,
+                    email=member.email,
+                    date_of_birth=member.date_of_birth,
+                    gender=member.gender,
+                    account_status=member.status,
+                    member_number=member.member_number or "",
+                    created_at=member.created_at,
+                    subscription_id=subscription.id if subscription else None,
+                    plan_name=subscription.plan_name if subscription else None,
+                    starts_on=subscription.starts_on if subscription else None,
+                    ends_on=subscription.ends_on if subscription else None,
+                    status=subscription.status if subscription else None,
+                    effective_status=effective_status,
+                    days_remaining=days_remaining,
+                    has_active_coaching=has_active_service(coaching_subscription),
+                    has_active_recovery=has_active_service(recovery_subscription),
+                )
+            )
+
+        def renewal_priority(item: MemberSubscriptionSummary) -> tuple[int, int, str]:
+            if item.days_remaining is None:
+                return (3, 0, item.full_name.casefold())
+            if item.days_remaining < 0:
+                return (0, abs(item.days_remaining), item.full_name.casefold())
+            if item.effective_status == SubscriptionStatus.EXPIRING_SOON:
+                return (1, item.days_remaining, item.full_name.casefold())
+            return (2, item.days_remaining, item.full_name.casefold())
+
+        return sorted(summaries, key=renewal_priority)[:limit]
 
     def synchronize_status(self, subscription: Subscription, actor: User) -> SubscriptionStatus:
         effective = self.effective_status(subscription)
@@ -157,6 +232,69 @@ class MembershipService:
             entity_id=subscription.id,
             previous_value={"status": previous.value},
             new_value={"status": data.status.value},
+            reason=data.reason,
+        )
+        return subscription
+
+    def update_dates(
+        self, subscription_id: uuid.UUID, data: SubscriptionDatesUpdate, actor: User
+    ) -> Subscription:
+        subscription = self.repository.get_subscription(subscription_id)
+        if not subscription:
+            raise api_error(
+                status.HTTP_404_NOT_FOUND, "subscription_not_found", "Abonnement introuvable."
+            )
+        effective_status = self.effective_status(subscription)
+        if effective_status in {
+            SubscriptionStatus.CANCELLED,
+            SubscriptionStatus.EXPIRED,
+        }:
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "inactive_subscription_dates_locked",
+                "Les dates d'un abonnement annule ou expire ne peuvent pas etre modifiees.",
+            )
+
+        previous = {
+            "starts_on": subscription.starts_on.isoformat(),
+            "ends_on": subscription.ends_on.isoformat(),
+            "grace_ends_on": subscription.grace_ends_on.isoformat(),
+        }
+        previous_status = subscription.status
+        grace_days = self.get_setting_int("subscription_grace_days")
+        subscription.starts_on = data.starts_on
+        subscription.ends_on = add_months(data.starts_on, subscription.duration_months) - timedelta(
+            days=1
+        )
+        subscription.grace_ends_on = subscription.ends_on + timedelta(days=grace_days)
+        if subscription.status in {
+            SubscriptionStatus.EXPIRING_SOON,
+            SubscriptionStatus.GRACE_PERIOD,
+        }:
+            subscription.status = SubscriptionStatus.ACTIVE
+        current = {
+            "starts_on": subscription.starts_on.isoformat(),
+            "ends_on": subscription.ends_on.isoformat(),
+            "grace_ends_on": subscription.grace_ends_on.isoformat(),
+        }
+        self.repository.add_event(
+            SubscriptionEvent(
+                subscription_id=subscription.id,
+                event_type="dates_changed",
+                previous_status=previous_status,
+                new_status=subscription.status,
+                details={"previous": previous, "current": current, "reason": data.reason},
+                actor_id=actor.id,
+            )
+        )
+        self.session.flush()
+        self.audit.record(
+            actor=actor,
+            action="subscription.dates_changed",
+            entity_type="subscription",
+            entity_id=subscription.id,
+            previous_value=previous,
+            new_value=current,
             reason=data.reason,
         )
         return subscription

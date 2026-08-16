@@ -14,7 +14,7 @@ class ApplicationCreate(BaseModel):
     date_of_birth: date | None = None
     gender: Gender | None = None
     selected_plan_id: uuid.UUID
-    fitness_objective: str = Field(min_length=2, max_length=500)
+    fitness_objective: str | None = Field(default=None, max_length=500)
     message: str | None = Field(default=None, max_length=2000)
 
     @field_validator("phone")
@@ -38,7 +38,7 @@ class ApplicationRead(BaseModel):
     date_of_birth: date | None
     gender: Gender | None
     selected_plan_id: uuid.UUID
-    fitness_objective: str
+    fitness_objective: str | None
     message: str | None
     status: ApplicationStatus
     review_reason: str | None

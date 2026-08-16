@@ -33,3 +33,15 @@ def get_printable_receipt(receipt_id: uuid.UUID, session: DbSession, actor: Curr
     if actor.role not in {UserRole.ADMIN, UserRole.RECEPTIONIST} and payment.member_id != actor.id:
         raise api_error(403, "permission_denied", "Accès interdit.")
     return PaymentService(session).printable_receipt(receipt_id)
+
+
+@router.get("/members/{member_id}/receipts", response_model=list[PrintableReceiptData])
+def list_member_receipts(member_id: uuid.UUID, session: DbSession, actor: CurrentUser):
+    if actor.role not in {UserRole.ADMIN, UserRole.RECEPTIONIST} and actor.id != member_id:
+        raise api_error(403, "permission_denied", "Accès interdit.")
+    repository = PaymentRepository(session)
+    service = PaymentService(session)
+    return [
+        service.printable_receipt(receipt.id)
+        for receipt in repository.list_member_receipts(member_id)
+    ]

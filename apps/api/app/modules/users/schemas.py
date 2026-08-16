@@ -44,3 +44,17 @@ class UserUpdateRoleStatus(BaseModel):
     role: UserRole | None = None
     status: AccountStatus | None = None
     reason: str = Field(min_length=3, max_length=500)
+
+
+class MemberProfileUpdate(BaseModel):
+    full_name: str = Field(min_length=2, max_length=160)
+    phone: str
+    email: EmailStr | None = None
+    date_of_birth: date | None = None
+    gender: Gender | None = None
+    reason: str = Field(min_length=3, max_length=500)
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone_number(cls, value: str) -> str:
+        return normalize_phone(value)

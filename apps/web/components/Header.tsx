@@ -1,10 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Menu, X, Dumbbell } from "lucide-react";
-import { Button } from "@masterz/ui";
+import { usePathname, useRouter } from "next/navigation";
+import { LayoutDashboard, LogIn, LogOut, Menu, X } from "lucide-react";
+import { buttonStyles } from "@masterz/ui";
+import { api } from "@/lib/api";
+import {
+  AUTH_CHANGED_EVENT,
+  clearSession,
+  dashboardPath,
+  getSession,
+  type AuthSession,
+} from "@/lib/auth";
+import { BrandLogo } from "./BrandLogo";
+import { TopBanner } from "./TopBanner";
 
 const navLinks = [
   { name: "Accueil", href: "/" },
@@ -18,100 +28,188 @@ const navLinks = [
 ];
 
 export function Header() {
-  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [session, setSession] = useState<AuthSession | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+    const syncSession = () => setSession(getSession());
+    syncSession();
+    window.addEventListener(AUTH_CHANGED_EVENT, syncSession);
+    window.addEventListener("storage", syncSession);
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, syncSession);
+      window.removeEventListener("storage", syncSession);
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [pathname]);
+
+  async function handleLogout() {
+    if (session) {
+      await api.POST("/api/v1/auth/logout", {
+        body: { refresh_token: session.refreshToken },
+        headers: { Authorization: `Bearer ${session.accessToken}` },
+      });
+    }
+    clearSession();
+    setSession(null);
+    router.push("/");
+  }
 
   return (
-    <header
-      className={`fixed left-0 right-0 top-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-background/95 backdrop-blur-md shadow-md" : "bg-transparent"
-      }`}
-    >
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
-        {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2 text-white">
-          <Dumbbell className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold uppercase tracking-wider">
-            The Masterz Gym
-          </span>
-        </Link>
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0a1118]/95 shadow-[0_12px_40px_rgba(0,0,0,0.26)] backdrop-blur-xl">
+      <TopBanner />
+      <div className="mx-auto flex h-[72px] max-w-[1500px] items-center gap-5 px-4 sm:px-6">
+        <BrandLogo compact />
 
-        {/* Desktop Navigation */}
-        <nav className="hidden items-center space-x-6 lg:flex">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                pathname === link.href ? "text-primary" : "text-gray-300"
-              }`}
-            >
-              {link.name}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Auth Buttons */}
-        <div className="hidden items-center space-x-4 lg:flex">
-          <Link href="/connexion">
-            <Button variant="ghost" className="text-gray-300 hover:text-white">
-              Se connecter
-            </Button>
-          </Link>
-          <Link href="/inscription">
-            <Button variant="primary">S&apos;inscrire</Button>
-          </Link>
-        </div>
-
-        {/* Mobile Menu Toggle */}
-        <button
-          className="lg:hidden text-white hover:text-primary"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        <nav
+          className="ml-auto hidden min-w-0 items-center gap-3.5 xl:flex 2xl:gap-5"
+          aria-label="Navigation principale"
         >
-          {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
-      </div>
-
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="absolute top-20 left-0 w-full bg-background border-t border-border lg:hidden shadow-lg">
-          <nav className="flex flex-col p-6 space-y-4">
-            {navLinks.map((link) => (
+          {navLinks.map((link) => {
+            const active = pathname === link.href;
+            return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-lg font-medium transition-colors hover:text-primary ${
-                  pathname === link.href ? "text-primary" : "text-gray-300"
+                className={`whitespace-nowrap border-b py-2 text-[0.67rem] font-extrabold uppercase tracking-[0.055em] transition-colors hover:text-primary 2xl:text-[0.72rem] ${
+                  active
+                    ? "border-primary text-primary"
+                    : "border-transparent text-gray-300"
                 }`}
-                onClick={() => setIsMobileMenuOpen(false)}
               >
                 {link.name}
               </Link>
-            ))}
-            <div className="flex flex-col space-y-4 pt-4 border-t border-border">
-              <Link href="/connexion" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button variant="outline" className="w-full">
-                  Se connecter
-                </Button>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto hidden shrink-0 items-center gap-2 xl:ml-2 xl:flex">
+          {session ? (
+            <>
+              <Link
+                href={dashboardPath(session.user.role)}
+                className={buttonStyles({ size: "sm" })}
+              >
+                <LayoutDashboard className="h-3.5 w-3.5" /> Mon espace
               </Link>
-              <Link href="/inscription" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button variant="primary" className="w-full">
-                  S&apos;inscrire
-                </Button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className={buttonStyles({ variant: "ghost", size: "sm" })}
+              >
+                <LogOut className="h-3.5 w-3.5" /> Sortir
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/connexion"
+                className={buttonStyles({ variant: "ghost", size: "sm" })}
+              >
+                <LogIn className="h-3.5 w-3.5" /> Connexion
               </Link>
+              <Link
+                href="/inscription"
+                className={buttonStyles({ size: "sm" })}
+              >
+                S’inscrire
+              </Link>
+            </>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="ml-auto flex h-11 w-11 items-center justify-center rounded-sm border border-white/15 text-white transition hover:border-primary hover:text-primary xl:hidden"
+          onClick={() => setIsMobileMenuOpen((open) => !open)}
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-navigation"
+          aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+        >
+          {isMobileMenuOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <Menu className="h-6 w-6" />
+          )}
+        </button>
+      </div>
+
+      {isMobileMenuOpen ? (
+        <div
+          id="mobile-navigation"
+          className="absolute left-0 top-full h-[calc(100svh-120px)] w-full overflow-y-auto border-t border-white/10 bg-[#071018] shadow-2xl sm:h-[calc(100svh-107px)] xl:hidden"
+        >
+          <nav
+            className="mx-auto grid max-w-3xl gap-1 p-5 sm:p-7"
+            aria-label="Navigation mobile"
+          >
+            {navLinks.map((link) => {
+              const active = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`border-l-2 px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-colors hover:border-primary hover:bg-white/5 hover:text-primary ${
+                    active
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-transparent text-gray-300"
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              );
+            })}
+            <div className="mt-4 grid gap-3 border-t border-white/10 pt-5 sm:grid-cols-2">
+              {session ? (
+                <>
+                  <Link
+                    href={dashboardPath(session.user.role)}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={buttonStyles({ className: "w-full" })}
+                  >
+                    Mon espace
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      void handleLogout();
+                    }}
+                    className={buttonStyles({
+                      variant: "outline",
+                      className: "w-full",
+                    })}
+                  >
+                    Se déconnecter
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/connexion"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={buttonStyles({
+                      variant: "outline",
+                      className: "w-full",
+                    })}
+                  >
+                    Se connecter
+                  </Link>
+                  <Link
+                    href="/inscription"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={buttonStyles({ className: "w-full" })}
+                  >
+                    S’inscrire
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         </div>
-      )}
+      ) : null}
     </header>
   );
 }

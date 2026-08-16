@@ -46,6 +46,12 @@ class SubscriptionStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class ServiceType(StrEnum):
+    GYM = "gym"
+    COACHING = "coaching"
+    RECOVERY = "recovery"
+
+
 class PaymentMethod(StrEnum):
     CASH = "cash"
     BANK_CARD = "bank_card"

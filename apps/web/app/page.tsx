@@ -1,261 +1,455 @@
-import React from "react";
 import Link from "next/link";
-import { HeroSection } from "@/components/sections/HeroSection";
+import {
+  Activity,
+  ArrowRight,
+  ArrowUpRight,
+  BatteryCharging,
+  Beef,
+  CircleGauge,
+  Clock3,
+  Coffee,
+  Dumbbell,
+  HeartPulse,
+  MapPin,
+  Medal,
+  Phone,
+  ScanLine,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Target,
+  Users,
+  Waves,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  Pill,
+  SectionTitle,
+  buttonStyles,
+} from "@masterz/ui";
+import { ClubMediaShowcase } from "@/components/ClubMediaShowcase";
+import { FinalCTA } from "@/components/FinalCTA";
 import { MembershipPlansList } from "@/components/MembershipPlansList";
-import { SectionTitle, Card, CardContent, CardHeader, CardTitle, Button } from "@masterz/ui";
-import { Dumbbell, Activity, Heart, Clock, MapPin } from "lucide-react";
-import { reviews } from "@/lib/mock-data";
+import { SectionShell } from "@/components/SectionShell";
+import { HeroSection } from "@/components/sections/HeroSection";
 
-// ---- SECTIONS ----
+const services = [
+  {
+    icon: Dumbbell,
+    title: "Musculation & cardio",
+    description:
+      "Des zones pensées pour construire votre force, votre endurance et votre régularité.",
+    href: "/la-salle",
+    code: "01",
+  },
+  {
+    icon: Target,
+    title: "Coaching",
+    description:
+      "Un cadre clair, une technique maîtrisée et un suivi aligné sur votre objectif.",
+    href: "/coaching",
+    code: "02",
+  },
+  {
+    icon: ScanLine,
+    title: "Analyse corporelle",
+    description:
+      "Des indicateurs concrets pour comprendre votre point de départ et mesurer vos progrès.",
+    href: "/analyse-corporelle",
+    code: "03",
+  },
+  {
+    icon: HeartPulse,
+    title: "Recovery",
+    description:
+      "Un cycle dédié à la récupération pour mieux enchaîner vos entraînements.",
+    href: "/recovery",
+    code: "04",
+  },
+  {
+    icon: Coffee,
+    title: "Healthy Café",
+    description:
+      "Une pause nutrition pensée pour accompagner votre rythme avant ou après la séance.",
+    href: "/healthy-cafe",
+    code: "05",
+  },
+];
 
-function AboutSection() {
-  return (
-    <section className="py-24 px-6 bg-surface">
-      <div className="mx-auto max-w-7xl">
-        <SectionTitle
-          title="Plus qu&apos;une salle de sport"
-          subtitle="Découvrez une ambiance unique où se mêlent effort, technologie et détente, dans la salle la plus moderne de Kénitra."
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
-          <Card className="bg-background border-border">
-            <CardHeader>
-              <Dumbbell className="h-10 w-10 text-primary mb-4" />
-              <CardTitle>Équipement Premium</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-400">
-                Des machines de dernière génération pour la musculation et le cardio, adaptées à tous les niveaux.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-background border-border">
-            <CardHeader>
-              <Activity className="h-10 w-10 text-primary mb-4" />
-              <CardTitle>Analyse Corporelle</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-400">
-                Suivez votre évolution de près (masse musculaire, graisse, hydratation) pour des décisions d&apos;entraînement ciblées.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-background border-border">
-            <CardHeader>
-              <Heart className="h-10 w-10 text-primary mb-4" />
-              <CardTitle>Recovery & Bien-être</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-400">
-                Sauna, bains glacés et bottes de compression pour récupérer comme un athlète de haut niveau.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function AtmosphereSection() {
-  return (
-    <section className="py-24 px-6 bg-background">
-      <div className="mx-auto max-w-7xl">
-        <SectionTitle title="L&apos;Atmosphère The Masterz" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="h-64 bg-surface rounded-xl flex items-center justify-center text-gray-500 uppercase tracking-widest text-xs border border-border">Musculation</div>
-          <div className="h-64 bg-surface rounded-xl flex items-center justify-center text-gray-500 uppercase tracking-widest text-xs border border-border">Cardio</div>
-          <div className="h-64 bg-surface rounded-xl flex items-center justify-center text-gray-500 uppercase tracking-widest text-xs border border-border">Recovery</div>
-          <div className="h-64 bg-surface rounded-xl flex items-center justify-center text-gray-500 uppercase tracking-widest text-xs border border-border">Réception</div>
-          <div className="h-64 bg-surface rounded-xl flex items-center justify-center text-gray-500 uppercase tracking-widest text-xs border border-border">Machines</div>
-          <div className="h-64 bg-surface rounded-xl flex items-center justify-center text-gray-500 uppercase tracking-widest text-xs border border-border">Ambiance</div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function PlansSection() {
-  return (
-    <section className="py-24 px-6 bg-surface">
-      <div className="mx-auto max-w-7xl">
-        <SectionTitle
-          title="Nos Formules"
-          subtitle="Des abonnements flexibles pour répondre à vos objectifs sportifs."
-        />
-        <div className="mt-16">
-          <MembershipPlansList />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function TrustSection() {
-  return (
-    <section className="py-24 px-6 bg-background">
-      <div className="mx-auto max-w-7xl">
-        <SectionTitle title="Ils nous font confiance" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {reviews.map((review) => (
-            <Card key={review.id} className="bg-surface border-border">
-              <CardContent className="pt-6">
-                <div className="flex text-yellow-400 mb-4">
-                  {[...Array(review.rating)].map((_, i) => (
-                    <span key={i}>★</span>
-                  ))}
-                </div>
-                <p className="text-gray-300 italic">&quot;{review.text}&quot;</p>
-                <p className="text-sm text-gray-500 mt-4">{review.date}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function FinalCTA() {
-  return (
-    <section className="py-32 px-6 bg-primary text-black text-center">
-      <div className="mx-auto max-w-3xl">
-        <h2 className="text-4xl md:text-5xl font-black uppercase mb-8">Prêt à commencer votre transformation ?</h2>
-        <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6">
-          <Link href="/inscription">
-            <Button size="lg" className="w-full sm:w-auto bg-black text-white hover:bg-gray-900 border-none">
-              S&apos;inscrire maintenant
-            </Button>
-          </Link>
-          <Link href="/abonnements">
-            <Button size="lg" variant="outline" className="w-full sm:w-auto border-black text-black hover:bg-black hover:text-white">
-              Découvrir les abonnements
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ---- MAIN PAGE COMPONENT ----
-
-function ServicesSection() {
-  const services = [
-    { title: "Musculation et cardio", desc: "Des équipements dernière génération pour sculpter votre corps.", link: "/la-salle" },
-    { title: "Coaching personnel", desc: "Un accompagnement sur-mesure avec nos experts.", link: "/coaching" },
-    { title: "Analyse corporelle", desc: "Mesurez vos progrès avec précision.", link: "/analyse-corporelle" },
-    { title: "Cycle de récupération", desc: "Sauna, bain glacé et compression pour récupérer plus vite.", link: "/recovery" },
-    { title: "Healthy Café", desc: "Boissons et repas adaptés à vos besoins nutritionnels.", link: "/healthy-cafe" },
-  ];
-
-  return (
-    <section className="py-24 px-6 bg-background">
-      <div className="mx-auto max-w-7xl">
-        <SectionTitle title="Nos Services" subtitle="Une gamme complète pour atteindre vos objectifs" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
-          {services.map((s, i) => (
-            <Card key={i} className="bg-surface border-border flex flex-col hover:border-primary transition-colors group">
-              <div className="h-48 bg-background flex items-center justify-center rounded-t-xl overflow-hidden border-b border-border">
-                <span className="text-gray-600 text-xs uppercase tracking-widest group-hover:text-primary transition-colors">Visuel {s.title}</span>
-              </div>
-              <CardHeader>
-                <CardTitle className="text-xl">{s.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
-                <p className="text-gray-400 mb-6 flex-1">{s.desc}</p>
-                <Link href={s.link} className="text-primary font-semibold hover:underline flex items-center">
-                  En savoir plus <span className="ml-2">→</span>
-                </Link>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ContactAndHoursSection() {
-  // Simple check if gym is open today
-  let isOpen = false;
-  if (typeof window !== "undefined") {
-    const hour = new Date().getHours();
-    const day = new Date().getDay(); // 0 = Sunday
-    if (day >= 1 && day <= 5) isOpen = hour >= 6 && hour < 24;
-    else if (day === 6) isOpen = hour >= 8 && hour < 20;
-    else if (day === 0) isOpen = hour >= 10 && hour < 16;
-  }
-
-  return (
-    <section className="py-24 px-6 bg-surface">
-      <div className="mx-auto max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-          <div>
-            <SectionTitle title="Horaires d&apos;ouverture" className="text-left mb-8" />
-            <div className="bg-background rounded-xl p-8 border border-border">
-              <div className="mb-6 flex items-center space-x-3">
-                <Clock className="h-6 w-6 text-primary" />
-                <span className="text-lg font-medium">Statut Actuel : </span>
-                <span className={`px-3 py-1 rounded-full text-sm font-bold ${isOpen ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
-                  {isOpen ? "OUVERT" : "FERMÉ"}
-                </span>
-              </div>
-              <ul className="space-y-4 text-gray-300">
-                <li className="flex justify-between border-b border-border pb-4">
-                  <span className="font-medium">Lundi - Vendredi</span>
-                  <span>06:00 - 00:00</span>
-                </li>
-                <li className="flex justify-between border-b border-border pb-4">
-                  <span className="font-medium">Samedi</span>
-                  <span>08:00 - 20:00</span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="font-medium">Dimanche</span>
-                  <span>10:00 - 16:00</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div>
-            <SectionTitle title="Localisation & Contact" className="text-left mb-8" />
-            <div className="h-64 bg-background rounded-xl flex items-center justify-center border border-border mb-8">
-               <span className="text-gray-600 text-xs uppercase tracking-widest">Carte Interactive Placeholder</span>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-start space-x-4">
-                <MapPin className="h-6 w-6 text-primary flex-shrink-0" />
-                <span className="text-gray-300">Av. Said Daoudi, Kénitra, Maroc</span>
-              </div>
-              <div className="flex items-center space-x-4">
-                <Button variant="outline" className="flex-1">
-                  Itinéraire
-                </Button>
-                <Link href="/contact" className="flex-1">
-                  <Button variant="primary" className="w-full">
-                    Nous contacter
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
+const recoverySteps = [
+  {
+    icon: Waves,
+    number: "01",
+    title: "Chaleur",
+    text: "Relâcher les tensions et préparer le corps à récupérer.",
+  },
+  {
+    icon: BatteryCharging,
+    number: "02",
+    title: "Froid",
+    text: "Créer un contraste tonique après l’effort.",
+  },
+  {
+    icon: Activity,
+    number: "03",
+    title: "Compression",
+    text: "Terminer le cycle avec une sensation de jambes plus légères.",
+  },
+];
 
 export default function HomePage() {
-
   return (
     <div className="w-full">
       <HeroSection />
-      <AboutSection />
-      <AtmosphereSection />
-      <ServicesSection />
-      <PlansSection />
-      <TrustSection />
-      <ContactAndHoursSection />
+
+      <SectionShell id="experience" tone="surface">
+        <div className="grid items-center gap-12 lg:grid-cols-[0.88fr_1.12fr] lg:gap-20">
+          <div>
+            <SectionTitle
+              eyebrow="L’expérience Masterz"
+              title="Plus qu’une salle. Un écosystème de performance."
+              subtitle="Chaque espace a une fonction : vous entraîner avec intensité, suivre votre évolution et récupérer avec méthode. Le tout dans une ambiance exigeante, propre et accessible."
+              align="left"
+            />
+            <div className="grid gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 sm:grid-cols-3">
+              {[
+                { value: "Mixte", label: "Un espace pour tous" },
+                { value: "360°", label: "Train · Track · Recover" },
+                { value: "Kénitra", label: "Votre club local" },
+              ].map((item) => (
+                <div key={item.value} className="bg-[#071018] p-5">
+                  <p className="font-display text-2xl font-black uppercase text-primary">
+                    {item.value}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">{item.label}</p>
+                </div>
+              ))}
+            </div>
+            <Link
+              href="/la-salle"
+              className={buttonStyles({
+                variant: "outline",
+                className: "mt-8",
+              })}
+            >
+              Entrer dans la salle <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <ClubMediaShowcase />
+        </div>
+      </SectionShell>
+
+      <SectionShell>
+        <SectionTitle
+          eyebrow="Tout au même endroit"
+          title="Un parcours complet autour de votre objectif."
+          subtitle="Des services complémentaires, réunis pour transformer l’effort en progression durable."
+        />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {services.map(({ icon: Icon, ...service }, index) => (
+            <Link
+              key={service.href}
+              href={service.href}
+              className={`group relative min-h-[285px] overflow-hidden rounded-lg border border-white/10 bg-[#080e13] p-7 transition duration-300 hover:-translate-y-1 hover:border-primary/50 ${index === 0 ? "lg:col-span-2" : ""}`}
+            >
+              <div className="absolute right-0 top-0 h-32 w-32 bg-[radial-gradient(circle_at_top_right,rgba(0,212,255,.16),transparent_65%)]" />
+              <div className="flex items-start justify-between gap-4">
+                <span className="flex h-12 w-12 items-center justify-center rounded-sm border border-primary/20 bg-primary/10 text-primary">
+                  <Icon className="h-6 w-6" />
+                </span>
+                <span className="font-display text-5xl font-black text-white/[0.045]">
+                  {service.code}
+                </span>
+              </div>
+              <h3 className="mt-10 font-display text-2xl font-black uppercase tracking-[-0.03em] text-white sm:text-3xl">
+                {service.title}
+              </h3>
+              <p className="mt-4 max-w-xl text-sm leading-6 text-gray-400">
+                {service.description}
+              </p>
+              <span className="mt-7 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-primary">
+                Découvrir{" "}
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </SectionShell>
+
+      <SectionShell tone="blue">
+        <div className="mb-12 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+          <SectionTitle
+            eyebrow="Abonnements"
+            title="Choisissez votre rythme. Nous cadrons la suite."
+            subtitle="Les offres affichées ci-dessous proviennent directement du système d’abonnements Masterz."
+            align="left"
+            className="mb-0 max-w-3xl"
+          />
+          <Pill className="self-start border-primary/25 text-primary lg:self-end">
+            <ShieldCheck className="h-4 w-4" /> Données API en temps réel
+          </Pill>
+        </div>
+        <MembershipPlansList />
+      </SectionShell>
+
+      <SectionShell>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <SpotlightCard
+            eyebrow="Coaching"
+            title="La bonne méthode change tout."
+            text="Technique, intensité, régularité : le coaching remet chaque variable à sa place pour vous faire avancer avec confiance."
+            href="/coaching"
+            icon={<Medal className="h-8 w-8" />}
+          >
+            <div className="mt-8 grid grid-cols-3 gap-2">
+              {["Bilan", "Plan", "Suivi"].map((item, index) => (
+                <div key={item} className="border-t border-primary/30 pt-3">
+                  <span className="text-[0.62rem] font-black text-primary">
+                    0{index + 1}
+                  </span>
+                  <p className="mt-1 text-xs font-bold uppercase tracking-[0.08em] text-gray-300">
+                    {item}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </SpotlightCard>
+          <SpotlightCard
+            eyebrow="Analyse corporelle"
+            title="Mesurez ce que vous voulez améliorer."
+            text="Une lecture structurée de vos indicateurs pour ajuster l’entraînement et donner du sens à chaque étape."
+            href="/analyse-corporelle"
+            icon={<CircleGauge className="h-8 w-8" />}
+          >
+            <div className="mt-8 flex flex-wrap gap-2">
+              {["Composition", "Évolution", "Objectifs"].map((item) => (
+                <Pill key={item}>{item}</Pill>
+              ))}
+            </div>
+          </SpotlightCard>
+        </div>
+      </SectionShell>
+
+      <SectionShell tone="surface">
+        <div className="grid gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:gap-20">
+          <div>
+            <SectionTitle
+              eyebrow="Recovery"
+              title="Entraînez-vous fort. Récupérez intelligemment."
+              subtitle="Le cycle Recovery complète votre séance avec une succession cohérente d’expériences dédiées au retour au calme."
+              align="left"
+            />
+            <Link
+              href="/recovery"
+              className={buttonStyles({ variant: "outline" })}
+            >
+              Découvrir le cycle <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid gap-3">
+            {recoverySteps.map(({ icon: Icon, number, title, text }) => (
+              <div
+                key={number}
+                className="grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-lg border border-white/10 bg-black/25 p-5 transition hover:border-primary/30"
+              >
+                <span className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <div>
+                  <h3 className="font-display text-xl font-black uppercase text-white">
+                    {title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-gray-500">{text}</p>
+                </div>
+                <span className="font-display text-3xl font-black text-white/10">
+                  {number}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </SectionShell>
+
+      <SectionShell>
+        <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
+          <article className="relative overflow-hidden rounded-lg border border-primary/20 bg-[linear-gradient(135deg,#07131d,#09203a)] p-7 sm:p-10">
+            <Beef className="h-10 w-10 text-primary" />
+            <p className="mt-10 text-xs font-black uppercase tracking-[0.24em] text-primary">
+              Healthy Café
+            </p>
+            <h2 className="mt-3 max-w-xl font-display text-3xl font-black uppercase leading-[0.95] tracking-[-0.035em] text-white sm:text-4xl">
+              Le bon choix, avant comme après la séance.
+            </h2>
+            <p className="mt-5 max-w-xl text-sm leading-7 text-gray-300">
+              Des options pensées pour l’énergie, l’hydratation et la
+              récupération, préparées au cœur du club.
+            </p>
+            <Link
+              href="/healthy-cafe"
+              className={buttonStyles({ className: "mt-8" })}
+            >
+              Voir l’univers café <ArrowUpRight className="h-4 w-4" />
+            </Link>
+            <div className="absolute -bottom-24 -right-16 h-64 w-64 rounded-full border-[45px] border-primary/[0.07]" />
+          </article>
+          <article className="rounded-lg border border-white/10 bg-[#080e13] p-7 sm:p-10">
+            <Sparkles className="h-10 w-10 text-primary" />
+            <p className="mt-10 text-xs font-black uppercase tracking-[0.24em] text-primary">
+              Standard Masterz
+            </p>
+            <h2 className="mt-3 font-display text-3xl font-black uppercase leading-[0.95] tracking-[-0.035em] text-white">
+              Une expérience tenue dans le détail.
+            </h2>
+            <ul className="mt-7 space-y-4 text-sm text-gray-300">
+              {[
+                "Des espaces lisibles et structurés",
+                "Un accompagnement humain",
+                "Une logique complète de progression",
+              ].map((item) => (
+                <li key={item} className="flex gap-3">
+                  <ShieldCheck className="h-5 w-5 shrink-0 text-primary" />{" "}
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </article>
+        </div>
+      </SectionShell>
+
+      <SectionShell tone="blue">
+        <div className="grid items-center gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:gap-16">
+          <div>
+            <div className="flex gap-1 text-primary" aria-label="Cinq étoiles">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Star key={index} className="h-5 w-5 fill-current" />
+              ))}
+            </div>
+            <h2 className="mt-6 font-display text-4xl font-black uppercase leading-[0.92] tracking-[-0.04em] text-white md:text-5xl">
+              La confiance se gagne à chaque séance.
+            </h2>
+            <p className="mt-5 text-sm leading-7 text-gray-400">
+              Équipement, accueil, propreté et accompagnement : l’expérience est
+              évaluée dans son ensemble, pas seulement sur la séance du jour.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              {
+                icon: Users,
+                title: "Salle mixte",
+                text: "Un cadre exigeant et accueillant.",
+              },
+              {
+                icon: ShieldCheck,
+                title: "Équipe présente",
+                text: "Des repères quand vous en avez besoin.",
+              },
+              {
+                icon: Sparkles,
+                title: "Club soigné",
+                text: "Le confort fait partie de la performance.",
+              },
+            ].map(({ icon: Icon, title, text }) => (
+              <Card key={title} className="bg-black/20">
+                <CardContent className="p-6">
+                  <Icon className="h-7 w-7 text-primary" />
+                  <h3 className="mt-8 font-display text-xl font-black uppercase text-white">
+                    {title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-gray-500">{text}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </SectionShell>
+
+      <SectionShell>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div className="rounded-lg border border-white/10 bg-[#080e13] p-7 sm:p-10">
+            <Clock3 className="h-8 w-8 text-primary" />
+            <p className="mt-8 text-xs font-black uppercase tracking-[0.24em] text-primary">
+              Horaires
+            </p>
+            <h2 className="mt-3 font-display text-3xl font-black uppercase text-white sm:text-4xl">
+              Votre séance, à votre rythme.
+            </h2>
+            <p className="mt-5 max-w-xl text-sm leading-7 text-gray-400">
+              La salle propose des plages d’accès étendues. Les horaires du jour
+              sont confirmés par l’accueil et sur les canaux officiels du club.
+            </p>
+            <a
+              href="tel:+212764536280"
+              className={buttonStyles({
+                variant: "outline",
+                className: "mt-8",
+              })}
+            >
+              <Phone className="h-4 w-4" /> Confirmer les horaires
+            </a>
+          </div>
+          <div className="relative overflow-hidden rounded-lg border border-white/10 bg-[radial-gradient(circle_at_75%_20%,rgba(0,212,255,.18),transparent_35%),#071018] p-7 sm:p-10">
+            <MapPin className="h-8 w-8 text-primary" />
+            <p className="mt-8 text-xs font-black uppercase tracking-[0.24em] text-primary">
+              Kénitra
+            </p>
+            <h2 className="mt-3 font-display text-3xl font-black uppercase text-white sm:text-4xl">
+              Retrouvez-nous sur place.
+            </h2>
+            <p className="mt-5 text-sm leading-7 text-gray-400">
+              Av. Said Daoudi, Kénitra, Maroc. L’équipe vous accueille pour
+              découvrir les espaces et choisir votre formule.
+            </p>
+            <Link
+              href="/contact"
+              className={buttonStyles({ className: "mt-8" })}
+            >
+              Contact & itinéraire <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </SectionShell>
+
       <FinalCTA />
     </div>
+  );
+}
+
+function SpotlightCard({
+  eyebrow,
+  title,
+  text,
+  href,
+  icon,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  text: string;
+  href: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <article className="relative overflow-hidden rounded-lg border border-white/10 bg-[#080e13] p-7 sm:p-9">
+      <div className="flex h-14 w-14 items-center justify-center rounded-sm border border-primary/25 bg-primary/10 text-primary">
+        {icon}
+      </div>
+      <p className="mt-10 text-xs font-black uppercase tracking-[0.24em] text-primary">
+        {eyebrow}
+      </p>
+      <h2 className="mt-3 font-display text-3xl font-black uppercase leading-[0.95] tracking-[-0.035em] text-white sm:text-4xl">
+        {title}
+      </h2>
+      <p className="mt-5 max-w-xl text-sm leading-7 text-gray-400">{text}</p>
+      {children}
+      <Link
+        href={href}
+        className="mt-8 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-primary"
+      >
+        En savoir plus <ArrowRight className="h-4 w-4" />
+      </Link>
+    </article>
   );
 }

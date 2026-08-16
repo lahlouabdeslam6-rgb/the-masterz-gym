@@ -36,3 +36,13 @@ class PaymentRepository:
 
     def get_receipt(self, receipt_id: uuid.UUID) -> Receipt | None:
         return self.session.get(Receipt, receipt_id)
+
+    def list_member_receipts(self, member_id: uuid.UUID) -> list[Receipt]:
+        return list(
+            self.session.scalars(
+                select(Receipt)
+                .join(Payment, Payment.id == Receipt.payment_id)
+                .where(Payment.member_id == member_id)
+                .order_by(Receipt.issued_at.desc())
+            )
+        )

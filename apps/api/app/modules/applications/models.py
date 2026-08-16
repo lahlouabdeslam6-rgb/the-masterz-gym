@@ -21,7 +21,7 @@ class MembershipApplication(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     selected_plan_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("membership_plans.id"), nullable=False
     )
-    fitness_objective: Mapped[str] = mapped_column(String(500), nullable=False)
+    fitness_objective: Mapped[str | None] = mapped_column(String(500), nullable=True)
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[ApplicationStatus] = mapped_column(
         Enum(ApplicationStatus, name="application_status"),

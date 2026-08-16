@@ -1,8 +1,11 @@
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.dependencies import DbSession, require_roles
+from app.core.dependencies import CurrentUser, DbSession, require_roles
+from app.core.errors import api_error
+from app.modules.attendance.repository import AttendanceRepository
 from app.modules.attendance.schemas import AttendanceCreate, AttendanceRead, MemberSearchResult
 from app.modules.attendance.service import AttendanceService
 from app.modules.users.models import User
@@ -26,3 +29,15 @@ def search_members(
 @router.post("/check-ins", response_model=AttendanceRead, status_code=status.HTTP_201_CREATED)
 def check_in(data: AttendanceCreate, session: DbSession, actor: Reception):
     return AttendanceService(session).check_in(data, actor)
+
+
+@router.get("/members/{member_id}", response_model=list[AttendanceRead])
+def list_member_attendance(
+    member_id: uuid.UUID,
+    session: DbSession,
+    actor: CurrentUser,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+):
+    if actor.role not in {UserRole.ADMIN, UserRole.RECEPTIONIST} and actor.id != member_id:
+        raise api_error(403, "permission_denied", "Accès interdit.")
+    return AttendanceRepository(session).list_member_attendance(member_id, limit=limit)

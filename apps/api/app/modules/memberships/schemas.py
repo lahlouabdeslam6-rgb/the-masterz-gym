@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.shared.enums import SubscriptionStatus
+from app.shared.enums import AccountStatus, Gender, ServiceType, SubscriptionStatus
 
 
 class MembershipPlanBase(BaseModel):
@@ -13,6 +13,7 @@ class MembershipPlanBase(BaseModel):
     duration_months: int = Field(ge=1, le=120)
     price: Decimal = Field(gt=0, decimal_places=2)
     currency: str = Field(default="MAD", min_length=3, max_length=3)
+    service_type: ServiceType = ServiceType.GYM
 
 
 class MembershipPlanCreate(MembershipPlanBase):
@@ -24,6 +25,7 @@ class MembershipPlanUpdate(BaseModel):
     duration_months: int | None = Field(default=None, ge=1, le=120)
     price: Decimal | None = Field(default=None, gt=0, decimal_places=2)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
+    service_type: ServiceType | None = None
     is_active: bool | None = None
     reason: str = Field(min_length=3, max_length=500)
 
@@ -52,13 +54,40 @@ class SubscriptionRead(BaseModel):
     duration_months: int
     price: Decimal
     currency: str
+    service_type: ServiceType
     created_by_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
 
 
+class MemberSubscriptionSummary(BaseModel):
+    id: uuid.UUID
+    full_name: str
+    phone: str
+    email: str | None = None
+    date_of_birth: date | None = None
+    gender: Gender | None = None
+    account_status: AccountStatus
+    member_number: str
+    created_at: datetime
+    subscription_id: uuid.UUID | None = None
+    plan_name: str | None = None
+    starts_on: date | None = None
+    ends_on: date | None = None
+    status: SubscriptionStatus | None = None
+    effective_status: SubscriptionStatus | None = None
+    days_remaining: int | None = None
+    has_active_coaching: bool = False
+    has_active_recovery: bool = False
+
+
 class SubscriptionStatusUpdate(BaseModel):
     status: SubscriptionStatus
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class SubscriptionDatesUpdate(BaseModel):
+    starts_on: date
     reason: str = Field(min_length=3, max_length=500)
 
 

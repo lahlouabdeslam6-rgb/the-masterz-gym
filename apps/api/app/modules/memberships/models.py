@@ -19,7 +19,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
-from app.shared.enums import SubscriptionStatus
+from app.shared.enums import ServiceType, SubscriptionStatus
 from app.shared.models import TimestampMixin, UUIDPrimaryKeyMixin
 
 
@@ -34,6 +34,12 @@ class MembershipPlan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     duration_months: Mapped[int] = mapped_column(Integer, nullable=False)
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    service_type: Mapped[ServiceType] = mapped_column(
+        Enum(ServiceType, name="service_type"),
+        nullable=False,
+        default=ServiceType.GYM,
+        index=True,
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
 
@@ -72,6 +78,12 @@ class Subscription(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     duration_months: Mapped[int] = mapped_column(Integer, nullable=False)
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    service_type: Mapped[ServiceType] = mapped_column(
+        Enum(ServiceType, name="service_type", create_type=False),
+        nullable=False,
+        default=ServiceType.GYM,
+        index=True,
+    )
     created_by_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )

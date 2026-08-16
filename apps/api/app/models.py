@@ -4,6 +4,7 @@ from app.modules.applications.models import MembershipApplication
 from app.modules.attendance.models import Attendance
 from app.modules.audit.models import AuditLog
 from app.modules.auth.models import OTPChallenge, RefreshSession
+from app.modules.coaching.models import CoachMemberAssignment
 from app.modules.memberships.models import (
     MembershipPlan,
     Subscription,
@@ -16,6 +17,7 @@ from app.modules.users.models import User
 __all__ = [
     "Attendance",
     "AuditLog",
+    "CoachMemberAssignment",
     "MembershipApplication",
     "MembershipPlan",
     "OTPChallenge",

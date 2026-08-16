@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.shared.enums import PaymentMethod, SubscriptionStatus
+from app.shared.enums import PaymentMethod, ServiceType, SubscriptionStatus
 
 
 class MembershipPaymentCreate(BaseModel):
@@ -38,6 +38,7 @@ class PrintableReceiptData(BaseModel):
     subscription_id: uuid.UUID
     subscription_status: SubscriptionStatus
     plan_name: str
+    service_type: ServiceType
     starts_on: date
     ends_on: date
     amount: Decimal

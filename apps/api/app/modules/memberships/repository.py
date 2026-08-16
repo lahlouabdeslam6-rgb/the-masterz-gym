@@ -1,7 +1,7 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import and_, case, or_, select
 from sqlalchemy.orm import Session
 
 from app.modules.memberships.models import (
@@ -10,6 +10,27 @@ from app.modules.memberships.models import (
     SubscriptionEvent,
     SystemSetting,
 )
+from app.modules.users.models import User
+from app.shared.enums import ServiceType, SubscriptionStatus, UserRole
+
+RUNNING_SUBSCRIPTION_STATUSES = (
+    SubscriptionStatus.ACTIVE,
+    SubscriptionStatus.EXPIRING_SOON,
+    SubscriptionStatus.GRACE_PERIOD,
+)
+
+
+def subscription_priority(on_date: date):
+    return case(
+        (
+            and_(
+                Subscription.status.in_(RUNNING_SUBSCRIPTION_STATUSES),
+                Subscription.ends_on >= on_date,
+            ),
+            0,
+        ),
+        else_=1,
+    )
 
 
 class MembershipRepository:
@@ -24,14 +45,24 @@ class MembershipRepository:
     def get_plan(self, plan_id: uuid.UUID) -> MembershipPlan | None:
         return self.session.get(MembershipPlan, plan_id)
 
-    def list_plans(self, *, active_only: bool = False) -> list[MembershipPlan]:
+    def list_plans(
+        self,
+        *,
+        active_only: bool = False,
+        service_type: ServiceType | None = None,
+    ) -> list[MembershipPlan]:
         statement = select(MembershipPlan).order_by(MembershipPlan.duration_months)
         if active_only:
             statement = statement.where(MembershipPlan.is_active.is_(True))
+        if service_type:
+            statement = statement.where(MembershipPlan.service_type == service_type)
         return list(self.session.scalars(statement))
 
     def setting(self, key: str) -> SystemSetting | None:
         return self.session.scalar(select(SystemSetting).where(SystemSetting.key == key))
+
+    def list_settings(self) -> list[SystemSetting]:
+        return list(self.session.scalars(select(SystemSetting).order_by(SystemSetting.key)))
 
     def add_subscription(self, subscription: Subscription) -> Subscription:
         self.session.add(subscription)
@@ -41,11 +72,23 @@ class MembershipRepository:
     def get_subscription(self, subscription_id: uuid.UUID) -> Subscription | None:
         return self.session.get(Subscription, subscription_id)
 
-    def current_subscription(self, member_id: uuid.UUID) -> Subscription | None:
+    def current_subscription(
+        self,
+        member_id: uuid.UUID,
+        on_date: date,
+        service_type: ServiceType,
+    ) -> Subscription | None:
         return self.session.scalar(
             select(Subscription)
-            .where(Subscription.member_id == member_id)
-            .order_by(Subscription.ends_on.desc(), Subscription.created_at.desc())
+            .where(
+                Subscription.member_id == member_id,
+                Subscription.service_type == service_type,
+            )
+            .order_by(
+                subscription_priority(on_date),
+                Subscription.created_at.desc(),
+                Subscription.ends_on.desc(),
+            )
             .limit(1)
         )
 
@@ -54,9 +97,14 @@ class MembershipRepository:
             select(Subscription)
             .where(
                 Subscription.member_id == member_id,
+                Subscription.service_type == ServiceType.GYM,
                 Subscription.starts_on <= on_date,
             )
-            .order_by(Subscription.ends_on.desc(), Subscription.created_at.desc())
+            .order_by(
+                subscription_priority(on_date),
+                Subscription.created_at.desc(),
+                Subscription.ends_on.desc(),
+            )
             .limit(1)
         )
 
@@ -68,6 +116,40 @@ class MembershipRepository:
                 .order_by(Subscription.starts_on.desc())
             )
         )
+
+    def list_members_with_latest_subscription(
+        self, on_date: date, query: str | None = None
+    ) -> list[tuple[User, Subscription | None]]:
+        latest_subscription_id = (
+            select(Subscription.id)
+            .where(
+                Subscription.member_id == User.id,
+                Subscription.service_type == ServiceType.GYM,
+            )
+            .order_by(
+                subscription_priority(on_date),
+                Subscription.created_at.desc(),
+                Subscription.ends_on.desc(),
+            )
+            .limit(1)
+            .correlate(User)
+            .scalar_subquery()
+        )
+        statement = (
+            select(User, Subscription)
+            .outerjoin(Subscription, Subscription.id == latest_subscription_id)
+            .where(User.role == UserRole.MEMBER)
+        )
+        if query and query.strip():
+            pattern = f"%{query.strip()}%"
+            statement = statement.where(
+                or_(
+                    User.full_name.ilike(pattern),
+                    User.phone.ilike(pattern),
+                    User.member_number.ilike(pattern),
+                )
+            )
+        return [(member, subscription) for member, subscription in self.session.execute(statement)]
 
     def add_event(self, event: SubscriptionEvent) -> SubscriptionEvent:
         self.session.add(event)

@@ -1,64 +1,94 @@
-import { SectionTitle, Button, Input, Label } from "@masterz/ui";
-import { MapPin, Phone, Clock } from "lucide-react";
+import { Clock3, MapPin, MessageCircle, Phone } from "lucide-react";
+import { ContactForm } from "@/components/ContactForm";
+import { PageHero } from "@/components/PageHero";
+import { SectionShell } from "@/components/SectionShell";
+
+const details = [
+  {
+    icon: MapPin,
+    title: "Adresse",
+    content: "Av. Said Daoudi, Kénitra, Maroc",
+  },
+  {
+    icon: Phone,
+    title: "Téléphone",
+    content: "07 64 53 62 80",
+    href: "tel:+212764536280",
+  },
+  {
+    icon: Clock3,
+    title: "Horaires",
+    content: "Confirmés par l’accueil et les canaux officiels",
+  },
+];
 
 export default function ContactPage() {
   return (
-    <div className="pt-32 pb-24 px-6 min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl">
-        <SectionTitle title="Nous Contacter" subtitle="Une question ? Besoin d&apos;informations ? Notre équipe est à votre écoute." />
-        
-        <div className="mt-16 grid grid-cols-1 lg:grid-cols-2 gap-16">
-          {/* Infos */}
-          <div className="space-y-8">
-            <div className="bg-surface p-8 rounded-xl border border-border flex items-start space-x-6">
-              <MapPin className="h-8 w-8 text-primary flex-shrink-0" />
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">Adresse</h3>
-                <p className="text-gray-400">Av. Said Daoudi, Kénitra, Maroc</p>
-              </div>
-            </div>
-            <div className="bg-surface p-8 rounded-xl border border-border flex items-start space-x-6">
-              <Phone className="h-8 w-8 text-primary flex-shrink-0" />
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">Téléphone / WhatsApp</h3>
-                <p className="text-gray-400">07 64 53 62 80</p>
-              </div>
-            </div>
-            <div className="bg-surface p-8 rounded-xl border border-border flex items-start space-x-6">
-              <Clock className="h-8 w-8 text-primary flex-shrink-0" />
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">Horaires</h3>
-                <p className="text-gray-400">Lundi - Vendredi : 06:00 - 00:00<br/>Samedi : 08:00 - 20:00<br/>Dimanche : 10:00 - 16:00</p>
-              </div>
-            </div>
+    <>
+      <PageHero
+        eyebrow="Contact"
+        title="Parlons de votre prochaine étape."
+        description="Une question sur la salle, une formule ou un service ? L’équipe Masterz vous répond directement."
+      />
+      <SectionShell>
+        <div className="grid gap-5 lg:grid-cols-[0.82fr_1.18fr]">
+          <div className="space-y-4">
+            {details.map(({ icon: Icon, title, content, href }) => (
+              <article
+                key={title}
+                className="flex gap-5 rounded-lg border border-white/10 bg-[#080e13] p-6"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border border-primary/20 bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 className="text-xs font-black uppercase tracking-[0.16em] text-white">
+                    {title}
+                  </h2>
+                  {href ? (
+                    <a
+                      href={href}
+                      className="mt-2 block text-sm leading-6 text-gray-400 transition hover:text-primary"
+                    >
+                      {content}
+                    </a>
+                  ) : (
+                    <p className="mt-2 text-sm leading-6 text-gray-400">
+                      {content}
+                    </p>
+                  )}
+                </div>
+              </article>
+            ))}
+            <a
+              href="https://wa.me/212764536280"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between rounded-lg border border-[#20bd7a]/30 bg-[#16a66a]/10 p-6 text-sm font-black uppercase tracking-[0.1em] text-[#5de0a4]"
+            >
+              <span className="flex items-center gap-3">
+                <MessageCircle className="h-5 w-5" /> Ouvrir WhatsApp
+              </span>
+              <span>↗</span>
+            </a>
           </div>
-
-          {/* Formulaire */}
-          <div className="bg-surface p-8 rounded-xl border border-border">
-            <h3 className="text-2xl font-bold text-white mb-6">Envoyez-nous un message</h3>
-            <form className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nom complet</Label>
-                <Input id="name" placeholder="Votre nom" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="votre@email.com" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="message">Message</Label>
-                <textarea 
-                  id="message" 
-                  rows={4}
-                  className="flex w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  placeholder="Comment pouvons-nous vous aider ?"
-                ></textarea>
-              </div>
-              <Button variant="primary" className="w-full">Envoyer le message</Button>
-            </form>
+          <div className="rounded-lg border border-primary/20 bg-[linear-gradient(145deg,#09141d,#07101a)] p-6 sm:p-9">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-primary">
+              Message direct
+            </p>
+            <h2 className="mt-3 font-display text-3xl font-black uppercase tracking-[-0.035em] text-white sm:text-4xl">
+              Comment pouvons-nous vous aider ?
+            </h2>
+            <p className="mt-4 text-sm leading-6 text-gray-400">
+              Remplissez ces deux champs : votre message s’ouvrira directement
+              dans WhatsApp.
+            </p>
+            <div className="mt-8">
+              <ContactForm />
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </SectionShell>
+    </>
   );
 }

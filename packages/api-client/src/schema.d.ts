@@ -192,6 +192,23 @@ export interface paths {
         patch: operations["update_role_status_api_v1_users__user_id__role_status_patch"];
         trace?: never;
     };
+    "/api/v1/users/{user_id}/member-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Member Profile */
+        patch: operations["update_member_profile_api_v1_users__user_id__member_profile_patch"];
+        trace?: never;
+    };
     "/api/v1/membership-applications": {
         parameters: {
             query?: never;
@@ -279,6 +296,23 @@ export interface paths {
         patch: operations["update_plan_api_v1_membership_plans__plan_id__patch"];
         trace?: never;
     };
+    "/api/v1/members/subscription-summaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Member Subscription Summaries */
+        get: operations["list_member_subscription_summaries_api_v1_members_subscription_summaries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/members/{member_id}/subscriptions": {
         parameters: {
             query?: never;
@@ -313,6 +347,23 @@ export interface paths {
         patch: operations["update_subscription_status_api_v1_subscriptions__subscription_id__status_patch"];
         trace?: never;
     };
+    "/api/v1/subscriptions/{subscription_id}/dates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Subscription Dates */
+        patch: operations["update_subscription_dates_api_v1_subscriptions__subscription_id__dates_patch"];
+        trace?: never;
+    };
     "/api/v1/subscriptions/{subscription_id}/events": {
         parameters: {
             query?: never;
@@ -340,6 +391,23 @@ export interface paths {
         get?: never;
         /** Update Membership Setting */
         put: operations["update_membership_setting_api_v1_membership_settings__key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/membership-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Membership Settings */
+        get: operations["list_membership_settings_api_v1_membership_settings_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -381,6 +449,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/members/{member_id}/receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Member Receipts */
+        get: operations["list_member_receipts_api_v1_payments_members__member_id__receipts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attendance/members/search": {
         parameters: {
             query?: never;
@@ -413,6 +498,92 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/members/{member_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Member Attendance */
+        get: operations["list_member_attendance_api_v1_attendance_members__member_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coaching/coaches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Coaches */
+        get: operations["list_coaches_api_v1_coaching_coaches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coaching/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Assignments */
+        get: operations["list_assignments_api_v1_coaching_assignments_get"];
+        put?: never;
+        /** Assign Member */
+        post: operations["assign_member_api_v1_coaching_assignments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coaching/my-members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List My Members */
+        get: operations["list_my_members_api_v1_coaching_my_members_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coaching/assignments/{assignment_id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** End Assignment */
+        patch: operations["end_assignment_api_v1_coaching_assignments__assignment_id__end_patch"];
         trace?: never;
     };
     "/api/v1/audit-logs": {
@@ -458,7 +629,7 @@ export interface components {
              */
             selected_plan_id: string;
             /** Fitness Objective */
-            fitness_objective: string;
+            fitness_objective?: string | null;
             /** Message */
             message?: string | null;
         };
@@ -484,7 +655,7 @@ export interface components {
              */
             selected_plan_id: string;
             /** Fitness Objective */
-            fitness_objective: string;
+            fitness_objective: string | null;
             /** Message */
             message: string | null;
             status: components["schemas"]["ApplicationStatus"];
@@ -595,6 +766,91 @@ export interface components {
              */
             created_at: string;
         };
+        /** CoachMemberAssignmentCreate */
+        CoachMemberAssignmentCreate: {
+            /**
+             * Coach Id
+             * Format: uuid
+             */
+            coach_id: string;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Reason */
+            reason: string;
+        };
+        /** CoachMemberAssignmentEnd */
+        CoachMemberAssignmentEnd: {
+            /** Reason */
+            reason: string;
+        };
+        /** CoachMemberAssignmentRead */
+        CoachMemberAssignmentRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Coach Id
+             * Format: uuid
+             */
+            coach_id: string;
+            /** Coach Name */
+            coach_name: string;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Member Name */
+            member_name: string;
+            /** Member Number */
+            member_number: string;
+            /**
+             * Assigned By Id
+             * Format: uuid
+             */
+            assigned_by_id: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Ended At */
+            ended_at: string | null;
+            /** Reason */
+            reason: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CoachSummary */
+        CoachSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Full Name */
+            full_name: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email: string | null;
+            status: components["schemas"]["AccountStatus"];
+            /** Active Member Count */
+            active_member_count: number;
+        };
         /** ExistingMemberActivationConfirm */
         ExistingMemberActivationConfirm: {
             /**
@@ -662,6 +918,20 @@ export interface components {
             /** Refresh Token */
             refresh_token: string;
         };
+        /** MemberProfileUpdate */
+        MemberProfileUpdate: {
+            /** Full Name */
+            full_name: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email?: string | null;
+            /** Date Of Birth */
+            date_of_birth?: string | null;
+            gender?: components["schemas"]["Gender"] | null;
+            /** Reason */
+            reason: string;
+        };
         /** MemberSearchResult */
         MemberSearchResult: {
             /**
@@ -675,6 +945,53 @@ export interface components {
             phone: string;
             /** Member Number */
             member_number: string;
+        };
+        /** MemberSubscriptionSummary */
+        MemberSubscriptionSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Full Name */
+            full_name: string;
+            /** Phone */
+            phone: string;
+            /** Email */
+            email?: string | null;
+            /** Date Of Birth */
+            date_of_birth?: string | null;
+            gender?: components["schemas"]["Gender"] | null;
+            account_status: components["schemas"]["AccountStatus"];
+            /** Member Number */
+            member_number: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Subscription Id */
+            subscription_id?: string | null;
+            /** Plan Name */
+            plan_name?: string | null;
+            /** Starts On */
+            starts_on?: string | null;
+            /** Ends On */
+            ends_on?: string | null;
+            status?: components["schemas"]["SubscriptionStatus"] | null;
+            effective_status?: components["schemas"]["SubscriptionStatus"] | null;
+            /** Days Remaining */
+            days_remaining?: number | null;
+            /**
+             * Has Active Coaching
+             * @default false
+             */
+            has_active_coaching: boolean;
+            /**
+             * Has Active Recovery
+             * @default false
+             */
+            has_active_recovery: boolean;
         };
         /** MembershipPaymentCreate */
         MembershipPaymentCreate: {
@@ -705,6 +1022,8 @@ export interface components {
              * @default MAD
              */
             currency: string;
+            /** @default gym */
+            service_type: components["schemas"]["ServiceType"];
             /**
              * Is Active
              * @default true
@@ -724,6 +1043,8 @@ export interface components {
              * @default MAD
              */
             currency: string;
+            /** @default gym */
+            service_type: components["schemas"]["ServiceType"];
             /**
              * Id
              * Format: uuid
@@ -752,6 +1073,7 @@ export interface components {
             price?: number | string | null;
             /** Currency */
             currency?: string | null;
+            service_type?: components["schemas"]["ServiceType"] | null;
             /** Is Active */
             is_active?: boolean | null;
             /** Reason */
@@ -820,6 +1142,7 @@ export interface components {
             subscription_status: components["schemas"]["SubscriptionStatus"];
             /** Plan Name */
             plan_name: string;
+            service_type: components["schemas"]["ServiceType"];
             /**
              * Starts On
              * Format: date
@@ -855,6 +1178,11 @@ export interface components {
             /** Refresh Token */
             refresh_token: string;
         };
+        /**
+         * ServiceType
+         * @enum {string}
+         */
+        ServiceType: "gym" | "coaching" | "recovery";
         /** SettingRead */
         SettingRead: {
             /** Key */
@@ -873,6 +1201,16 @@ export interface components {
         SettingUpdate: {
             /** Value */
             value: number;
+            /** Reason */
+            reason: string;
+        };
+        /** SubscriptionDatesUpdate */
+        SubscriptionDatesUpdate: {
+            /**
+             * Starts On
+             * Format: date
+             */
+            starts_on: string;
             /** Reason */
             reason: string;
         };
@@ -949,6 +1287,7 @@ export interface components {
             price: string;
             /** Currency */
             currency: string;
+            service_type: components["schemas"]["ServiceType"];
             /**
              * Created By Id
              * Format: uuid
@@ -1445,6 +1784,41 @@ export interface operations {
             };
         };
     };
+    update_member_profile_api_v1_users__user_id__member_profile_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_applications_api_v1_membership_applications_get: {
         parameters: {
             query?: {
@@ -1579,6 +1953,7 @@ export interface operations {
         parameters: {
             query?: {
                 active_only?: boolean;
+                service_type?: components["schemas"]["ServiceType"] | null;
             };
             header?: never;
             path?: never;
@@ -1674,6 +2049,38 @@ export interface operations {
             };
         };
     };
+    list_member_subscription_summaries_api_v1_members_subscription_summaries_get: {
+        parameters: {
+            query?: {
+                query?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberSubscriptionSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_member_subscriptions_api_v1_members__member_id__subscriptions_get: {
         parameters: {
             query?: never;
@@ -1717,6 +2124,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["SubscriptionStatusUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_subscription_dates_api_v1_subscriptions__subscription_id__dates_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubscriptionDatesUpdate"];
             };
         };
         responses: {
@@ -1806,6 +2248,26 @@ export interface operations {
             };
         };
     };
+    list_membership_settings_api_v1_membership_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingRead"][];
+                };
+            };
+        };
+    };
     record_membership_payment_api_v1_payments_memberships_post: {
         parameters: {
             query?: never;
@@ -1857,6 +2319,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrintableReceiptData"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_member_receipts_api_v1_payments_members__member_id__receipts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrintableReceiptData"][];
                 };
             };
             /** @description Validation Error */
@@ -1922,6 +2415,180 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttendanceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_member_attendance_api_v1_attendance_members__member_id__get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_coaches_api_v1_coaching_coaches_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachSummary"][];
+                };
+            };
+        };
+    };
+    list_assignments_api_v1_coaching_assignments_get: {
+        parameters: {
+            query?: {
+                active_only?: boolean;
+                coach_id?: string | null;
+                member_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachMemberAssignmentRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_member_api_v1_coaching_assignments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachMemberAssignmentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachMemberAssignmentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_members_api_v1_coaching_my_members_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachMemberAssignmentRead"][];
+                };
+            };
+        };
+    };
+    end_assignment_api_v1_coaching_assignments__assignment_id__end_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachMemberAssignmentEnd"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachMemberAssignmentRead"];
                 };
             };
             /** @description Validation Error */

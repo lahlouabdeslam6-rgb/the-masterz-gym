@@ -1,39 +1,105 @@
-import { SectionTitle, Card, CardContent, Button } from "@masterz/ui";
-import { coaches } from "@/lib/mock-data";
-import { Clock } from "lucide-react";
+import Link from "next/link";
+import {
+  ArrowUpRight,
+  ClipboardCheck,
+  Dumbbell,
+  Radar,
+  Route,
+  ShieldCheck,
+} from "lucide-react";
+import { Pill, SectionTitle, buttonStyles } from "@masterz/ui";
+import { FinalCTA } from "@/components/FinalCTA";
+import { PageHero } from "@/components/PageHero";
+import { SectionShell } from "@/components/SectionShell";
+
+const method = [
+  {
+    icon: Radar,
+    title: "Bilan",
+    text: "Définir le point de départ, les contraintes et l’objectif prioritaire.",
+  },
+  {
+    icon: Route,
+    title: "Plan",
+    text: "Construire une progression compréhensible, adaptée et réaliste.",
+  },
+  {
+    icon: Dumbbell,
+    title: "Exécution",
+    text: "Améliorer la technique, la qualité de l’effort et la confiance.",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "Suivi",
+    text: "Lire les retours du terrain et ajuster le parcours au bon moment.",
+  },
+];
 
 export default function CoachingPage() {
   return (
-    <div className="pt-32 pb-24 px-6 min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl">
-        <SectionTitle title="Coaching Personnel" subtitle="Profitez de l&apos;expertise de nos coachs certifiés pour atteindre vos objectifs plus rapidement. Que ce soit pour une remise en forme, une préparation physique ou apprendre à s&apos;entraîner correctement." />
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
-          {coaches.map((coach) => (
-            <Card key={coach.id} className="bg-surface border-border overflow-hidden">
-              <div className="h-64 bg-black flex items-center justify-center border-b border-border">
-                <span className="text-gray-500 uppercase tracking-widest text-xs">Photo {coach.name}</span>
+    <>
+      <PageHero
+        eyebrow="Coaching"
+        title="Votre potentiel mérite une vraie méthode."
+        description="Un accompagnement structuré pour mieux bouger, mieux vous entraîner et progresser avec des repères clairs."
+        image="/media/masterz-hero.png"
+      />
+      <SectionShell>
+        <SectionTitle
+          eyebrow="La méthode"
+          title="Quatre étapes. Une direction claire."
+          subtitle="Le coaching Masterz transforme un objectif général en décisions concrètes, séance après séance."
+        />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {method.map(({ icon: Icon, title, text }, index) => (
+            <article
+              key={title}
+              className="rounded-lg border border-white/10 bg-[#080e13] p-6"
+            >
+              <div className="flex items-center justify-between">
+                <Icon className="h-7 w-7 text-primary" />
+                <span className="font-display text-3xl font-black text-white/10">
+                  0{index + 1}
+                </span>
               </div>
-              <CardContent className="pt-6">
-                <h3 className="text-2xl font-bold text-white">{coach.name}</h3>
-                <p className="text-primary font-medium mt-1 mb-4">{coach.specialty}</p>
-                <p className="text-gray-400 text-sm">{coach.bio}</p>
-              </CardContent>
-            </Card>
+              <h2 className="mt-12 font-display text-2xl font-black uppercase text-white">
+                {title}
+              </h2>
+              <p className="mt-4 text-sm leading-6 text-gray-500">{text}</p>
+            </article>
           ))}
         </div>
-
-        <div className="mt-16 bg-surface p-8 rounded-xl border border-border flex flex-col md:flex-row items-center justify-between">
-          <div className="flex items-start space-x-4">
-            <Clock className="h-8 w-8 text-primary mt-1" />
-            <div>
-              <h3 className="text-xl font-bold text-white">Séances d&apos;une heure</h3>
-              <p className="text-gray-400 max-w-md mt-2">Profitez d&apos;une heure de coaching intensif, entièrement dédiée à vous.</p>
-            </div>
+      </SectionShell>
+      <SectionShell tone="surface">
+        <div className="grid items-center gap-10 lg:grid-cols-2">
+          <div>
+            <Pill>
+              <ShieldCheck className="h-4 w-4 text-primary" /> Accompagnement
+              sur mesure
+            </Pill>
+            <h2 className="mt-7 font-display text-4xl font-black uppercase leading-[0.92] tracking-[-0.04em] text-white md:text-5xl">
+              Le bon coach, c’est d’abord le bon cadre.
+            </h2>
           </div>
-          <Button variant="primary" className="mt-6 md:mt-0">Découvrir les coachs</Button>
+          <div>
+            <p className="text-base leading-8 text-gray-400">
+              Les profils et disponibilités évoluent. L’accueil vous oriente
+              vers l’accompagnement le plus cohérent avec votre pratique, votre
+              niveau et votre agenda.
+            </p>
+            <Link
+              href="/contact"
+              className={buttonStyles({ className: "mt-7" })}
+            >
+              Parler à l’équipe <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
-      </div>
-    </div>
+      </SectionShell>
+      <FinalCTA
+        title="Ne laissez plus votre progression au hasard."
+        description="Présentez votre objectif à l’équipe et construisez un parcours de coaching cohérent."
+      />
+    </>
   );
 }

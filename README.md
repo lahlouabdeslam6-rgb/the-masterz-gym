@@ -55,6 +55,9 @@ Comptes strictement locaux créés par le seed :
 | Admin | `+212600000001` | `AdminLocal123!` |
 | Réception | `+212600000002` | `ReceptionLocal123!` |
 | Membre | `+212600000003` | `MemberLocal123!` |
+| Coach | `+212600000004` | `CoachLocal123!` |
+| Client recovery | `+212600000005` | `RecoveryLocal123!` |
+| Employé café | `+212600000006` | `CafeLocal123!` |
 
 Le fournisseur OTP local écrit le code dans les logs de développement avec le numéro
 masqué. Il refuse de fonctionner lorsque `ENVIRONMENT` n'est pas `development`.
@@ -74,4 +77,5 @@ npm run build:web
 
 La documentation d'architecture et de cadrage est disponible dans [`docs/`](docs/PROJECT_SPEC.md).
 Les workflows et commandes de la Phase 2 sont détaillés dans
-[`docs/PHASE_2.md`](docs/PHASE_2.md).
+[`docs/PHASE_2.md`](docs/PHASE_2.md). La suite fonctionnelle validée est organisée dans
+[`docs/PRODUCT_ROADMAP.md`](docs/PRODUCT_ROADMAP.md).

@@ -10,7 +10,7 @@ from app.modules.applications.schemas import ApplicationCreate, ApplicationRevie
 from app.modules.audit.service import AuditService
 from app.modules.memberships.repository import MembershipRepository
 from app.modules.users.models import User
-from app.shared.enums import ApplicationStatus
+from app.shared.enums import ApplicationStatus, ServiceType
 
 REVIEWABLE_STATUSES = {
     ApplicationStatus.PENDING,
@@ -28,11 +28,11 @@ class ApplicationService:
 
     def submit(self, data: ApplicationCreate) -> MembershipApplication:
         plan = self.plans.get_plan(data.selected_plan_id)
-        if not plan or not plan.is_active:
+        if not plan or not plan.is_active or plan.service_type != ServiceType.GYM:
             raise api_error(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 "inactive_plan",
-                "La formule sélectionnée n'est pas disponible.",
+                "La formule salle sélectionnée n'est pas disponible.",
             )
         return self.applications.add(MembershipApplication(**data.model_dump()))
 

@@ -9,7 +9,7 @@ from app.core.security import hash_password
 from app.modules.audit.service import AuditService
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
-from app.modules.users.schemas import UserCreate, UserUpdateRoleStatus
+from app.modules.users.schemas import MemberProfileUpdate, UserCreate, UserUpdateRoleStatus
 from app.shared.enums import UserRole
 
 
@@ -64,6 +64,53 @@ class UserService:
             entity_id=user.id,
             previous_value=previous,
             new_value={"role": user.role.value, "status": user.status.value},
+            reason=data.reason,
+        )
+        return user
+
+    def update_member_profile(
+        self, user_id: uuid.UUID, data: MemberProfileUpdate, actor: User
+    ) -> User:
+        user = self.users.get(user_id)
+        if not user or user.role != UserRole.MEMBER:
+            raise api_error(
+                status.HTTP_404_NOT_FOUND,
+                "member_not_found",
+                "Membre introuvable.",
+            )
+
+        previous = {
+            "full_name": user.full_name,
+            "phone": user.phone,
+            "email": user.email,
+            "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
+            "gender": user.gender.value if user.gender else None,
+        }
+        changes = data.model_dump(exclude={"reason"})
+        for field, value in changes.items():
+            setattr(user, field, value)
+        try:
+            self.session.flush()
+        except IntegrityError as exc:
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "member_profile_conflict",
+                "Ce telephone est deja utilise par un autre compte.",
+            ) from exc
+
+        self.audit.record(
+            actor=actor,
+            action="member.profile_updated",
+            entity_type="user",
+            entity_id=user.id,
+            previous_value=previous,
+            new_value={
+                "full_name": user.full_name,
+                "phone": user.phone,
+                "email": user.email,
+                "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
+                "gender": user.gender.value if user.gender else None,
+            },
             reason=data.reason,
         )
         return user

@@ -34,3 +34,13 @@ class AttendanceRepository:
             .order_by(Attendance.checked_in_at.desc())
             .limit(1)
         )
+
+    def list_member_attendance(self, member_id: uuid.UUID, limit: int = 100) -> list[Attendance]:
+        return list(
+            self.session.scalars(
+                select(Attendance)
+                .where(Attendance.member_id == member_id)
+                .order_by(Attendance.checked_in_at.desc())
+                .limit(limit)
+            )
+        )

@@ -13,10 +13,10 @@ export function Alert({
   className?: string;
 }) {
   const styles = {
-    info: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-    success: "bg-green-500/10 text-green-500 border-green-500/20",
-    error: "bg-red-500/10 text-red-500 border-red-500/20",
-    warning: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+    info: "bg-primary/10 text-primary border-primary/25",
+    success: "bg-emerald-500/10 text-emerald-300 border-emerald-500/25",
+    error: "bg-red-500/10 text-red-300 border-red-500/25",
+    warning: "bg-orange-500/10 text-orange-300 border-orange-500/25",
   };
 
   const icons = {
@@ -27,7 +27,7 @@ export function Alert({
   };
 
   return (
-    <div className={`flex rounded-lg border p-4 ${styles[type]} ${className}`}>
+    <div className={`flex rounded-sm border p-4 ${styles[type]} ${className}`} role="status">
       <div className="mr-3 mt-0.5 flex-shrink-0">{icons[type]}</div>
       <div>
         {title && <h4 className="mb-1 font-semibold">{title}</h4>}
@@ -39,8 +39,8 @@ export function Alert({
 
 export function LoadingMessage({ message = "Chargement en cours...", className = "" }: { message?: string; className?: string }) {
   return (
-    <div className={`flex items-center justify-center p-6 text-gray-400 ${className}`}>
-      <Loader2 className="mr-2 h-6 w-6 animate-spin text-primary" />
+    <div className={`flex items-center justify-center p-6 text-gray-400 ${className}`} role="status">
+      <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
       <span>{message}</span>
     </div>
   );
