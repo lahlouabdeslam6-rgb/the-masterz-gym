@@ -14,6 +14,20 @@ const adminUser = {
   updated_at: "2026-08-15T12:00:00Z",
 };
 
+const directoryUsers = Array.from({ length: 12 }, (_, index) => {
+  const member = index < 6;
+  const sequence = String(index + 1).padStart(2, "0");
+  return {
+    ...adminUser,
+    id: `00000000-0000-0000-0001-${String(index + 1).padStart(12, "0")}`,
+    full_name: `${member ? "Membre" : "Coach"} Test ${sequence}`,
+    phone: `+2126000010${sequence}`,
+    email: `${member ? "membre" : "coach"}${sequence}@masterz.test`,
+    role: member ? "member" : "coach",
+    member_number: member ? `TMG-TEST-${sequence}` : null,
+  };
+});
+
 const activePlan = {
   id: "00000000-0000-0000-0000-000000000010",
   name: "12 mois",
@@ -207,6 +221,12 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
       return;
     }
     if (url.pathname === "/api/v1/users/me") body = adminUser;
+    if (
+      url.pathname === "/api/v1/users" &&
+      route.request().method() === "GET"
+    ) {
+      body = directoryUsers;
+    }
     if (url.pathname === "/api/v1/coaching/coaches") {
       body = [
         {
@@ -425,6 +445,17 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   await expect(
     navigation.getByRole("link", { name: "Journal d'audit" }),
   ).toBeVisible();
+
+  await navigation.getByRole("link", { name: "Utilisateurs" }).click();
+  await expect(page).toHaveURL(/\/espace\/admin\/utilisateurs$/);
+  await expect(page.getByText("1-10 sur 12 compte(s)")).toBeVisible();
+  await expect(page.getByText("Coach Test 11", { exact: true })).toHaveCount(0);
+
+  await page.getByRole("tab", { name: /Coaching/ }).click();
+  await expect(page.getByText("1-6 sur 6 compte(s)")).toBeVisible();
+  await page.getByLabel("Rechercher un utilisateur").fill("Coach Test 11");
+  await expect(page.getByText("Coach Test 11", { exact: true })).toBeVisible();
+  await expect(page.getByText("1-1 sur 1 compte(s)")).toBeVisible();
 
   await navigation.getByRole("link", { name: "Membres" }).click();
   await expect(page).toHaveURL(/\/espace\/admin\/membres$/);

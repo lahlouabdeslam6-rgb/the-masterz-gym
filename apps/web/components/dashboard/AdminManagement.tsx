@@ -1,7 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Save, Settings2, UserPlus } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Save,
+  Search,
+  Settings2,
+  UserPlus,
+} from "lucide-react";
 import { Alert, Button, Card, Input } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
@@ -29,6 +37,16 @@ const accountStatuses: User["status"][] = [
   "suspended",
   "disabled",
 ];
+const userRoleFilters: Array<"all" | User["role"]> = [
+  "all",
+  "member",
+  "coach",
+  "receptionist",
+  "admin",
+  "recovery_client",
+  "cafe_employee",
+];
+const usersPerPage = 10;
 
 const serviceTypeLabels: Record<Plan["service_type"], string> = {
   gym: "Salle musculation",
@@ -62,7 +80,35 @@ export function AdminUserManager({
   >({});
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | User["role"]>("all");
+  const [page, setPage] = useState(1);
   const headers = authorizationHeaders(session.accessToken);
+
+  const filteredUsers = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase("fr");
+    return users.filter((user) => {
+      const matchesRole = roleFilter === "all" || user.role === roleFilter;
+      const searchable = [
+        user.full_name,
+        user.phone,
+        user.email ?? "",
+        user.member_number ?? "",
+      ]
+        .join(" ")
+        .toLocaleLowerCase("fr");
+      return matchesRole && (!query || searchable.includes(query));
+    });
+  }, [roleFilter, searchQuery, users]);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredUsers.length / usersPerPage),
+  );
+  const currentPage = Math.min(page, totalPages);
+  const visibleUsers = filteredUsers.slice(
+    (currentPage - 1) * usersPerPage,
+    currentPage * usersPerPage,
+  );
 
   async function createUser(event: React.FormEvent) {
     event.preventDefault();
@@ -219,8 +265,77 @@ export function AdminUserManager({
           </Button>
         </div>
       </form>
+
+      <section className="rounded-lg border border-white/10 bg-black/20 p-4 sm:p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-primary">
+              Liste des comptes
+            </p>
+            <p className="mt-2 text-sm text-gray-500">
+              10 comptes maximum par page.
+            </p>
+          </div>
+          <div className="relative w-full xl:max-w-md">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <Input
+              aria-label="Rechercher un utilisateur"
+              placeholder="Nom, telephone, email ou numero membre"
+              className="pl-11"
+              value={searchQuery}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+        </div>
+
+        <div
+          className="mt-5 flex flex-wrap gap-2 border-t border-white/10 pt-4"
+          role="tablist"
+          aria-label="Filtrer les utilisateurs par role"
+        >
+          {userRoleFilters.map((filter) => {
+            const active = roleFilter === filter;
+            const count =
+              filter === "all"
+                ? users.length
+                : users.filter((user) => user.role === filter).length;
+            return (
+              <button
+                key={filter}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => {
+                  setRoleFilter(filter);
+                  setPage(1);
+                }}
+                className={`flex min-h-11 items-center gap-3 rounded-md border px-4 text-xs font-black uppercase tracking-[0.08em] transition ${
+                  active
+                    ? "border-primary/50 bg-primary/10 text-primary"
+                    : "border-white/10 bg-white/[0.02] text-gray-400 hover:border-white/20 hover:text-white"
+                }`}
+              >
+                {filter === "all" ? "Tous" : roleLabels[filter]}
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[0.65rem] ${
+                    active
+                      ? "bg-primary text-black"
+                      : "bg-white/5 text-gray-500"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       <div className="space-y-3">
-        {users.map((user) => {
+        {visibleUsers.map((user) => {
           const edit = edits[user.id] ?? {
             role: user.role,
             status: user.status,
@@ -232,6 +347,13 @@ export function AdminUserManager({
                 <div>
                   <p className="font-bold text-white">{user.full_name}</p>
                   <p className="mt-1 text-xs text-gray-500">{user.phone}</p>
+                  {user.email || user.member_number ? (
+                    <p className="mt-1 truncate text-xs text-gray-600">
+                      {[user.member_number, user.email]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  ) : null}
                 </div>
                 <Field label="Rôle">
                   <select
@@ -293,6 +415,46 @@ export function AdminUserManager({
             </Card>
           );
         })}
+        {visibleUsers.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-white/15 px-6 py-12 text-center">
+            <p className="font-bold text-white">Aucun compte trouve.</p>
+            <p className="mt-2 text-sm text-gray-500">
+              Changez le role choisi ou le texte de recherche.
+            </p>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs font-bold text-gray-500">
+          {filteredUsers.length === 0
+            ? "0 compte"
+            : `${(currentPage - 1) * usersPerPage + 1}-${Math.min(
+                currentPage * usersPerPage,
+                filteredUsers.length,
+              )} sur ${filteredUsers.length} compte(s)`}
+        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={currentPage === 1}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+          >
+            <ChevronLeft className="h-4 w-4" /> Precedent
+          </Button>
+          <span className="min-w-20 text-center text-xs font-black text-white">
+            {currentPage} / {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            disabled={currentPage === totalPages}
+            onClick={() =>
+              setPage((current) => Math.min(totalPages, current + 1))
+            }
+          >
+            Suivant <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
