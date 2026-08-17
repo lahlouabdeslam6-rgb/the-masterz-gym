@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Pill, SectionTitle, buttonStyles } from "@masterz/ui";
 import { FinalCTA } from "@/components/FinalCTA";
+import { MembershipPlansList } from "@/components/MembershipPlansList";
 import { PageHero } from "@/components/PageHero";
 import { SectionShell } from "@/components/SectionShell";
 
@@ -69,6 +70,14 @@ export default function CoachingPage() {
             </article>
           ))}
         </div>
+      </SectionShell>
+      <SectionShell tone="blue">
+        <SectionTitle
+          eyebrow="Formules coaching"
+          title="Choisissez votre accompagnement."
+          subtitle="Les offres actives ajoutees par l'administration apparaissent ici automatiquement."
+        />
+        <MembershipPlansList serviceType="coaching" />
       </SectionShell>
       <SectionShell tone="surface">
         <div className="grid items-center gap-10 lg:grid-cols-2">

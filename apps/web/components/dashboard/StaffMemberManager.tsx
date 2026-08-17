@@ -56,7 +56,7 @@ type MemberProfileDraft = {
   phone: string;
   email: string;
   date_of_birth: string;
-  gender: "female" | "male" | "other" | "undisclosed" | "";
+  gender: "female" | "male";
 };
 
 function startsAfterToday(value: string | null | undefined) {
@@ -145,7 +145,7 @@ function profileDraft(member: MemberListItem): MemberProfileDraft {
     phone: member.phone,
     email: member.email ?? "",
     date_of_birth: member.date_of_birth ?? "",
-    gender: member.gender ?? "",
+    gender: member.gender === "female" ? "female" : "male",
   };
 }
 
@@ -223,6 +223,7 @@ export function StaffMemberManager({
   const [feedback, setFeedback] = useState<string | null>(null);
   const headers = authorizationHeaders(session.accessToken);
   const profileMode = mode === "profile";
+  const canEditMemberProfile = session.user.role === "admin";
   const showAccess = mode === "full" || mode === "access";
   const showPayments = mode === "full" || mode === "payments";
   const showSubscriptions =
@@ -351,7 +352,7 @@ export function StaffMemberManager({
         phone: memberProfile.phone,
         email: memberProfile.email || null,
         date_of_birth: memberProfile.date_of_birth || null,
-        gender: memberProfile.gender || null,
+        gender: memberProfile.gender,
         reason: profileReason,
       },
     });
@@ -362,13 +363,13 @@ export function StaffMemberManager({
       );
       return;
     }
-    const updatedMember = {
+    const updatedMember: MemberListItem = {
       ...selected,
       full_name: result.data.full_name,
       phone: result.data.phone,
       email: result.data.email,
       date_of_birth: result.data.date_of_birth,
-      gender: result.data.gender,
+      gender: result.data.gender === "female" ? "female" : "male",
       account_status: result.data.status,
       created_at: result.data.created_at,
     };
@@ -722,12 +723,14 @@ export function StaffMemberManager({
                   Informations personnelles
                 </h3>
                 <p className="mt-2 text-sm text-gray-500">
-                  Modifiez uniquement les informations confirmees avec le
-                  membre.
+                  {canEditMemberProfile
+                    ? "Modifiez uniquement les informations confirmees avec le membre."
+                    : "Consultez les informations confirmees du membre."}
                 </p>
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
                   <Field label="Nom complet">
                     <Input
+                      disabled={!canEditMemberProfile}
                       value={memberProfile.full_name}
                       onChange={(event) =>
                         setMemberProfile((current) =>
@@ -740,6 +743,7 @@ export function StaffMemberManager({
                   </Field>
                   <Field label="Telephone">
                     <Input
+                      disabled={!canEditMemberProfile}
                       value={memberProfile.phone}
                       onChange={(event) =>
                         setMemberProfile((current) =>
@@ -753,6 +757,7 @@ export function StaffMemberManager({
                   <Field label="Email">
                     <Input
                       type="email"
+                      disabled={!canEditMemberProfile}
                       value={memberProfile.email}
                       onChange={(event) =>
                         setMemberProfile((current) =>
@@ -766,6 +771,7 @@ export function StaffMemberManager({
                   <Field label="Date de naissance">
                     <Input
                       type="date"
+                      disabled={!canEditMemberProfile}
                       value={memberProfile.date_of_birth}
                       onChange={(event) =>
                         setMemberProfile((current) =>
@@ -782,49 +788,48 @@ export function StaffMemberManager({
                   <Field label="Genre">
                     <select
                       className={selectClass}
+                      disabled={!canEditMemberProfile}
                       value={memberProfile.gender}
                       onChange={(event) =>
                         setMemberProfile((current) =>
                           current
                             ? {
                                 ...current,
-                                gender: event.target.value as
-                                  | "female"
-                                  | "male"
-                                  | "other"
-                                  | "undisclosed"
-                                  | "",
+                                gender: event.target.value as "female" | "male",
                               }
                             : current,
                         )
                       }
                     >
-                      <option value="">Non renseigne</option>
                       <option value="male">Homme</option>
                       <option value="female">Femme</option>
-                      <option value="other">Autre</option>
-                      <option value="undisclosed">Non declare</option>
                     </select>
                   </Field>
-                  <Field label="Motif de modification">
-                    <Input
-                      value={profileReason}
-                      onChange={(event) => setProfileReason(event.target.value)}
-                    />
-                  </Field>
+                  {canEditMemberProfile ? (
+                    <Field label="Motif de modification">
+                      <Input
+                        value={profileReason}
+                        onChange={(event) =>
+                          setProfileReason(event.target.value)
+                        }
+                      />
+                    </Field>
+                  ) : null}
                 </div>
-                <Button
-                  className="mt-5"
-                  onClick={updateMemberProfile}
-                  disabled={
-                    busy ||
-                    memberProfile.full_name.trim().length < 2 ||
-                    !memberProfile.phone.trim() ||
-                    profileReason.trim().length < 3
-                  }
-                >
-                  <Save className="h-4 w-4" /> Enregistrer les modifications
-                </Button>
+                {canEditMemberProfile ? (
+                  <Button
+                    className="mt-5"
+                    onClick={updateMemberProfile}
+                    disabled={
+                      busy ||
+                      memberProfile.full_name.trim().length < 2 ||
+                      !memberProfile.phone.trim() ||
+                      profileReason.trim().length < 3
+                    }
+                  >
+                    <Save className="h-4 w-4" /> Enregistrer les modifications
+                  </Button>
+                ) : null}
               </Card>
               <Card className="p-5">
                 <h3 className="font-black uppercase text-white">

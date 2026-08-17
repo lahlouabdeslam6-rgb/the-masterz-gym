@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Pill, SectionTitle, buttonStyles } from "@masterz/ui";
 import { FinalCTA } from "@/components/FinalCTA";
+import { MembershipPlansList } from "@/components/MembershipPlansList";
 import { PageHero } from "@/components/PageHero";
 import { SectionShell } from "@/components/SectionShell";
 
@@ -68,6 +69,14 @@ export default function RecoveryPage() {
             </article>
           ))}
         </div>
+      </SectionShell>
+      <SectionShell>
+        <SectionTitle
+          eyebrow="Formules recovery"
+          title="Sauna, bain froid et compression."
+          subtitle="Les offres recovery actives configurees par l'administration sont affichees ici."
+        />
+        <MembershipPlansList serviceType="recovery" />
       </SectionShell>
       <SectionShell>
         <div className="grid items-center gap-10 lg:grid-cols-[0.7fr_1.3fr]">

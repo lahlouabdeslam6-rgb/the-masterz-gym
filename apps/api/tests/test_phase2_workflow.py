@@ -319,7 +319,14 @@ def test_payment_member_summaries_prioritize_renewals(
     assert initial.status_code == 200, initial.text
 
     receptionist = db_session.query(User).filter(User.phone == "+212600000002").one()
-    plan = db_session.query(MembershipPlan).filter(MembershipPlan.duration_months == 1).one()
+    plan = (
+        db_session.query(MembershipPlan)
+        .filter(
+            MembershipPlan.duration_months == 1,
+            MembershipPlan.service_type == ServiceType.GYM,
+        )
+        .one()
+    )
     today = local_today()
     members: list[User] = []
     for index, days_remaining in enumerate((20, 2)):
@@ -369,7 +376,14 @@ def test_payment_requires_an_inactive_subscription_and_honors_the_new_start_date
     reception_headers: dict[str, str],
 ) -> None:
     receptionist = db_session.query(User).filter(User.phone == "+212600000002").one()
-    plan = db_session.query(MembershipPlan).filter(MembershipPlan.duration_months == 1).one()
+    plan = (
+        db_session.query(MembershipPlan)
+        .filter(
+            MembershipPlan.duration_months == 1,
+            MembershipPlan.service_type == ServiceType.GYM,
+        )
+        .one()
+    )
     today = local_today()
     member = User(
         full_name="Membre Renouvellement Annule",
@@ -491,7 +505,14 @@ def test_finished_subscription_is_expired_but_keeps_configured_grace_access(
     reception_headers: dict[str, str],
 ) -> None:
     receptionist = db_session.query(User).filter(User.phone == "+212600000002").one()
-    plan = db_session.query(MembershipPlan).filter(MembershipPlan.duration_months == 1).one()
+    plan = (
+        db_session.query(MembershipPlan)
+        .filter(
+            MembershipPlan.duration_months == 1,
+            MembershipPlan.service_type == ServiceType.GYM,
+        )
+        .one()
+    )
     today = local_today()
     member = User(
         full_name="Membre Expiration Automatique",
@@ -547,7 +568,14 @@ def test_future_subscription_does_not_allow_early_attendance(
 ) -> None:
     member = db_session.query(User).filter(User.phone == "+212600000003").one()
     receptionist = db_session.query(User).filter(User.phone == "+212600000002").one()
-    plan = db_session.query(MembershipPlan).filter(MembershipPlan.duration_months == 1).one()
+    plan = (
+        db_session.query(MembershipPlan)
+        .filter(
+            MembershipPlan.duration_months == 1,
+            MembershipPlan.service_type == ServiceType.GYM,
+        )
+        .one()
+    )
     starts_on = local_today() + timedelta(days=10)
     ends_on = add_months(starts_on, plan.duration_months) - timedelta(days=1)
     subscription = Subscription(

@@ -15,8 +15,46 @@ import {
 import { api } from "@/lib/api";
 
 type MembershipPlan = components["schemas"]["MembershipPlanRead"];
+type ServiceType = MembershipPlan["service_type"];
 
-export function MembershipPlansList() {
+const planContent: Record<
+  ServiceType,
+  { features: string[]; buttonLabel: string; emptyTitle: string }
+> = {
+  gym: {
+    features: [
+      "Accès aux espaces d’entraînement",
+      "Parcours encadré par l’équipe",
+      "Expérience membre Masterz",
+    ],
+    buttonLabel: "Choisir",
+    emptyTitle: "Les formules salle évoluent.",
+  },
+  coaching: {
+    features: [
+      "Accompagnement par un coach",
+      "Tests, programme et suivi personnalisé",
+      "Progression mesurée dans le temps",
+    ],
+    buttonLabel: "Demander",
+    emptyTitle: "Les formules coaching arrivent bientôt.",
+  },
+  recovery: {
+    features: [
+      "Sauna et retour au calme",
+      "Bain froid encadré",
+      "Compression et récupération",
+    ],
+    buttonLabel: "Demander",
+    emptyTitle: "Les formules recovery arrivent bientôt.",
+  },
+};
+
+export function MembershipPlansList({
+  serviceType = "gym",
+}: {
+  serviceType?: ServiceType;
+}) {
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +71,7 @@ export function MembershipPlansList() {
         const { data, error: apiError } = await api.GET(
           "/api/v1/membership-plans",
           {
-            params: { query: { active_only: true, service_type: "gym" } },
+            params: { query: { active_only: true, service_type: serviceType } },
           },
         );
 
@@ -58,7 +96,9 @@ export function MembershipPlansList() {
     return () => {
       active = false;
     };
-  }, [requestKey]);
+  }, [requestKey, serviceType]);
+
+  const content = planContent[serviceType];
 
   if (loading) {
     return (
@@ -102,7 +142,7 @@ export function MembershipPlansList() {
   if (plans.length === 0) {
     return (
       <div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] px-6 text-center">
-        <p className="text-lg font-bold text-white">Les formules évoluent.</p>
+        <p className="text-lg font-bold text-white">{content.emptyTitle}</p>
         <p className="mt-2 max-w-md text-sm leading-6 text-gray-400">
           L’équipe prépare les prochaines offres. Contactez-nous pour être
           conseillé dès maintenant.
@@ -153,24 +193,22 @@ export function MembershipPlansList() {
                 </span>
               </div>
               <ul className="mt-8 flex-1 space-y-3 text-sm text-gray-300">
-                <li className="flex gap-3">
-                  <Check className="h-5 w-5 shrink-0 text-primary" /> Accès aux
-                  espaces d’entraînement
-                </li>
-                <li className="flex gap-3">
-                  <Check className="h-5 w-5 shrink-0 text-primary" /> Parcours
-                  encadré par l’équipe
-                </li>
-                <li className="flex gap-3">
-                  <Check className="h-5 w-5 shrink-0 text-primary" /> Expérience
-                  membre Masterz
-                </li>
+                {content.features.map((feature) => (
+                  <li key={feature} className="flex gap-3">
+                    <Check className="h-5 w-5 shrink-0 text-primary" />
+                    {feature}
+                  </li>
+                ))}
               </ul>
               <Link
-                href={`/inscription?plan=${plan.id}`}
+                href={
+                  serviceType === "gym"
+                    ? `/inscription?plan=${plan.id}`
+                    : `/contact?service=${serviceType}&plan=${plan.id}`
+                }
                 className={buttonStyles({ className: "mt-8 w-full" })}
               >
-                Choisir <ArrowUpRight className="h-4 w-4" />
+                {content.buttonLabel} <ArrowUpRight className="h-4 w-4" />
               </Link>
             </CardContent>
           </Card>

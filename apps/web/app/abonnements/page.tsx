@@ -13,7 +13,7 @@ export default function AbonnementsPage() {
         description="Comparez les abonnements actifs et transmettez votre demande d’adhésion en quelques étapes."
       />
       <SectionShell tone="blue">
-        <MembershipPlansList />
+        <MembershipPlansList serviceType="gym" />
       </SectionShell>
       <SectionShell>
         <div className="grid gap-4 md:grid-cols-3">

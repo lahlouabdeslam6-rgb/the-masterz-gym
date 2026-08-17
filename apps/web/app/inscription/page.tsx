@@ -32,7 +32,7 @@ function InscriptionContent() {
     phone: "",
     email: "",
     date_of_birth: "",
-    gender: "",
+    gender: "male",
     selected_plan_id: preselectedPlanId || "",
   });
   const [loading, setLoading] = useState(false);
@@ -92,9 +92,7 @@ function InscriptionContent() {
             phone: formData.phone,
             email: formData.email || null,
             date_of_birth: formData.date_of_birth || null,
-            gender:
-              (formData.gender as
-                "female" | "male" | "other" | "undisclosed" | null) || null,
+            gender: formData.gender as "female" | "male",
             selected_plan_id: formData.selected_plan_id,
           },
         },
@@ -210,11 +208,8 @@ function InscriptionContent() {
               value={formData.gender}
               onChange={handleChange}
             >
-              <option value="">Non renseigné</option>
-              <option value="female">Femme</option>
               <option value="male">Homme</option>
-              <option value="other">Autre</option>
-              <option value="undisclosed">Je préfère ne pas répondre</option>
+              <option value="female">Femme</option>
             </select>
           </Field>
         </div>
