@@ -9,8 +9,13 @@ from app.core.security import hash_password
 from app.modules.audit.service import AuditService
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
-from app.modules.users.schemas import MemberProfileUpdate, UserCreate, UserUpdateRoleStatus
-from app.shared.enums import UserRole
+from app.modules.users.schemas import (
+    MemberProfileUpdate,
+    UserAdminUpdate,
+    UserCreate,
+    UserUpdateRoleStatus,
+)
+from app.shared.enums import AccountStatus, UserRole
 
 
 class UserService:
@@ -67,6 +72,112 @@ class UserService:
             reason=data.reason,
         )
         return user
+
+    def update_as_admin(self, user_id: uuid.UUID, data: UserAdminUpdate, actor: User) -> User:
+        user = self.users.get(user_id)
+        if not user:
+            raise api_error(
+                status.HTTP_404_NOT_FOUND,
+                "user_not_found",
+                "Utilisateur introuvable.",
+            )
+        if user.id == actor.id and (
+            data.role != UserRole.ADMIN or data.status != AccountStatus.ACTIVE
+        ):
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "self_admin_lockout",
+                "Vous ne pouvez pas retirer votre propre acces administrateur.",
+            )
+        if data.role == UserRole.MEMBER and not data.member_number:
+            raise api_error(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "member_number_required",
+                "Le numero de membre est requis pour un membre.",
+            )
+
+        previous = {
+            "full_name": user.full_name,
+            "phone": user.phone,
+            "email": user.email,
+            "role": user.role.value,
+            "status": user.status.value,
+            "member_number": user.member_number,
+        }
+        user.full_name = data.full_name
+        user.phone = data.phone
+        user.email = str(data.email) if data.email else None
+        user.role = data.role
+        user.status = data.status
+        user.member_number = data.member_number
+        if data.password:
+            user.password_hash = hash_password(data.password)
+        try:
+            self.session.flush()
+        except IntegrityError as exc:
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "user_conflict",
+                "Ce telephone ou numero membre est deja utilise.",
+            ) from exc
+
+        self.audit.record(
+            actor=actor,
+            action="user.updated",
+            entity_type="user",
+            entity_id=user.id,
+            previous_value=previous,
+            new_value={
+                "full_name": user.full_name,
+                "phone": user.phone,
+                "email": user.email,
+                "role": user.role.value,
+                "status": user.status.value,
+                "member_number": user.member_number,
+                "password_changed": bool(data.password),
+            },
+            reason=data.reason,
+        )
+        return user
+
+    def delete(self, user_id: uuid.UUID, actor: User) -> None:
+        user = self.users.get(user_id)
+        if not user:
+            raise api_error(
+                status.HTTP_404_NOT_FOUND,
+                "user_not_found",
+                "Utilisateur introuvable.",
+            )
+        if user.id == actor.id:
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "self_delete_forbidden",
+                "Vous ne pouvez pas supprimer votre propre compte.",
+            )
+
+        previous = {
+            "full_name": user.full_name,
+            "phone": user.phone,
+            "role": user.role.value,
+            "status": user.status.value,
+            "member_number": user.member_number,
+        }
+        try:
+            self.users.delete(user)
+        except IntegrityError as exc:
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "user_has_business_data",
+                "Ce compte contient des donnees liees. Desactivez-le au lieu de le supprimer.",
+            ) from exc
+        self.audit.record(
+            actor=actor,
+            action="user.deleted",
+            entity_type="user",
+            entity_id=user_id,
+            previous_value=previous,
+            reason="Suppression depuis la gestion des utilisateurs",
+        )
 
     def update_member_profile(
         self, user_id: uuid.UUID, data: MemberProfileUpdate, actor: User

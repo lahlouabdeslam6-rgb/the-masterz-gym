@@ -4,15 +4,22 @@ import { useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
+  Pencil,
   Plus,
   Save,
   Search,
   Settings2,
+  Trash2,
   UserPlus,
+  X,
 } from "lucide-react";
 import { Alert, Button, Card, Input } from "@masterz/ui";
 import { api } from "@/lib/api";
-import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import {
+  authorizationHeaders,
+  updateSessionUser,
+  type AuthSession,
+} from "@/lib/auth";
 import {
   type Plan,
   type Setting,
@@ -48,6 +55,17 @@ const userRoleFilters: Array<"all" | User["role"]> = [
 ];
 const usersPerPage = 10;
 
+type UserEditForm = {
+  full_name: string;
+  phone: string;
+  email: string;
+  password: string;
+  role: User["role"];
+  status: User["status"];
+  member_number: string;
+  reason: string;
+};
+
 const serviceTypeLabels: Record<Plan["service_type"], string> = {
   gym: "Salle musculation",
   coaching: "Coaching",
@@ -72,12 +90,9 @@ export function AdminUserManager({
     status: "active" as User["status"],
     member_number: "",
   });
-  const [edits, setEdits] = useState<
-    Record<
-      string,
-      { role: User["role"]; status: User["status"]; reason: string }
-    >
-  >({});
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState<UserEditForm | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -147,27 +162,88 @@ export function AdminUserManager({
       );
   }
 
-  async function updateUser(user: User) {
-    const edit = edits[user.id] ?? {
+  function openEditor(user: User) {
+    setEditingUser(user);
+    setEditForm({
+      full_name: user.full_name,
+      phone: user.phone,
+      email: user.email ?? "",
+      password: "",
       role: user.role,
       status: user.status,
-      reason: "Mise à jour depuis le tableau de bord",
-    };
-    if (edit.reason.trim().length < 3) {
+      member_number: user.member_number ?? "",
+      reason: "Mise a jour du compte",
+    });
+    setConfirmDelete(false);
+    setFeedback(null);
+  }
+
+  function closeEditor() {
+    if (busy) return;
+    setEditingUser(null);
+    setEditForm(null);
+    setConfirmDelete(false);
+  }
+
+  async function updateUser(event: React.FormEvent) {
+    event.preventDefault();
+    if (!editingUser || !editForm) return;
+    if (editForm.reason.trim().length < 3) {
       setFeedback("Ajoutez un motif de modification.");
       return;
     }
     setBusy(true);
-    const result = await api.PATCH("/api/v1/users/{user_id}/role-status", {
+    setFeedback(null);
+    const result = await api.PATCH("/api/v1/users/{user_id}", {
       headers,
-      params: { path: { user_id: user.id } },
-      body: edit,
+      params: { path: { user_id: editingUser.id } },
+      body: {
+        full_name: editForm.full_name,
+        phone: editForm.phone,
+        email: editForm.email || null,
+        password: editForm.password || null,
+        role: editForm.role,
+        status: editForm.status,
+        member_number:
+          editForm.role === "member" ? editForm.member_number || null : null,
+        reason: editForm.reason,
+      },
     });
     setBusy(false);
+    if (result.data) {
+      if (editingUser.id === session.user.id) updateSessionUser(result.data);
+      setFeedback("Compte mis a jour.");
+      setEditingUser(null);
+      setEditForm(null);
+      await onReload();
+      return;
+    }
     setFeedback(
-      result.data ? "Compte mis à jour." : "Le compte n’a pas pu être modifié.",
+      "Le compte n'a pas pu etre modifie. Verifiez les informations saisies.",
     );
-    if (result.data) await onReload();
+  }
+
+  async function deleteUser() {
+    if (!editingUser || editingUser.id === session.user.id) return;
+    setBusy(true);
+    setFeedback(null);
+    const result = await api.DELETE("/api/v1/users/{user_id}", {
+      headers,
+      params: { path: { user_id: editingUser.id } },
+    });
+    setBusy(false);
+    if (!result.error) {
+      setFeedback("Compte supprime.");
+      setEditingUser(null);
+      setEditForm(null);
+      setConfirmDelete(false);
+      await onReload();
+      return;
+    }
+    setFeedback(
+      "Ce compte contient des donnees liees. Desactivez-le au lieu de le supprimer.",
+    );
+    setConfirmDelete(false);
   }
 
   return (
@@ -335,86 +411,46 @@ export function AdminUserManager({
       </section>
 
       <div className="space-y-3">
-        {visibleUsers.map((user) => {
-          const edit = edits[user.id] ?? {
-            role: user.role,
-            status: user.status,
-            reason: "Mise à jour depuis le tableau de bord",
-          };
-          return (
-            <Card key={user.id} className="p-4">
-              <div className="grid gap-3 xl:grid-cols-[1.3fr_0.8fr_0.8fr_1.4fr_auto] xl:items-end">
-                <div>
-                  <p className="font-bold text-white">{user.full_name}</p>
-                  <p className="mt-1 text-xs text-gray-500">{user.phone}</p>
-                  {user.email || user.member_number ? (
-                    <p className="mt-1 truncate text-xs text-gray-600">
-                      {[user.member_number, user.email]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  ) : null}
-                </div>
-                <Field label="Rôle">
-                  <select
-                    className={selectClass}
-                    value={edit.role}
-                    onChange={(event) =>
-                      setEdits((current) => ({
-                        ...current,
-                        [user.id]: {
-                          ...edit,
-                          role: event.target.value as User["role"],
-                        },
-                      }))
-                    }
-                  >
-                    {roles.map((role) => (
-                      <option key={role} value={role}>
-                        {roleLabels[role]}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Statut">
-                  <select
-                    className={selectClass}
-                    value={edit.status}
-                    onChange={(event) =>
-                      setEdits((current) => ({
-                        ...current,
-                        [user.id]: {
-                          ...edit,
-                          status: event.target.value as User["status"],
-                        },
-                      }))
-                    }
-                  >
-                    {accountStatuses.map((status) => (
-                      <option key={status} value={status}>
-                        {statusLabels[status]}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Motif">
-                  <Input
-                    value={edit.reason}
-                    onChange={(event) =>
-                      setEdits((current) => ({
-                        ...current,
-                        [user.id]: { ...edit, reason: event.target.value },
-                      }))
-                    }
-                  />
-                </Field>
-                <Button onClick={() => updateUser(user)} disabled={busy}>
-                  <Save className="h-4 w-4" /> Sauver
+        {visibleUsers.map((user) => (
+          <Card key={user.id} className="p-4 sm:p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="truncate font-bold text-white">
+                  {user.full_name}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">{user.phone}</p>
+                {user.email || user.member_number ? (
+                  <p className="mt-1 truncate text-xs text-gray-600">
+                    {[user.member_number, user.email]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                <span className="rounded-full border border-primary/20 bg-primary/[0.07] px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.1em] text-primary">
+                  {roleLabels[user.role]}
+                </span>
+                <span
+                  className={`rounded-full border px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.1em] ${
+                    user.status === "active"
+                      ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-200"
+                      : "border-white/15 bg-white/5 text-gray-400"
+                  }`}
+                >
+                  {statusLabels[user.status]}
+                </span>
+                <Button
+                  variant="outline"
+                  aria-label={`Modifier ${user.full_name}`}
+                  onClick={() => openEditor(user)}
+                >
+                  <Pencil className="h-4 w-4" /> Modifier
                 </Button>
               </div>
-            </Card>
-          );
-        })}
+            </div>
+          </Card>
+        ))}
         {visibleUsers.length === 0 ? (
           <div className="rounded-lg border border-dashed border-white/15 px-6 py-12 text-center">
             <p className="font-bold text-white">Aucun compte trouve.</p>
@@ -456,6 +492,214 @@ export function AdminUserManager({
           </Button>
         </div>
       </div>
+
+      {editingUser && editForm ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-user-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeEditor();
+          }}
+        >
+          <form
+            onSubmit={updateUser}
+            className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-white/15 bg-[#07111a] shadow-2xl"
+          >
+            <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-white/10 bg-[#07111a]/95 px-5 py-5 backdrop-blur sm:px-7">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-primary">
+                  Gestion du compte
+                </p>
+                <h3
+                  id="edit-user-title"
+                  className="mt-2 text-2xl font-black text-white"
+                >
+                  Modifier {editingUser.full_name}
+                </h3>
+              </div>
+              <button
+                type="button"
+                aria-label="Fermer"
+                onClick={closeEditor}
+                className="rounded-md border border-white/10 p-2 text-gray-400 transition hover:border-white/25 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-6 p-5 sm:p-7">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Nom complet">
+                  <Input
+                    required
+                    value={editForm.full_name}
+                    onChange={(event) =>
+                      setEditForm({
+                        ...editForm,
+                        full_name: event.target.value,
+                      })
+                    }
+                  />
+                </Field>
+                <Field label="Telephone">
+                  <Input
+                    required
+                    value={editForm.phone}
+                    onChange={(event) =>
+                      setEditForm({ ...editForm, phone: event.target.value })
+                    }
+                  />
+                </Field>
+                <Field label="Email">
+                  <Input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(event) =>
+                      setEditForm({ ...editForm, email: event.target.value })
+                    }
+                  />
+                </Field>
+                <Field label="Nouveau mot de passe (optionnel)">
+                  <Input
+                    type="password"
+                    minLength={10}
+                    placeholder="Laissez vide pour ne pas le changer"
+                    value={editForm.password}
+                    onChange={(event) =>
+                      setEditForm({ ...editForm, password: event.target.value })
+                    }
+                  />
+                </Field>
+                <Field label="Role">
+                  <select
+                    className={selectClass}
+                    disabled={editingUser.id === session.user.id}
+                    value={editForm.role}
+                    onChange={(event) =>
+                      setEditForm({
+                        ...editForm,
+                        role: event.target.value as User["role"],
+                      })
+                    }
+                  >
+                    {roles.map((role) => (
+                      <option key={role} value={role}>
+                        {roleLabels[role]}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Statut">
+                  <select
+                    className={selectClass}
+                    disabled={editingUser.id === session.user.id}
+                    value={editForm.status}
+                    onChange={(event) =>
+                      setEditForm({
+                        ...editForm,
+                        status: event.target.value as User["status"],
+                      })
+                    }
+                  >
+                    {accountStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {statusLabels[status]}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                {editForm.role === "member" ? (
+                  <Field label="Numero membre">
+                    <Input
+                      required
+                      value={editForm.member_number}
+                      onChange={(event) =>
+                        setEditForm({
+                          ...editForm,
+                          member_number: event.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+                ) : null}
+              </div>
+
+              <div className="rounded-md border border-white/10 bg-black/20 p-4">
+                <Field label="Motif de modification">
+                  <Input
+                    required
+                    minLength={3}
+                    value={editForm.reason}
+                    onChange={(event) =>
+                      setEditForm({ ...editForm, reason: event.target.value })
+                    }
+                  />
+                </Field>
+                <p className="mt-2 text-xs leading-5 text-gray-600">
+                  Ce petit motif reste dans le journal d&apos;audit pour
+                  expliquer la modification.
+                </p>
+              </div>
+
+              <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  {editingUser.id === session.user.id ? (
+                    <p className="max-w-sm text-xs leading-5 text-gray-500">
+                      Le compte Admin actuellement connecte ne peut pas etre
+                      supprime ni desactive.
+                    </p>
+                  ) : confirmDelete ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold text-red-300">
+                        Confirmer la suppression ?
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setConfirmDelete(false)}
+                        disabled={busy}
+                      >
+                        Annuler
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => void deleteUser()}
+                        disabled={busy}
+                        className="inline-flex min-h-11 items-center gap-2 rounded-md bg-red-500 px-4 text-xs font-black uppercase tracking-[0.08em] text-white transition hover:bg-red-400 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4" /> Supprimer definitivement
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(true)}
+                      className="inline-flex min-h-11 items-center gap-2 rounded-md border border-red-400/25 px-4 text-xs font-black uppercase tracking-[0.08em] text-red-300 transition hover:border-red-300/50 hover:bg-red-400/10"
+                    >
+                      <Trash2 className="h-4 w-4" /> Supprimer le compte
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-2 sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={closeEditor}
+                    disabled={busy}
+                  >
+                    Fermer
+                  </Button>
+                  <Button type="submit" disabled={busy}>
+                    <Save className="h-4 w-4" /> Enregistrer
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }

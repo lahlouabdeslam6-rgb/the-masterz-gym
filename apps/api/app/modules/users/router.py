@@ -8,6 +8,7 @@ from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import (
     MemberProfileUpdate,
+    UserAdminUpdate,
     UserCreate,
     UserRead,
     UserUpdateRoleStatus,
@@ -36,6 +37,16 @@ def list_users(
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def create_user(data: UserCreate, session: DbSession, actor: Admin):
     return UserService(session).create(data, actor)
+
+
+@router.patch("/{user_id}", response_model=UserRead)
+def update_user(user_id: uuid.UUID, data: UserAdminUpdate, session: DbSession, actor: Admin):
+    return UserService(session).update_as_admin(user_id, data, actor)
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(user_id: uuid.UUID, session: DbSession, actor: Admin) -> None:
+    UserService(session).delete(user_id, actor)
 
 
 @router.patch("/{user_id}/role-status", response_model=UserRead)

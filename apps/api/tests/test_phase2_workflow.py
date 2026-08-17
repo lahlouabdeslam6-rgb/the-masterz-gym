@@ -90,6 +90,66 @@ def test_reception_cannot_create_membership_plan(
     assert response.status_code == 403
 
 
+def test_admin_can_modify_password_and_delete_an_unused_user(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    phone = f"+21265{uuid.uuid4().int % 100_000_000:08d}"
+    created = client.post(
+        "/api/v1/users",
+        headers=admin_headers,
+        json={
+            "full_name": "Compte a modifier",
+            "phone": phone,
+            "email": "before@masterz.example.com",
+            "password": "InitialLocal123!",
+            "role": "receptionist",
+            "status": "active",
+            "member_number": None,
+        },
+    )
+    assert created.status_code == 201, created.text
+    user_id = created.json()["id"]
+
+    updated = client.patch(
+        f"/api/v1/users/{user_id}",
+        headers=admin_headers,
+        json={
+            "full_name": "Compte modifie",
+            "phone": phone,
+            "email": "after@masterz.example.com",
+            "password": "UpdatedLocal123!",
+            "role": "coach",
+            "status": "active",
+            "member_number": None,
+            "reason": "Correction du compte",
+        },
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["full_name"] == "Compte modifie"
+    assert updated.json()["role"] == "coach"
+
+    logged_in = client.post(
+        "/api/v1/auth/login",
+        json={"phone": phone, "password": "UpdatedLocal123!"},
+    )
+    assert logged_in.status_code == 200, logged_in.text
+
+    deleted = client.delete(f"/api/v1/users/{user_id}", headers=admin_headers)
+    assert deleted.status_code == 204, deleted.text
+    rejected_login = client.post(
+        "/api/v1/auth/login",
+        json={"phone": phone, "password": "UpdatedLocal123!"},
+    )
+    assert rejected_login.status_code == 401
+
+
+def test_admin_cannot_delete_own_account(client: TestClient, admin_headers: dict[str, str]) -> None:
+    current = client.get("/api/v1/users/me", headers=admin_headers)
+    response = client.delete(f"/api/v1/users/{current.json()['id']}", headers=admin_headers)
+    assert response.status_code == 409, response.text
+    assert response.json()["detail"]["code"] == "self_delete_forbidden"
+
+
 def test_admin_can_list_membership_settings(
     client: TestClient,
     admin_headers: dict[str, str],

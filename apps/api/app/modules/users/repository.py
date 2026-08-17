@@ -27,6 +27,10 @@ class UserRepository:
         self.session.flush()
         return user
 
+    def delete(self, user: User) -> None:
+        self.session.delete(user)
+        self.session.flush()
+
     def list(self, *, limit: int = 100) -> list[User]:
         return list(
             self.session.scalars(select(User).order_by(User.created_at.desc()).limit(limit))

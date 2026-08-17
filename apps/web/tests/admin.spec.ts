@@ -185,6 +185,8 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   let stableStartedToday = false;
   let startTodayCalls = 0;
   let profilePatchCalls = 0;
+  let userPatchBody: Record<string, unknown> | null = null;
+  let userDeleteCalls = 0;
   let coachingAssignments: Array<Record<string, unknown>> = [];
   let coachingAssignmentCalls = 0;
   await page.route("**/api/v1/**", async (route) => {
@@ -195,7 +197,8 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
         headers: {
           "access-control-allow-origin": "*",
           "access-control-allow-headers": "authorization, content-type",
-          "access-control-allow-methods": "GET, POST, PATCH, PUT, OPTIONS",
+          "access-control-allow-methods":
+            "GET, POST, PATCH, PUT, DELETE, OPTIONS",
         },
       });
       return;
@@ -226,6 +229,24 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
       route.request().method() === "GET"
     ) {
       body = directoryUsers;
+    }
+    if (
+      url.pathname === `/api/v1/users/${directoryUsers[10].id}` &&
+      route.request().method() === "PATCH"
+    ) {
+      userPatchBody = route.request().postDataJSON();
+      body = { ...directoryUsers[10], ...userPatchBody, password: undefined };
+    }
+    if (
+      url.pathname === `/api/v1/users/${directoryUsers[10].id}` &&
+      route.request().method() === "DELETE"
+    ) {
+      userDeleteCalls += 1;
+      await route.fulfill({
+        status: 204,
+        headers: { "access-control-allow-origin": "*" },
+      });
+      return;
     }
     if (url.pathname === "/api/v1/coaching/coaches") {
       body = [
@@ -456,6 +477,32 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   await page.getByLabel("Rechercher un utilisateur").fill("Coach Test 11");
   await expect(page.getByText("Coach Test 11", { exact: true })).toBeVisible();
   await expect(page.getByText("1-1 sur 1 compte(s)")).toBeVisible();
+  await page.getByRole("button", { name: "Modifier Coach Test 11" }).click();
+  const accountDialog = page.getByRole("dialog", {
+    name: "Modifier Coach Test 11",
+  });
+  await expect(accountDialog).toBeVisible();
+  await accountDialog.getByLabel("Nom complet").fill("Coach Test 11 Modifie");
+  await accountDialog
+    .getByLabel("Nouveau mot de passe (optionnel)")
+    .fill("NouveauLocal123!");
+  await accountDialog.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText("Compte mis a jour.")).toBeVisible();
+  expect(userPatchBody).toMatchObject({
+    full_name: "Coach Test 11 Modifie",
+    password: "NouveauLocal123!",
+    reason: "Mise a jour du compte",
+  });
+
+  await page.getByRole("button", { name: "Modifier Coach Test 11" }).click();
+  await accountDialog
+    .getByRole("button", { name: "Supprimer le compte" })
+    .click();
+  await accountDialog
+    .getByRole("button", { name: "Supprimer definitivement" })
+    .click();
+  await expect(page.getByText("Compte supprime.")).toBeVisible();
+  expect(userDeleteCalls).toBe(1);
 
   await navigation.getByRole("link", { name: "Membres" }).click();
   await expect(page).toHaveURL(/\/espace\/admin\/membres$/);

@@ -46,6 +46,22 @@ class UserUpdateRoleStatus(BaseModel):
     reason: str = Field(min_length=3, max_length=500)
 
 
+class UserAdminUpdate(BaseModel):
+    full_name: str = Field(min_length=2, max_length=160)
+    phone: str
+    email: EmailStr | None = None
+    password: str | None = Field(default=None, min_length=10, max_length=128)
+    role: UserRole
+    status: AccountStatus
+    member_number: str | None = Field(default=None, max_length=40)
+    reason: str = Field(min_length=3, max_length=500)
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone_number(cls, value: str) -> str:
+        return normalize_phone(value)
+
+
 class MemberProfileUpdate(BaseModel):
     full_name: str = Field(min_length=2, max_length=160)
     phone: str
