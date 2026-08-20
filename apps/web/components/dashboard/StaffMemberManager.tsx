@@ -6,9 +6,11 @@ import {
   CalendarDays,
   CreditCard,
   History,
+  Pencil,
   ReceiptText,
   Save,
   Search,
+  Trash2,
   UserRound,
 } from "lucide-react";
 import { Alert, Button, Card, Input, Pill } from "@masterz/ui";
@@ -50,6 +52,7 @@ const serviceTypeLabels: Record<Plan["service_type"], string> = {
   coaching: "Coaching",
   recovery: "Recovery",
 };
+const serviceTypes = Object.keys(serviceTypeLabels) as Plan["service_type"][];
 
 type MemberProfileDraft = {
   full_name: string;
@@ -202,6 +205,8 @@ export function StaffMemberManager({
   const [memberFilter, setMemberFilter] = useState<MemberFilter>("all");
   const [memberSort, setMemberSort] = useState<MemberSort>("priority");
   const [profileTab, setProfileTab] = useState<ProfileTab>("informations");
+  const [activeServiceType, setActiveServiceType] =
+    useState<Plan["service_type"]>("gym");
   const [memberProfile, setMemberProfile] = useState<MemberProfileDraft | null>(
     null,
   );
@@ -213,6 +218,11 @@ export function StaffMemberManager({
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [events, setEvents] = useState<Record<string, SubscriptionEvent[]>>({});
   const [dateDrafts, setDateDrafts] = useState<Record<string, string>>({});
+  const [editingSubscriptionId, setEditingSubscriptionId] = useState<
+    string | null
+  >(null);
+  const [confirmCancelSubscriptionId, setConfirmCancelSubscriptionId] =
+    useState<string | null>(null);
   const [planId, setPlanId] = useState(plans[0]?.id ?? "");
   const [startsOn, setStartsOn] = useState(todayInputValue);
   const [method, setMethod] = useState<PaymentMethod>("cash");
@@ -238,7 +248,6 @@ export function StaffMemberManager({
     mode === "full" ||
     mode === "access" ||
     (profileMode && profileTab === "attendance");
-
   const visibleMembers = useMemo(() => {
     const filtered = members.filter(
       (member) =>
@@ -316,6 +325,9 @@ export function StaffMemberManager({
   async function loadMember(member: MemberListItem) {
     setSelected(member);
     setMemberProfile(profileDraft(member));
+    setEditingSubscriptionId(null);
+    setConfirmCancelSubscriptionId(null);
+    setActiveServiceType("gym");
     if (profileMode) setProfileTab("informations");
     setBusy(true);
     setFeedback(null);
@@ -433,6 +445,7 @@ export function StaffMemberManager({
   async function updateSubscriptionStatus(
     subscriptionId: string,
     status: Subscription["status"],
+    reason = statusReason,
   ) {
     setBusy(true);
     const result = await api.PATCH(
@@ -440,7 +453,7 @@ export function StaffMemberManager({
       {
         headers,
         params: { path: { subscription_id: subscriptionId } },
-        body: { status, reason: statusReason },
+        body: { status, reason },
       },
     );
     setFeedback(
@@ -450,9 +463,19 @@ export function StaffMemberManager({
     );
     setBusy(false);
     if (result.data && selected) {
+      setEditingSubscriptionId(null);
+      setConfirmCancelSubscriptionId(null);
       await loadMember(selected);
       await loadMembers(query);
     }
+  }
+
+  async function cancelSubscription(subscription: Subscription) {
+    await updateSubscriptionStatus(
+      subscription.id,
+      "cancelled",
+      "Suppression depuis le dossier membre",
+    );
   }
 
   async function updateSubscriptionDates(
@@ -686,6 +709,112 @@ export function StaffMemberManager({
               <Pill>Dossier membre</Pill>
             </div>
           </div>
+
+          {showPayments ? (
+            <Card
+              className="border-primary/25 bg-primary/[0.035] p-5 sm:p-6"
+              data-testid="new-payment-card"
+            >
+              <div className="border-b border-white/10 pb-4">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">
+                  Encaissement
+                </p>
+                <h3 className="mt-2 text-xl font-black uppercase text-white">
+                  Nouveau paiement / renouvellement
+                </h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  Choisissez la categorie, la formule et la date de debut de
+                  l&apos;abonnement.
+                </p>
+              </div>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <Field label="Formule">
+                  <select
+                    className={selectClass}
+                    value={selectedPlan?.id ?? ""}
+                    onChange={(event) => {
+                      const nextPlan = plans.find(
+                        (plan) => plan.id === event.target.value,
+                      );
+                      setPlanId(event.target.value);
+                      if (nextPlan) setActiveServiceType(nextPlan.service_type);
+                    }}
+                  >
+                    {serviceTypes.map((serviceType) => {
+                      const categoryPlans = plans.filter(
+                        (plan) =>
+                          plan.is_active && plan.service_type === serviceType,
+                      );
+                      return categoryPlans.length ? (
+                        <optgroup
+                          key={serviceType}
+                          label={serviceTypeLabels[serviceType]}
+                        >
+                          {categoryPlans.map((plan) => (
+                            <option key={plan.id} value={plan.id}>
+                              {plan.name} · {plan.price} {plan.currency}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ) : null;
+                    })}
+                  </select>
+                </Field>
+                <Field label="Date de debut de l'abonnement">
+                  <Input
+                    type="date"
+                    value={startsOn}
+                    onChange={(event) => setStartsOn(event.target.value)}
+                  />
+                  <span className="block text-[11px] font-normal normal-case tracking-normal text-gray-600">
+                    Le calcul de l&apos;abonnement commence a cette date.
+                  </span>
+                </Field>
+                <Field label="Paiement">
+                  <select
+                    className={selectClass}
+                    value={method}
+                    onChange={(event) =>
+                      setMethod(event.target.value as PaymentMethod)
+                    }
+                  >
+                    <option value="cash">Especes</option>
+                    <option value="bank_card">Carte</option>
+                  </select>
+                </Field>
+              </div>
+              {paymentAvailable ? (
+                <Button
+                  className="mt-5"
+                  onClick={recordPayment}
+                  disabled={busy || !selectedPlan}
+                >
+                  <CreditCard className="h-4 w-4" /> Enregistrer et generer le
+                  recu
+                </Button>
+              ) : (
+                <div className="mt-5 rounded-sm border border-emerald-300/20 bg-emerald-300/[0.04] p-4">
+                  <p className="text-sm font-black uppercase text-emerald-200">
+                    Abonnement{" "}
+                    {selectedPlan
+                      ? serviceTypeLabels[selectedPlan.service_type]
+                      : ""}{" "}
+                    encore valide
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-gray-400">
+                    Choisissez une autre categorie, ou attendez que cet
+                    abonnement soit expire, suspendu ou annule.
+                  </p>
+                  {selectedServiceSubscription?.ends_on ? (
+                    <p className="mt-2 text-sm font-bold text-emerald-200">
+                      Fin prevue :{" "}
+                      {formatDate(selectedServiceSubscription.ends_on)}
+                    </p>
+                  ) : null}
+                </div>
+              )}
+            </Card>
+          ) : null}
 
           {profileMode ? (
             <nav
@@ -924,145 +1053,353 @@ export function StaffMemberManager({
             </Card>
           ) : null}
 
+          {showSubscriptions || showReceipts ? (
+            <nav
+              aria-label="Categories du dossier commercial"
+              role="tablist"
+              className="grid gap-2 rounded-lg border border-white/10 bg-black/20 p-2 md:grid-cols-3"
+            >
+              {serviceTypes.map((serviceType) => {
+                const subscriptionCount = subscriptions.filter(
+                  (subscription) => subscription.service_type === serviceType,
+                ).length;
+                const receiptCount = receipts.filter(
+                  (receipt) => receipt.service_type === serviceType,
+                ).length;
+                return (
+                  <button
+                    key={serviceType}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeServiceType === serviceType}
+                    onClick={() => {
+                      setActiveServiceType(serviceType);
+                      const firstPlan = plans.find(
+                        (plan) =>
+                          plan.is_active && plan.service_type === serviceType,
+                      );
+                      if (firstPlan) setPlanId(firstPlan.id);
+                    }}
+                    className={`rounded-md border px-4 py-4 text-left transition ${
+                      activeServiceType === serviceType
+                        ? "border-primary/50 bg-primary/10 text-white"
+                        : "border-transparent text-gray-400 hover:border-white/10 hover:bg-white/[0.03] hover:text-white"
+                    }`}
+                  >
+                    <span className="block text-sm font-black uppercase tracking-[0.08em]">
+                      {serviceTypeLabels[serviceType]}
+                    </span>
+                    <span className="mt-1 block text-xs font-bold text-gray-500">
+                      {subscriptionCount} abonnement
+                      {subscriptionCount === 1 ? "" : "s"} · {receiptCount} recu
+                      {receiptCount === 1 ? "" : "s"}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+          ) : null}
+
           {showSubscriptions ? (
             <section>
-              <h3 className="mb-3 text-sm font-black uppercase tracking-[0.12em] text-white">
-                Abonnements
-              </h3>
-              <div className="space-y-3">
-                {subscriptions.length ? (
-                  subscriptions.map((subscription) => (
-                    <Card key={subscription.id} className="p-5">
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div>
-                          <Pill>
-                            {serviceTypeLabels[subscription.service_type]}
-                          </Pill>
-                          <p className="font-black text-white">
-                            {subscription.plan_name}
-                          </p>
-                          <p className="mt-1 text-sm text-gray-500">
-                            Abonnement du {formatDate(subscription.starts_on)}{" "}
-                            au {formatDate(subscription.ends_on)}
-                          </p>
-                          <Pill className="mt-3">
-                            {statusLabels[
-                              subscription.effective_status ??
-                                subscription.status
-                            ] ?? subscription.status}
-                          </Pill>
+              <div className="mb-4">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">
+                  Dossier commercial
+                </p>
+                <h3 className="mt-2 text-xl font-black uppercase text-white">
+                  Abonnements · {serviceTypeLabels[activeServiceType]}
+                </h3>
+              </div>
+              <div className="grid gap-4">
+                {serviceTypes
+                  .filter((serviceType) => serviceType === activeServiceType)
+                  .map((serviceType) => {
+                    const categorySubscriptions = subscriptions.filter(
+                      (subscription) =>
+                        subscription.service_type === serviceType,
+                    );
+                    return (
+                      <div
+                        key={serviceType}
+                        data-testid={`subscription-category-${serviceType}`}
+                        className="rounded-lg border border-white/10 bg-black/20 p-4"
+                      >
+                        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-2 pb-3">
+                          <h4 className="text-sm font-black uppercase tracking-[0.08em] text-white">
+                            {serviceTypeLabels[serviceType]}
+                          </h4>
+                          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-black text-primary">
+                            {categorySubscriptions.length}
+                          </span>
                         </div>
-                        <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-                          <select
-                            aria-label={`Statut de ${subscription.plan_name}`}
-                            className={selectClass}
-                            value={
-                              subscription.effective_status ??
-                              subscription.status
-                            }
-                            onChange={(event) =>
-                              updateSubscriptionStatus(
-                                subscription.id,
-                                event.target.value as Subscription["status"],
-                              )
-                            }
-                            disabled={busy}
-                          >
-                            <option value="active">Actif</option>
-                            <option value="suspended">Suspendu</option>
-                            <option value="expired">Expiré</option>
-                            <option value="cancelled">Annulé</option>
-                          </select>
-                          <Input
-                            value={statusReason}
-                            onChange={(event) =>
-                              setStatusReason(event.target.value)
-                            }
-                          />
-                          <Button
-                            variant="outline"
-                            onClick={() => loadEvents(subscription.id)}
-                          >
-                            <History className="h-4 w-4" /> Historique
-                          </Button>
+                        <div className="mt-3 space-y-3">
+                          {categorySubscriptions.length ? (
+                            categorySubscriptions.map((subscription) => (
+                              <Card key={subscription.id} className="p-5">
+                                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                  <div>
+                                    <Pill>
+                                      {
+                                        serviceTypeLabels[
+                                          subscription.service_type
+                                        ]
+                                      }
+                                    </Pill>
+                                    <p className="font-black text-white">
+                                      {subscription.plan_name}
+                                    </p>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                      Abonnement du{" "}
+                                      {formatDate(subscription.starts_on)} au{" "}
+                                      {formatDate(subscription.ends_on)}
+                                    </p>
+                                    <Pill className="mt-3">
+                                      {statusLabels[
+                                        subscription.effective_status ??
+                                          subscription.status
+                                      ] ?? subscription.status}
+                                    </Pill>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    aria-label={`Modifier l'abonnement ${subscription.plan_name}`}
+                                    onClick={() => {
+                                      setEditingSubscriptionId((current) =>
+                                        current === subscription.id
+                                          ? null
+                                          : subscription.id,
+                                      );
+                                      setConfirmCancelSubscriptionId(null);
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4" /> Modifier
+                                  </Button>
+                                </div>
+                                {editingSubscriptionId === subscription.id ? (
+                                  <div className="mt-4 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">
+                                    <Field label="Statut">
+                                      <select
+                                        aria-label={`Statut de ${subscription.plan_name}`}
+                                        className={selectClass}
+                                        value={
+                                          subscription.effective_status ??
+                                          subscription.status
+                                        }
+                                        onChange={(event) =>
+                                          updateSubscriptionStatus(
+                                            subscription.id,
+                                            event.target
+                                              .value as Subscription["status"],
+                                          )
+                                        }
+                                        disabled={busy}
+                                      >
+                                        <option value="active">Actif</option>
+                                        <option value="suspended">
+                                          Suspendu
+                                        </option>
+                                        <option value="expired">Expire</option>
+                                        <option value="cancelled">
+                                          Annule
+                                        </option>
+                                      </select>
+                                    </Field>
+                                    <Field label="Motif de modification">
+                                      <Input
+                                        value={statusReason}
+                                        onChange={(event) =>
+                                          setStatusReason(event.target.value)
+                                        }
+                                      />
+                                    </Field>
+                                    <div className="sm:col-span-2">
+                                      <Button
+                                        variant="outline"
+                                        onClick={() =>
+                                          loadEvents(subscription.id)
+                                        }
+                                      >
+                                        <History className="h-4 w-4" />{" "}
+                                        Historique
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : null}
+                                {editingSubscriptionId === subscription.id &&
+                                !["cancelled", "expired"].includes(
+                                  subscription.effective_status ??
+                                    subscription.status,
+                                ) ? (
+                                  <div className="mt-4 grid gap-2 border-t border-white/10 pt-4 sm:grid-cols-[minmax(0,240px)_auto] sm:items-end">
+                                    <Field label="Date de debut">
+                                      <Input
+                                        type="date"
+                                        value={
+                                          dateDrafts[subscription.id] ??
+                                          subscription.starts_on
+                                        }
+                                        onChange={(event) =>
+                                          setDateDrafts((current) => ({
+                                            ...current,
+                                            [subscription.id]:
+                                              event.target.value,
+                                          }))
+                                        }
+                                      />
+                                    </Field>
+                                    <Button
+                                      variant="outline"
+                                      onClick={() =>
+                                        updateSubscriptionDates(
+                                          subscription.id,
+                                          dateDrafts[subscription.id] ??
+                                            subscription.starts_on,
+                                          "Modification depuis le dossier membre",
+                                        )
+                                      }
+                                      disabled={busy}
+                                    >
+                                      Modifier la date
+                                    </Button>
+                                  </div>
+                                ) : null}
+                                {editingSubscriptionId === subscription.id &&
+                                (subscription.effective_status ??
+                                  subscription.status) !== "cancelled" ? (
+                                  <div className="mt-4 border-t border-white/10 pt-4">
+                                    {confirmCancelSubscriptionId ===
+                                    subscription.id ? (
+                                      <div className="rounded-sm border border-red-400/20 bg-red-400/[0.05] p-3">
+                                        <p className="text-xs leading-5 text-red-200">
+                                          L&apos;abonnement sera annule. Les
+                                          recus restent conserves dans
+                                          l&apos;historique de caisse.
+                                        </p>
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                          <Button
+                                            variant="outline"
+                                            onClick={() =>
+                                              setConfirmCancelSubscriptionId(
+                                                null,
+                                              )
+                                            }
+                                          >
+                                            Retour
+                                          </Button>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              void cancelSubscription(
+                                                subscription,
+                                              )
+                                            }
+                                            disabled={busy}
+                                            className="min-h-11 rounded-sm bg-red-500 px-4 text-xs font-black uppercase tracking-[0.08em] text-white disabled:opacity-50"
+                                          >
+                                            Confirmer la suppression
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setConfirmCancelSubscriptionId(
+                                            subscription.id,
+                                          )
+                                        }
+                                        className="inline-flex min-h-11 items-center gap-2 rounded-sm border border-red-400/25 px-4 text-xs font-black uppercase tracking-[0.08em] text-red-300 transition hover:bg-red-400/10"
+                                      >
+                                        <Trash2 className="h-4 w-4" /> Supprimer
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : null}
+                                {events[subscription.id] ? (
+                                  <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
+                                    {events[subscription.id].map((event) => (
+                                      <p
+                                        key={event.id}
+                                        className="text-xs text-gray-400"
+                                      >
+                                        {formatDate(event.created_at)} ·{" "}
+                                        {event.event_type} ·{" "}
+                                        {statusLabels[event.new_status] ??
+                                          event.new_status}
+                                      </p>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </Card>
+                            ))
+                          ) : (
+                            <EmptyState
+                              text={`Aucun abonnement ${serviceTypeLabels[serviceType]}.`}
+                            />
+                          )}
                         </div>
                       </div>
-                      {!["cancelled", "expired"].includes(
-                        subscription.effective_status ?? subscription.status,
-                      ) ? (
-                        <div className="mt-4 grid gap-2 border-t border-white/10 pt-4 sm:grid-cols-[minmax(0,240px)_auto] sm:items-end">
-                          <Field label="Date de debut">
-                            <Input
-                              type="date"
-                              value={
-                                dateDrafts[subscription.id] ??
-                                subscription.starts_on
-                              }
-                              onChange={(event) =>
-                                setDateDrafts((current) => ({
-                                  ...current,
-                                  [subscription.id]: event.target.value,
-                                }))
-                              }
-                            />
-                          </Field>
-                          <Button
-                            variant="outline"
-                            onClick={() =>
-                              updateSubscriptionDates(
-                                subscription.id,
-                                dateDrafts[subscription.id] ??
-                                  subscription.starts_on,
-                                "Modification depuis le dossier membre",
-                              )
-                            }
-                            disabled={busy}
-                          >
-                            Modifier la date
-                          </Button>
-                        </div>
-                      ) : null}
-                      {events[subscription.id] ? (
-                        <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
-                          {events[subscription.id].map((event) => (
-                            <p key={event.id} className="text-xs text-gray-400">
-                              {formatDate(event.created_at)} ·{" "}
-                              {event.event_type} ·{" "}
-                              {statusLabels[event.new_status] ??
-                                event.new_status}
-                            </p>
-                          ))}
-                        </div>
-                      ) : null}
-                    </Card>
-                  ))
-                ) : (
-                  <EmptyState text="Aucun abonnement." />
-                )}
+                    );
+                  })}
               </div>
             </section>
           ) : null}
 
           {showReceipts || showAttendance ? (
-            <div
-              className={`grid gap-6 ${showReceipts && showAttendance ? "xl:grid-cols-2" : ""}`}
-            >
+            <div className="space-y-6">
               {showReceipts ? (
                 <section>
-                  <h3 className="mb-3 text-sm font-black uppercase tracking-[0.12em] text-white">
-                    Reçus
-                  </h3>
-                  <div className="space-y-3">
-                    {receipts.length ? (
-                      receipts.map((receipt) => (
-                        <ReceiptSummary
-                          key={receipt.receipt_id}
-                          receipt={receipt}
-                        />
-                      ))
-                    ) : (
-                      <EmptyState text="Aucun reçu." />
-                    )}
+                  <div className="mb-4">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">
+                      Historique de caisse
+                    </p>
+                    <h3 className="mt-2 text-xl font-black uppercase text-white">
+                      Recus · {serviceTypeLabels[activeServiceType]}
+                    </h3>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Affichage separe pour eviter de melanger les paiements.
+                    </p>
+                  </div>
+                  <div className="grid gap-4">
+                    {serviceTypes
+                      .filter(
+                        (serviceType) => serviceType === activeServiceType,
+                      )
+                      .map((serviceType) => {
+                        const categoryReceipts = receipts.filter(
+                          (receipt) => receipt.service_type === serviceType,
+                        );
+                        return (
+                          <div
+                            key={serviceType}
+                            data-testid={`receipt-category-${serviceType}`}
+                            className="rounded-lg border border-white/10 bg-black/20 p-4"
+                          >
+                            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-2 pb-3">
+                              <h4 className="text-sm font-black uppercase tracking-[0.08em] text-white">
+                                {serviceTypeLabels[serviceType]}
+                              </h4>
+                              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-black text-primary">
+                                {categoryReceipts.length}
+                              </span>
+                            </div>
+                            <div className="mt-3 space-y-3">
+                              {categoryReceipts.length ? (
+                                categoryReceipts.map((receipt) => (
+                                  <ReceiptSummary
+                                    key={receipt.receipt_id}
+                                    receipt={receipt}
+                                  />
+                                ))
+                              ) : (
+                                <EmptyState
+                                  text={`Aucun recu ${serviceTypeLabels[serviceType]}.`}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                   </div>
                 </section>
               ) : null}
@@ -1113,88 +1450,6 @@ export function StaffMemberManager({
                 </section>
               ) : null}
             </div>
-          ) : null}
-
-          {showPayments ? (
-            <Card className="p-5" data-testid="new-payment-card">
-              <h3 className="font-black uppercase text-white">
-                Nouveau paiement / renouvellement
-              </h3>
-              <p className="mt-2 text-sm text-gray-500">
-                Verifiez d’abord l’abonnement et les recus, puis choisissez la
-                nouvelle formule et le mode de reglement.
-              </p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <Field label="Formule">
-                  <select
-                    className={selectClass}
-                    value={selectedPlan?.id ?? ""}
-                    onChange={(event) => setPlanId(event.target.value)}
-                  >
-                    {plans
-                      .filter((plan) => plan.is_active)
-                      .map((plan) => (
-                        <option key={plan.id} value={plan.id}>
-                          [{serviceTypeLabels[plan.service_type]}] {plan.name} ·{" "}
-                          {plan.price} {plan.currency}
-                        </option>
-                      ))}
-                  </select>
-                </Field>
-                <Field label="Date de debut de l'abonnement">
-                  <Input
-                    type="date"
-                    value={startsOn}
-                    onChange={(event) => setStartsOn(event.target.value)}
-                  />
-                  <span className="block text-[11px] font-normal normal-case tracking-normal text-gray-600">
-                    Le calcul de l&apos;abonnement commence a cette date.
-                  </span>
-                </Field>
-                <Field label="Paiement">
-                  <select
-                    className={selectClass}
-                    value={method}
-                    onChange={(event) =>
-                      setMethod(event.target.value as PaymentMethod)
-                    }
-                  >
-                    <option value="cash">Especes</option>
-                    <option value="bank_card">Carte</option>
-                  </select>
-                </Field>
-              </div>
-              {paymentAvailable ? (
-                <Button
-                  className="mt-4"
-                  onClick={recordPayment}
-                  disabled={busy || !selectedPlan}
-                >
-                  <CreditCard className="h-4 w-4" /> Enregistrer et generer le
-                  recu
-                </Button>
-              ) : (
-                <div className="mt-4 rounded-sm border border-emerald-300/20 bg-emerald-300/[0.04] p-4">
-                  <p className="text-sm font-black uppercase text-emerald-200">
-                    Abonnement{" "}
-                    {selectedPlan
-                      ? serviceTypeLabels[selectedPlan.service_type]
-                      : ""}{" "}
-                    encore valide
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-gray-400">
-                    Choisissez une autre categorie, ou attendez que cet
-                    abonnement soit expire, suspendu ou annule.
-                  </p>
-                  {selectedServiceSubscription?.ends_on ? (
-                    <p className="mt-2 text-sm font-bold text-emerald-200">
-                      Fin prevue :{" "}
-                      {formatDate(selectedServiceSubscription.ends_on)}
-                    </p>
-                  ) : null}
-                </div>
-              )}
-            </Card>
           ) : null}
         </div>
       ) : null}

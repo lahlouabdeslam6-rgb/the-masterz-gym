@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 
+function dateAfterToday(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 const adminUser = {
   id: "00000000-0000-0000-0000-000000000001",
   full_name: "Admin Masterz",
@@ -91,8 +97,8 @@ const priorityMembers = [
     created_at: "2026-08-15T12:00:00Z",
     subscription_id: "00000000-0000-0000-0000-000000000031",
     plan_name: "12 mois",
-    starts_on: "2026-08-18",
-    ends_on: "2027-08-17",
+    starts_on: dateAfterToday(7),
+    ends_on: dateAfterToday(372),
     status: "active",
     effective_status: "active",
     days_remaining: 366,
@@ -120,6 +126,19 @@ const urgentSubscription = {
   updated_at: "2026-08-15T12:00:00Z",
 };
 
+const urgentCoachingSubscription = {
+  ...urgentSubscription,
+  id: "00000000-0000-0000-0000-000000000032",
+  plan_id: coachingPlan.id,
+  plan_name: coachingPlan.name,
+  duration_months: coachingPlan.duration_months,
+  price: coachingPlan.price,
+  service_type: coachingPlan.service_type,
+  starts_on: "2026-08-01",
+  ends_on: "2026-08-31",
+  grace_ends_on: "2026-09-04",
+};
+
 const urgentReceipt = {
   receipt_id: "00000000-0000-0000-0000-000000000040",
   receipt_number: "TMG-20250819-TEST",
@@ -141,6 +160,21 @@ const urgentReceipt = {
   recorded_by_id: adminUser.id,
   recorded_by_name: adminUser.full_name,
   paid_at: "2025-08-19T12:00:00Z",
+};
+
+const urgentCoachingReceipt = {
+  ...urgentReceipt,
+  receipt_id: "00000000-0000-0000-0000-000000000042",
+  receipt_number: "TMG-20260801-COACH",
+  payment_id: "00000000-0000-0000-0000-000000000043",
+  subscription_id: urgentCoachingSubscription.id,
+  subscription_status: "active",
+  plan_name: coachingPlan.name,
+  starts_on: urgentCoachingSubscription.starts_on,
+  ends_on: urgentCoachingSubscription.ends_on,
+  amount: coachingPlan.price,
+  service_type: coachingPlan.service_type,
+  paid_at: "2026-08-01T12:00:00Z",
 };
 
 const urgentAttendance = [
@@ -361,6 +395,7 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
               effective_status: "cancelled",
             }
           : urgentSubscription,
+        urgentCoachingSubscription,
       ];
     }
     if (
@@ -421,7 +456,7 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
       url.pathname ===
       `/api/v1/payments/members/${priorityMembers[0].id}/receipts`
     ) {
-      body = [urgentReceipt];
+      body = [urgentReceipt, urgentCoachingReceipt];
     }
     if (
       url.pathname === `/api/v1/attendance/members/${priorityMembers[0].id}`
@@ -532,10 +567,14 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   expect(profilePatchCalls).toBe(1);
   await page.getByRole("button", { name: "Abonnements" }).click();
   await expect(
-    page.getByRole("heading", { name: "Abonnements" }),
+    page.getByRole("heading", {
+      name: "Abonnements · Salle musculation",
+    }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Recus" }).click();
-  await expect(page.getByRole("heading", { name: "Reçus" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Recus · Salle musculation" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Entrees" }).click();
   await expect(
     page.getByRole("heading", { name: "Historique des entrees" }),
@@ -590,11 +629,17 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   await page.getByText("Membre Urgent", { exact: true }).click();
 
   await expect(
-    page.getByRole("heading", { name: "Abonnements" }),
+    page.getByRole("heading", {
+      name: "Abonnements · Salle musculation",
+    }),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Reçus" })).toBeVisible();
-  await expect(page.getByText("Paiement enregistre le :")).toBeVisible();
-  await expect(page.getByText("Abonnement du :")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Recus · Salle musculation" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Paiement enregistre le :").first(),
+  ).toBeVisible();
+  await expect(page.getByText("Abonnement du :").first()).toBeVisible();
   await expect(
     page.getByText("Abonnement Salle musculation encore valide"),
   ).toBeVisible();
@@ -602,9 +647,44 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
     page.getByRole("heading", { name: "Nouveau paiement / renouvellement" }),
   ).toBeVisible();
 
+  const gymSubscriptions = page.getByTestId("subscription-category-gym");
+  await expect(gymSubscriptions).toContainText(activePlan.name);
+  await expect(gymSubscriptions).not.toContainText(coachingPlan.name);
+  const gymReceipts = page.getByTestId("receipt-category-gym");
+  await expect(gymReceipts).toContainText(urgentReceipt.receipt_number);
+  await expect(gymReceipts).not.toContainText(
+    urgentCoachingReceipt.receipt_number,
+  );
+
+  await page.getByRole("tab", { name: /^Coaching/ }).click();
+  const coachingSubscriptions = page.getByTestId(
+    "subscription-category-coaching",
+  );
+  const coachingReceipts = page.getByTestId("receipt-category-coaching");
+  await expect(coachingSubscriptions).toContainText(coachingPlan.name);
+  await expect(coachingSubscriptions).not.toContainText(activePlan.name);
+  await expect(coachingReceipts).toContainText(
+    urgentCoachingReceipt.receipt_number,
+  );
+  await expect(coachingReceipts).not.toContainText(
+    urgentReceipt.receipt_number,
+  );
+
+  await page.getByRole("tab", { name: /^Salle musculation/ }).click();
+
   await page
-    .getByLabel(`Statut de ${activePlan.name}`)
-    .selectOption("cancelled");
+    .getByRole("button", { name: `Modifier l'abonnement ${activePlan.name}` })
+    .click();
+  await gymSubscriptions.getByRole("button", { name: "Supprimer" }).click();
+  await expect(
+    gymSubscriptions.getByText(
+      "Les recus restent conserves dans l'historique de caisse.",
+      { exact: false },
+    ),
+  ).toBeVisible();
+  await gymSubscriptions
+    .getByRole("button", { name: "Confirmer la suppression" })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Nouveau paiement / renouvellement" }),
   ).toBeVisible();
@@ -629,14 +709,17 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
     .toBe("refreshed-access-token");
 
   const dossierHeadings = await page.locator("h3").allTextContents();
-  const subscriptionIndex = dossierHeadings.indexOf("Abonnements");
-  const receiptsIndex = dossierHeadings.indexOf("Reçus");
+  const subscriptionIndex = dossierHeadings.indexOf(
+    "Abonnements · Salle musculation",
+  );
+  const receiptsIndex = dossierHeadings.indexOf("Recus · Salle musculation");
   const paymentIndex = dossierHeadings.indexOf(
     "Nouveau paiement / renouvellement",
   );
+  expect(paymentIndex).toBeGreaterThanOrEqual(0);
   expect(subscriptionIndex).toBeGreaterThanOrEqual(0);
   expect(receiptsIndex).toBeGreaterThan(subscriptionIndex);
-  expect(paymentIndex).toBeGreaterThan(receiptsIndex);
+  expect(subscriptionIndex).toBeGreaterThan(paymentIndex);
 
   await navigation.getByRole("link", { name: "Entrees" }).click();
   await expect(page).toHaveURL(/\/espace\/admin\/acces$/);
