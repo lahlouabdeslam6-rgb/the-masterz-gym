@@ -571,6 +571,15 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
       name: "Abonnements · Salle musculation",
     }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Modifier l'abonnement/ }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: /Gerer l'abonnement/ }).first(),
+  ).toHaveAttribute(
+    "href",
+    `/espace/admin/paiements?membre=${priorityMembers[0].id}&categorie=gym`,
+  );
   await page.getByRole("button", { name: "Recus" }).click();
   await expect(
     page.getByRole("heading", { name: "Recus · Salle musculation" }),
@@ -675,7 +684,7 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   await page
     .getByRole("button", { name: `Modifier l'abonnement ${activePlan.name}` })
     .click();
-  await gymSubscriptions.getByRole("button", { name: "Supprimer" }).click();
+  await gymSubscriptions.getByRole("button", { name: "Annuler" }).click();
   await expect(
     gymSubscriptions.getByText(
       "Les recus restent conserves dans l'historique de caisse.",
@@ -683,7 +692,7 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
     ),
   ).toBeVisible();
   await gymSubscriptions
-    .getByRole("button", { name: "Confirmer la suppression" })
+    .getByRole("button", { name: "Confirmer l'annulation" })
     .click();
   await expect(
     page.getByRole("heading", { name: "Nouveau paiement / renouvellement" }),

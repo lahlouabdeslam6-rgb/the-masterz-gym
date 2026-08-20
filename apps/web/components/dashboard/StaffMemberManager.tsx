@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Activity,
   CalendarDays,
@@ -13,7 +14,7 @@ import {
   Trash2,
   UserRound,
 } from "lucide-react";
-import { Alert, Button, Card, Input, Pill } from "@masterz/ui";
+import { Alert, Button, Card, Input, Pill, buttonStyles } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
 import { ReceiptSummary } from "./ApplicationManager";
@@ -218,6 +219,9 @@ export function StaffMemberManager({
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [events, setEvents] = useState<Record<string, SubscriptionEvent[]>>({});
   const [dateDrafts, setDateDrafts] = useState<Record<string, string>>({});
+  const [statusDrafts, setStatusDrafts] = useState<
+    Record<string, Subscription["status"]>
+  >({});
   const [editingSubscriptionId, setEditingSubscriptionId] = useState<
     string | null
   >(null);
@@ -231,8 +235,10 @@ export function StaffMemberManager({
   );
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const requestedMemberHandledRef = useRef("");
   const headers = authorizationHeaders(session.accessToken);
   const profileMode = mode === "profile";
+  const canManageSubscriptions = mode === "full" || mode === "payments";
   const canEditMemberProfile = session.user.role === "admin";
   const showAccess = mode === "full" || mode === "access";
   const showPayments = mode === "full" || mode === "payments";
@@ -248,6 +254,17 @@ export function StaffMemberManager({
     mode === "full" ||
     mode === "access" ||
     (profileMode && profileTab === "attendance");
+  const requestedParams =
+    mode === "payments" && typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search)
+      : null;
+  const requestedMemberId = requestedParams?.get("membre") ?? "";
+  const requestedServiceValue = requestedParams?.get("categorie");
+  const requestedServiceType = serviceTypes.includes(
+    requestedServiceValue as Plan["service_type"],
+  )
+    ? (requestedServiceValue as Plan["service_type"])
+    : null;
   const visibleMembers = useMemo(() => {
     const filtered = members.filter(
       (member) =>
@@ -279,6 +296,47 @@ export function StaffMemberManager({
     });
   }, [memberFilter, memberSort, members, mode]);
 
+  const loadMemberData = useCallback(
+    async (
+      member: MemberListItem,
+      initialServiceType: Plan["service_type"] = "gym",
+    ) => {
+      setSelected(member);
+      setMemberProfile(profileDraft(member));
+      setEditingSubscriptionId(null);
+      setConfirmCancelSubscriptionId(null);
+      setActiveServiceType(initialServiceType);
+      const preferredPlan = plans.find(
+        (plan) => plan.is_active && plan.service_type === initialServiceType,
+      );
+      if (preferredPlan) setPlanId(preferredPlan.id);
+      if (profileMode) setProfileTab("informations");
+      setBusy(true);
+      setFeedback(null);
+      const requestHeaders = authorizationHeaders(session.accessToken);
+      const [subscriptionResult, receiptResult, attendanceResult] =
+        await Promise.all([
+          api.GET("/api/v1/members/{member_id}/subscriptions", {
+            headers: requestHeaders,
+            params: { path: { member_id: member.id } },
+          }),
+          api.GET("/api/v1/payments/members/{member_id}/receipts", {
+            headers: requestHeaders,
+            params: { path: { member_id: member.id } },
+          }),
+          api.GET("/api/v1/attendance/members/{member_id}", {
+            headers: requestHeaders,
+            params: { path: { member_id: member.id }, query: { limit: 100 } },
+          }),
+        ]);
+      setSubscriptions(subscriptionResult.data ?? []);
+      setReceipts(receiptResult.data ?? []);
+      setAttendance(attendanceResult.data ?? []);
+      setBusy(false);
+    },
+    [plans, profileMode, session.accessToken],
+  );
+
   const loadMembers = useCallback(
     async (searchQuery: string) => {
       setMemberListLoading(true);
@@ -300,6 +358,19 @@ export function StaffMemberManager({
         );
       }
       setMembers(loadedMembers);
+      if (
+        mode === "payments" &&
+        requestedMemberId &&
+        requestedMemberHandledRef.current !== requestedMemberId
+      ) {
+        const requestedMember = loadedMembers.find(
+          (member) => member.id === requestedMemberId,
+        );
+        if (requestedMember) {
+          requestedMemberHandledRef.current = requestedMemberId;
+          void loadMemberData(requestedMember, requestedServiceType ?? "gym");
+        }
+      }
       setSelected((current) => {
         if (!current) return current;
         return (
@@ -311,7 +382,13 @@ export function StaffMemberManager({
       );
       setMemberListLoading(false);
     },
-    [mode, session.accessToken],
+    [
+      loadMemberData,
+      mode,
+      requestedMemberId,
+      requestedServiceType,
+      session.accessToken,
+    ],
   );
 
   useEffect(() => {
@@ -323,33 +400,7 @@ export function StaffMemberManager({
   }, [loadMembers, query]);
 
   async function loadMember(member: MemberListItem) {
-    setSelected(member);
-    setMemberProfile(profileDraft(member));
-    setEditingSubscriptionId(null);
-    setConfirmCancelSubscriptionId(null);
-    setActiveServiceType("gym");
-    if (profileMode) setProfileTab("informations");
-    setBusy(true);
-    setFeedback(null);
-    const [subscriptionResult, receiptResult, attendanceResult] =
-      await Promise.all([
-        api.GET("/api/v1/members/{member_id}/subscriptions", {
-          headers,
-          params: { path: { member_id: member.id } },
-        }),
-        api.GET("/api/v1/payments/members/{member_id}/receipts", {
-          headers,
-          params: { path: { member_id: member.id } },
-        }),
-        api.GET("/api/v1/attendance/members/{member_id}", {
-          headers,
-          params: { path: { member_id: member.id }, query: { limit: 100 } },
-        }),
-      ]);
-    setSubscriptions(subscriptionResult.data ?? []);
-    setReceipts(receiptResult.data ?? []);
-    setAttendance(attendanceResult.data ?? []);
-    setBusy(false);
+    await loadMemberData(member);
   }
 
   async function updateMemberProfile() {
@@ -474,7 +525,7 @@ export function StaffMemberManager({
     await updateSubscriptionStatus(
       subscription.id,
       "cancelled",
-      "Suppression depuis le dossier membre",
+      "Annulation depuis la page Paiements",
     );
   }
 
@@ -501,6 +552,38 @@ export function StaffMemberManager({
       setFeedback("Date de debut et date de fin mises a jour.");
     } else {
       setFeedback("La date de debut n'a pas pu etre modifiee.");
+    }
+  }
+
+  async function saveSubscriptionChanges(subscription: Subscription) {
+    const currentStatus = subscription.status;
+    const nextStatus = statusDrafts[subscription.id] ?? currentStatus;
+    const nextStartsOn = dateDrafts[subscription.id] ?? subscription.starts_on;
+    const statusChanged = nextStatus !== currentStatus;
+    const dateChanged = nextStartsOn !== subscription.starts_on;
+
+    if (!statusChanged && !dateChanged) {
+      setFeedback("Aucune modification a enregistrer.");
+      return;
+    }
+    if (statusReason.trim().length < 3) {
+      setFeedback("Ajoutez un motif avant d'enregistrer les modifications.");
+      return;
+    }
+
+    if (statusChanged) {
+      await updateSubscriptionStatus(
+        subscription.id,
+        nextStatus,
+        statusReason.trim(),
+      );
+    }
+    if (dateChanged && !["cancelled", "expired"].includes(nextStatus)) {
+      await updateSubscriptionDates(
+        subscription.id,
+        nextStartsOn,
+        statusReason.trim(),
+      );
     }
   }
 
@@ -1160,20 +1243,42 @@ export function StaffMemberManager({
                                       ] ?? subscription.status}
                                     </Pill>
                                   </div>
-                                  <Button
-                                    variant="outline"
-                                    aria-label={`Modifier l'abonnement ${subscription.plan_name}`}
-                                    onClick={() => {
-                                      setEditingSubscriptionId((current) =>
-                                        current === subscription.id
-                                          ? null
-                                          : subscription.id,
-                                      );
-                                      setConfirmCancelSubscriptionId(null);
-                                    }}
-                                  >
-                                    <Pencil className="h-4 w-4" /> Modifier
-                                  </Button>
+                                  {canManageSubscriptions ? (
+                                    <Button
+                                      variant="outline"
+                                      aria-label={`Modifier l'abonnement ${subscription.plan_name}`}
+                                      onClick={() => {
+                                        setEditingSubscriptionId((current) =>
+                                          current === subscription.id
+                                            ? null
+                                            : subscription.id,
+                                        );
+                                        setStatusDrafts((current) => ({
+                                          ...current,
+                                          [subscription.id]:
+                                            subscription.status,
+                                        }));
+                                        setDateDrafts((current) => ({
+                                          ...current,
+                                          [subscription.id]:
+                                            subscription.starts_on,
+                                        }));
+                                        setConfirmCancelSubscriptionId(null);
+                                      }}
+                                    >
+                                      <Pencil className="h-4 w-4" /> Modifier
+                                    </Button>
+                                  ) : (
+                                    <Link
+                                      href={`${session.user.role === "admin" ? "/espace/admin/paiements" : "/espace/reception/paiements"}?membre=${selected?.id ?? subscription.member_id}&categorie=${subscription.service_type}`}
+                                      className={buttonStyles({
+                                        variant: "outline",
+                                      })}
+                                    >
+                                      <CreditCard className="h-4 w-4" /> Gerer
+                                      l&apos;abonnement
+                                    </Link>
+                                  )}
                                 </div>
                                 {editingSubscriptionId === subscription.id ? (
                                   <div className="mt-4 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">
@@ -1182,15 +1287,15 @@ export function StaffMemberManager({
                                         aria-label={`Statut de ${subscription.plan_name}`}
                                         className={selectClass}
                                         value={
-                                          subscription.effective_status ??
+                                          statusDrafts[subscription.id] ??
                                           subscription.status
                                         }
                                         onChange={(event) =>
-                                          updateSubscriptionStatus(
-                                            subscription.id,
-                                            event.target
+                                          setStatusDrafts((current) => ({
+                                            ...current,
+                                            [subscription.id]: event.target
                                               .value as Subscription["status"],
-                                          )
+                                          }))
                                         }
                                         disabled={busy}
                                       >
@@ -1199,9 +1304,6 @@ export function StaffMemberManager({
                                           Suspendu
                                         </option>
                                         <option value="expired">Expire</option>
-                                        <option value="cancelled">
-                                          Annule
-                                        </option>
                                       </select>
                                     </Field>
                                     <Field label="Motif de modification">
@@ -1230,7 +1332,7 @@ export function StaffMemberManager({
                                   subscription.effective_status ??
                                     subscription.status,
                                 ) ? (
-                                  <div className="mt-4 grid gap-2 border-t border-white/10 pt-4 sm:grid-cols-[minmax(0,240px)_auto] sm:items-end">
+                                  <div className="mt-4 border-t border-white/10 pt-4 sm:max-w-sm">
                                     <Field label="Date de debut">
                                       <Input
                                         type="date"
@@ -1247,19 +1349,22 @@ export function StaffMemberManager({
                                         }
                                       />
                                     </Field>
+                                  </div>
+                                ) : null}
+                                {editingSubscriptionId === subscription.id ? (
+                                  <div className="mt-4 border-t border-white/10 pt-4">
                                     <Button
-                                      variant="outline"
                                       onClick={() =>
-                                        updateSubscriptionDates(
-                                          subscription.id,
-                                          dateDrafts[subscription.id] ??
-                                            subscription.starts_on,
-                                          "Modification depuis le dossier membre",
+                                        void saveSubscriptionChanges(
+                                          subscription,
                                         )
                                       }
-                                      disabled={busy}
+                                      disabled={
+                                        busy || statusReason.trim().length < 3
+                                      }
                                     >
-                                      Modifier la date
+                                      <Save className="h-4 w-4" /> Enregistrer
+                                      les modifications
                                     </Button>
                                   </div>
                                 ) : null}
@@ -1296,7 +1401,7 @@ export function StaffMemberManager({
                                             disabled={busy}
                                             className="min-h-11 rounded-sm bg-red-500 px-4 text-xs font-black uppercase tracking-[0.08em] text-white disabled:opacity-50"
                                           >
-                                            Confirmer la suppression
+                                            Confirmer l&apos;annulation
                                           </button>
                                         </div>
                                       </div>
@@ -1310,7 +1415,7 @@ export function StaffMemberManager({
                                         }
                                         className="inline-flex min-h-11 items-center gap-2 rounded-sm border border-red-400/25 px-4 text-xs font-black uppercase tracking-[0.08em] text-red-300 transition hover:bg-red-400/10"
                                       >
-                                        <Trash2 className="h-4 w-4" /> Supprimer
+                                        <Trash2 className="h-4 w-4" /> Annuler
                                       </button>
                                     )}
                                   </div>
