@@ -5,6 +5,11 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.core.dependencies import DbSession, require_roles
 from app.modules.coaching.schemas import (
+    CoachingAssessmentCreate,
+    CoachingAssessmentRead,
+    CoachingObjectiveRead,
+    CoachingObjectiveUpdate,
+    CoachingTrackingRead,
     CoachMemberAssignmentCreate,
     CoachMemberAssignmentEnd,
     CoachMemberAssignmentRead,
@@ -17,6 +22,10 @@ from app.shared.enums import UserRole
 router = APIRouter(prefix="/coaching", tags=["Coaching"])
 Staff = Annotated[User, Depends(require_roles(UserRole.ADMIN, UserRole.RECEPTIONIST))]
 Coach = Annotated[User, Depends(require_roles(UserRole.COACH))]
+TrackingReader = Annotated[
+    User,
+    Depends(require_roles(UserRole.ADMIN, UserRole.COACH, UserRole.MEMBER)),
+]
 
 
 @router.get("/coaches", response_model=list[CoachSummary])
@@ -42,6 +51,46 @@ def list_assignments(
 @router.get("/my-members", response_model=list[CoachMemberAssignmentRead])
 def list_my_members(session: DbSession, actor: Coach):
     return CoachingService(session).list_assignments(coach_id=actor.id)
+
+
+@router.get(
+    "/members/{member_id}/tracking",
+    response_model=CoachingTrackingRead,
+)
+def get_member_tracking(
+    member_id: uuid.UUID,
+    session: DbSession,
+    actor: TrackingReader,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+):
+    return CoachingService(session).get_tracking(member_id, actor, limit=limit)
+
+
+@router.patch(
+    "/members/{member_id}/objective",
+    response_model=CoachingObjectiveRead,
+)
+def update_member_objective(
+    member_id: uuid.UUID,
+    data: CoachingObjectiveUpdate,
+    session: DbSession,
+    actor: Coach,
+):
+    return CoachingService(session).update_objective(member_id, data, actor)
+
+
+@router.post(
+    "/members/{member_id}/assessments",
+    response_model=CoachingAssessmentRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_member_assessment(
+    member_id: uuid.UUID,
+    data: CoachingAssessmentCreate,
+    session: DbSession,
+    actor: Coach,
+):
+    return CoachingService(session).create_assessment(member_id, data, actor)
 
 
 @router.post(

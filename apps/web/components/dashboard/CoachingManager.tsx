@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ArrowRightLeft,
   Dumbbell,
+  Eye,
   Search,
   UserMinus,
   UserPlus,
@@ -23,6 +24,7 @@ import {
   formatDate,
   statusLabels,
 } from "./dashboard-shared";
+import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 
 export function CoachingManager({ session }: { session: AuthSession }) {
   const [coaches, setCoaches] = useState<CoachSummary[]>([]);
@@ -30,6 +32,7 @@ export function CoachingManager({ session }: { session: AuthSession }) {
   const [members, setMembers] = useState<MemberSubscriptionSummary[]>([]);
   const [selectedCoachId, setSelectedCoachId] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState("");
+  const [trackingMemberId, setTrackingMemberId] = useState("");
   const [coachQuery, setCoachQuery] = useState("");
   const [memberQuery, setMemberQuery] = useState("");
   const [reason, setReason] = useState("Choix confirme avec le membre");
@@ -217,6 +220,7 @@ export function CoachingManager({ session }: { session: AuthSession }) {
                   onClick={() => {
                     setSelectedCoachId(coach.id);
                     setSelectedMemberId("");
+                    setTrackingMemberId("");
                   }}
                   className={`w-full rounded-sm border p-4 text-left transition ${
                     coach.id === selectedCoachId
@@ -375,13 +379,22 @@ export function CoachingManager({ session }: { session: AuthSession }) {
                           {formatDate(assignment.started_at)}
                         </p>
                       </div>
-                      <Button
-                        variant="outline"
-                        onClick={() => endAssignment(assignment)}
-                        disabled={busy || reason.trim().length < 3}
-                      >
-                        <UserMinus className="h-4 w-4" /> Retirer du suivi
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          onClick={() =>
+                            setTrackingMemberId(assignment.member_id)
+                          }
+                        >
+                          <Eye className="h-4 w-4" /> Voir la progression
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => endAssignment(assignment)}
+                          disabled={busy || reason.trim().length < 3}
+                        >
+                          <UserMinus className="h-4 w-4" /> Retirer du suivi
+                        </Button>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -389,6 +402,14 @@ export function CoachingManager({ session }: { session: AuthSession }) {
                 )}
               </div>
             </Card>
+
+            {trackingMemberId ? (
+              <CoachingTrackingPanel
+                key={trackingMemberId}
+                session={session}
+                memberId={trackingMemberId}
+              />
+            ) : null}
           </div>
         ) : (
           <EmptyState text="Creez ou choisissez un coach pour ouvrir son dossier." />

@@ -7,7 +7,6 @@ import {
   ClipboardCheck,
   Coffee,
   CreditCard,
-  Dumbbell,
   FileClock,
   LogOut,
   Sparkles,
@@ -29,6 +28,7 @@ import {
   AdminUserManager,
 } from "./AdminManagement";
 import { ApplicationManager } from "./ApplicationManager";
+import { CoachDashboard } from "./CoachDashboard";
 import { MemberDashboard } from "./MemberDashboard";
 import { StaffMemberManager } from "./StaffMemberManager";
 import {
@@ -216,6 +216,7 @@ export function RoleDashboard() {
         ) : null}
         {session.user.role === "member" ? (
           <MemberDashboard
+            session={session}
             user={session.user}
             subscriptions={subscriptions}
             receipts={receipts}
@@ -223,7 +224,7 @@ export function RoleDashboard() {
           />
         ) : null}
         {session.user.role === "coach" ? (
-          <FutureRoleDashboard role="coach" />
+          <CoachDashboard session={session} />
         ) : null}
         {session.user.role === "recovery_client" ? (
           <FutureRoleDashboard role="recovery" />
@@ -383,18 +384,8 @@ function ReceptionSpace({
   );
 }
 
-function FutureRoleDashboard({
-  role,
-}: {
-  role: "coach" | "recovery" | "cafe";
-}) {
+function FutureRoleDashboard({ role }: { role: "recovery" | "cafe" }) {
   const content = {
-    coach: {
-      icon: Dumbbell,
-      title: "Espace coach",
-      text: "Le compte et la session fonctionnent. Le planning, les programmes et le suivi sportif demandent le prochain contrat API Coaching.",
-      items: ["Planning des séances", "Membres suivis", "Programmes"],
-    },
     recovery: {
       icon: Sparkles,
       title: "Espace recovery",

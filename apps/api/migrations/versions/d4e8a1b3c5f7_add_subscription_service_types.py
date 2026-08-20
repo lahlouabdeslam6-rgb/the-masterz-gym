@@ -54,12 +54,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(
-        op.f("ix_subscriptions_service_type"), table_name="subscriptions"
-    )
-    op.drop_index(
-        op.f("ix_membership_plans_service_type"), table_name="membership_plans"
-    )
+    op.drop_index(op.f("ix_subscriptions_service_type"), table_name="subscriptions")
+    op.drop_index(op.f("ix_membership_plans_service_type"), table_name="membership_plans")
     op.drop_column("subscriptions", "service_type")
     op.drop_column("membership_plans", "service_type")
     sa.Enum(name="service_type").drop(op.get_bind(), checkfirst=True)

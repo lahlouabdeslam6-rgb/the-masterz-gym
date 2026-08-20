@@ -52,6 +52,14 @@ class ServiceType(StrEnum):
     RECOVERY = "recovery"
 
 
+class CoachingTestType(StrEnum):
+    IMPEDANCE = "impedance"
+    NEUROMUSCULAR = "neuromuscular"
+    BODY_MEASUREMENTS = "body_measurements"
+    RM_STRENGTH = "rm_strength"
+    NUTRITION_SURVEY = "nutrition_survey"
+
+
 class PaymentMethod(StrEnum):
     CASH = "cash"
     BANK_CARD = "bank_card"

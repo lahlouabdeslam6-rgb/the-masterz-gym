@@ -587,6 +587,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/coaching/members/{member_id}/tracking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Member Tracking */
+        get: operations["get_member_tracking_api_v1_coaching_members__member_id__tracking_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coaching/members/{member_id}/objective": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Member Objective */
+        patch: operations["update_member_objective_api_v1_coaching_members__member_id__objective_patch"];
+        trace?: never;
+    };
+    "/api/v1/coaching/members/{member_id}/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Member Assessment */
+        post: operations["create_member_assessment_api_v1_coaching_members__member_id__assessments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/coaching/assignments/{assignment_id}/end": {
         parameters: {
             query?: never;
@@ -868,6 +919,109 @@ export interface components {
             status: components["schemas"]["AccountStatus"];
             /** Active Member Count */
             active_member_count: number;
+        };
+        /** CoachingAssessmentCreate */
+        CoachingAssessmentCreate: {
+            test_type: components["schemas"]["CoachingTestType"];
+            /**
+             * Measured At
+             * Format: date-time
+             */
+            measured_at: string;
+            /** Metrics */
+            metrics: {
+                [key: string]: string | number | boolean | null;
+            };
+            /** Notes */
+            notes?: string | null;
+        };
+        /** CoachingAssessmentRead */
+        CoachingAssessmentRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Assignment Id
+             * Format: uuid
+             */
+            assignment_id: string;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /**
+             * Coach Id
+             * Format: uuid
+             */
+            coach_id: string;
+            /** Coach Name */
+            coach_name: string;
+            test_type: components["schemas"]["CoachingTestType"];
+            /**
+             * Measured At
+             * Format: date-time
+             */
+            measured_at: string;
+            /** Metrics */
+            metrics: {
+                [key: string]: string | number | boolean | null;
+            };
+            /** Notes */
+            notes: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** CoachingObjectiveRead */
+        CoachingObjectiveRead: {
+            /** Objective */
+            objective: string;
+            /**
+             * Updated By Id
+             * Format: uuid
+             */
+            updated_by_id: string;
+            /** Updated By Name */
+            updated_by_name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CoachingObjectiveUpdate */
+        CoachingObjectiveUpdate: {
+            /** Objective */
+            objective: string;
+        };
+        /**
+         * CoachingTestType
+         * @enum {string}
+         */
+        CoachingTestType: "impedance" | "neuromuscular" | "body_measurements" | "rm_strength" | "nutrition_survey";
+        /** CoachingTrackingRead */
+        CoachingTrackingRead: {
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Member Name */
+            member_name: string;
+            /** Member Number */
+            member_number: string;
+            /** Coach Id */
+            coach_id: string | null;
+            /** Coach Name */
+            coach_name: string | null;
+            objective: components["schemas"]["CoachingObjectiveRead"] | null;
+            /** Assessments */
+            assessments: components["schemas"]["CoachingAssessmentRead"][];
         };
         /** ExistingMemberActivationConfirm */
         ExistingMemberActivationConfirm: {
@@ -2662,6 +2816,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CoachMemberAssignmentRead"][];
+                };
+            };
+        };
+    };
+    get_member_tracking_api_v1_coaching_members__member_id__tracking_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingTrackingRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_member_objective_api_v1_coaching_members__member_id__objective_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachingObjectiveUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingObjectiveRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_member_assessment_api_v1_coaching_members__member_id__assessments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachingAssessmentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingAssessmentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

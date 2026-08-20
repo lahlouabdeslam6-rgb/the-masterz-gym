@@ -3,7 +3,11 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.modules.coaching.models import CoachMemberAssignment
+from app.modules.coaching.models import (
+    CoachingAssessment,
+    CoachingClientProfile,
+    CoachMemberAssignment,
+)
 from app.modules.users.models import User
 from app.shared.enums import UserRole
 
@@ -65,3 +69,44 @@ class CoachingRepository:
         self.session.add(assignment)
         self.session.flush()
         return assignment
+
+    def active_assignment_for_coach_member(
+        self, coach_id: uuid.UUID, member_id: uuid.UUID
+    ) -> CoachMemberAssignment | None:
+        return self.session.scalar(
+            select(CoachMemberAssignment).where(
+                CoachMemberAssignment.coach_id == coach_id,
+                CoachMemberAssignment.member_id == member_id,
+                CoachMemberAssignment.ended_at.is_(None),
+            )
+        )
+
+    def get_profile(self, member_id: uuid.UUID) -> CoachingClientProfile | None:
+        return self.session.scalar(
+            select(CoachingClientProfile).where(CoachingClientProfile.member_id == member_id)
+        )
+
+    def add_profile(self, profile: CoachingClientProfile) -> CoachingClientProfile:
+        self.session.add(profile)
+        self.session.flush()
+        return profile
+
+    def list_assessments(
+        self, member_id: uuid.UUID, *, limit: int = 100
+    ) -> list[CoachingAssessment]:
+        return list(
+            self.session.scalars(
+                select(CoachingAssessment)
+                .where(CoachingAssessment.member_id == member_id)
+                .order_by(
+                    CoachingAssessment.measured_at.desc(),
+                    CoachingAssessment.created_at.desc(),
+                )
+                .limit(limit)
+            )
+        )
+
+    def add_assessment(self, assessment: CoachingAssessment) -> CoachingAssessment:
+        self.session.add(assessment)
+        self.session.flush()
+        return assessment

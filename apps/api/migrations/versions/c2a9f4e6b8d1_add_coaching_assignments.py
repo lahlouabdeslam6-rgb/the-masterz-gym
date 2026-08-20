@@ -38,9 +38,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.CheckConstraint(
-            "coach_id <> member_id", name="ck_coach_assignments_distinct_users"
-        ),
+        sa.CheckConstraint("coach_id <> member_id", name="ck_coach_assignments_distinct_users"),
         sa.ForeignKeyConstraint(["assigned_by_id"], ["users.id"]),
         sa.ForeignKeyConstraint(["coach_id"], ["users.id"]),
         sa.ForeignKeyConstraint(["member_id"], ["users.id"]),

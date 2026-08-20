@@ -17,6 +17,10 @@ export type MemberSubscriptionSummary =
 export type CoachSummary = components["schemas"]["CoachSummary"];
 export type CoachingAssignment =
   components["schemas"]["CoachMemberAssignmentRead"];
+export type CoachingTracking = components["schemas"]["CoachingTrackingRead"];
+export type CoachingAssessment =
+  components["schemas"]["CoachingAssessmentRead"];
+export type CoachingTestType = components["schemas"]["CoachingTestType"];
 
 export const roleLabels: Record<User["role"], string> = {
   admin: "Administration",

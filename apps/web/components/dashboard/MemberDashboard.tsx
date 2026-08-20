@@ -1,6 +1,8 @@
 import { CalendarCheck, CreditCard, UserRound } from "lucide-react";
 import { Card, Pill } from "@masterz/ui";
+import type { AuthSession } from "@/lib/auth";
 import { ReceiptSummary } from "./ApplicationManager";
+import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 import {
   type Attendance,
   type Receipt,
@@ -14,11 +16,13 @@ import {
 } from "./dashboard-shared";
 
 export function MemberDashboard({
+  session,
   user,
   subscriptions,
   receipts,
   attendance,
 }: {
+  session: AuthSession;
   user: User;
   subscriptions: Subscription[];
   receipts: Receipt[];
@@ -125,6 +129,12 @@ export function MemberDashboard({
           )}
         </Panel>
       </div>
+      <Panel
+        title="Ma progression coaching"
+        subtitle="Votre objectif, vos tests et leur historique, sans modifier les donnees saisies par votre coach."
+      >
+        <CoachingTrackingPanel session={session} memberId={user.id} />
+      </Panel>
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="p-5">
           <UserRound className="h-6 w-6 text-primary" />

@@ -1,9 +1,10 @@
 import uuid
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.core.security import hash_password
 from app.modules.auth.otp import OTPProvider
 from app.modules.memberships.models import MembershipPlan, Subscription
 from app.modules.users.models import User
@@ -370,6 +371,180 @@ def test_coaching_assignment_can_be_created_changed_and_ended(
     assert "coaching.assignment_ended" in actions
 
 
+def test_coach_records_objective_and_all_tests_with_private_history(
+    client: TestClient,
+    db_session: Session,
+    admin_headers: dict[str, str],
+) -> None:
+    suffix = uuid.uuid4().hex[:8]
+    coach_password = "CoachTracking123!"
+    other_coach_password = "OtherCoach123!"
+    member_password = "MemberTracking123!"
+    coach = User(
+        full_name="Coach Suivi",
+        phone=f"+21264{uuid.uuid4().int % 100_000_000:08d}",
+        password_hash=hash_password(coach_password),
+        role=UserRole.COACH,
+        status=AccountStatus.ACTIVE,
+        member_number=None,
+    )
+    other_coach = User(
+        full_name="Coach Sans Affectation",
+        phone=f"+21265{uuid.uuid4().int % 100_000_000:08d}",
+        password_hash=hash_password(other_coach_password),
+        role=UserRole.COACH,
+        status=AccountStatus.ACTIVE,
+        member_number=None,
+    )
+    member = User(
+        full_name="Membre Progression",
+        phone=f"+21266{uuid.uuid4().int % 100_000_000:08d}",
+        password_hash=hash_password(member_password),
+        role=UserRole.MEMBER,
+        status=AccountStatus.ACTIVE,
+        member_number=f"TMG-PROGRESS-{suffix.upper()}",
+    )
+    admin = db_session.query(User).filter(User.phone == "+212600000001").one()
+    db_session.add_all([coach, other_coach, member])
+    db_session.flush()
+    coaching_plan = MembershipPlan(
+        name=f"Coaching progression {suffix}",
+        duration_months=3,
+        price="900.00",
+        currency="MAD",
+        service_type=ServiceType.COACHING,
+        is_active=True,
+    )
+    db_session.add(coaching_plan)
+    db_session.flush()
+    today = local_today()
+    db_session.add(
+        Subscription(
+            member_id=member.id,
+            plan_id=coaching_plan.id,
+            status=SubscriptionStatus.ACTIVE,
+            starts_on=today,
+            ends_on=add_months(today, 3) - timedelta(days=1),
+            grace_ends_on=add_months(today, 3) + timedelta(days=3),
+            plan_name=coaching_plan.name,
+            duration_months=coaching_plan.duration_months,
+            price=coaching_plan.price,
+            currency=coaching_plan.currency,
+            service_type=ServiceType.COACHING,
+            created_by_id=admin.id,
+        )
+    )
+    db_session.flush()
+    assigned = client.post(
+        "/api/v1/coaching/assignments",
+        headers=admin_headers,
+        json={
+            "coach_id": str(coach.id),
+            "member_id": str(member.id),
+            "reason": "Coach choisi pour le suivi progression",
+        },
+    )
+    assert assigned.status_code == 201, assigned.text
+
+    def login(phone: str, password: str) -> dict[str, str]:
+        response = client.post("/api/v1/auth/login", json={"phone": phone, "password": password})
+        assert response.status_code == 200, response.text
+        return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+    coach_headers = login(coach.phone, coach_password)
+    other_coach_headers = login(other_coach.phone, other_coach_password)
+    member_headers = login(member.phone, member_password)
+
+    empty_tracking = client.get(
+        f"/api/v1/coaching/members/{member.id}/tracking", headers=coach_headers
+    )
+    assert empty_tracking.status_code == 200, empty_tracking.text
+    assert empty_tracking.json()["objective"] is None
+    assert empty_tracking.json()["assessments"] == []
+
+    objective = client.patch(
+        f"/api/v1/coaching/members/{member.id}/objective",
+        headers=coach_headers,
+        json={"objective": "Perdre 8 kg et developper la force generale"},
+    )
+    assert objective.status_code == 200, objective.text
+    assert objective.json()["updated_by_name"] == coach.full_name
+
+    tests = [
+        ("impedance", {"weight_kg": 86.2, "body_fat_pct": 24.5}),
+        ("neuromuscular", {"global_score": 72, "left_balance": 68}),
+        ("body_measurements", {"waist_cm": 94, "chest_cm": 104}),
+        ("rm_strength", {"exercise": "Squat", "one_rep_max_kg": 110}),
+        (
+            "nutrition_survey",
+            {"meals_per_day": 4, "water_liters": 2.5, "dietary_pattern": "Equilibre"},
+        ),
+    ]
+    for index, (test_type, metrics) in enumerate(tests):
+        recorded = client.post(
+            f"/api/v1/coaching/members/{member.id}/assessments",
+            headers=coach_headers,
+            json={
+                "test_type": test_type,
+                "measured_at": (datetime.now(UTC) - timedelta(days=index)).isoformat(),
+                "metrics": metrics,
+                "notes": f"Evaluation {test_type}",
+            },
+        )
+        assert recorded.status_code == 201, recorded.text
+        assert recorded.json()["test_type"] == test_type
+
+    second_impedance = client.post(
+        f"/api/v1/coaching/members/{member.id}/assessments",
+        headers=coach_headers,
+        json={
+            "test_type": "impedance",
+            "measured_at": datetime.now(UTC).isoformat(),
+            "metrics": {"weight_kg": 84.7, "body_fat_pct": 22.9},
+        },
+    )
+    assert second_impedance.status_code == 201, second_impedance.text
+
+    coach_tracking = client.get(
+        f"/api/v1/coaching/members/{member.id}/tracking", headers=coach_headers
+    )
+    assert coach_tracking.status_code == 200, coach_tracking.text
+    assert coach_tracking.json()["objective"]["objective"].startswith("Perdre 8 kg")
+    assert len(coach_tracking.json()["assessments"]) == 6
+    assert [item["test_type"] for item in coach_tracking.json()["assessments"]].count(
+        "impedance"
+    ) == 2
+
+    member_tracking = client.get(
+        f"/api/v1/coaching/members/{member.id}/tracking", headers=member_headers
+    )
+    assert member_tracking.status_code == 200, member_tracking.text
+    assert member_tracking.json()["assessments"][0]["coach_name"] == coach.full_name
+
+    admin_tracking = client.get(
+        f"/api/v1/coaching/members/{member.id}/tracking", headers=admin_headers
+    )
+    assert admin_tracking.status_code == 200, admin_tracking.text
+    assert len(admin_tracking.json()["assessments"]) == 6
+
+    forbidden = client.get(
+        f"/api/v1/coaching/members/{member.id}/tracking",
+        headers=other_coach_headers,
+    )
+    assert forbidden.status_code == 403
+    member_cannot_write = client.patch(
+        f"/api/v1/coaching/members/{member.id}/objective",
+        headers=member_headers,
+        json={"objective": "Tentative membre"},
+    )
+    assert member_cannot_write.status_code == 403
+
+    audit_logs = client.get("/api/v1/audit-logs", headers=admin_headers)
+    actions = {entry["action"] for entry in audit_logs.json()}
+    assert "coaching.objective_created" in actions
+    assert "coaching.assessment_recorded" in actions
+
+
 def test_payment_member_summaries_prioritize_renewals(
     client: TestClient,
     db_session: Session,
@@ -699,7 +874,9 @@ def test_application_payment_attendance_and_audit_workflow(
     reception_headers: dict[str, str],
 ) -> None:
     plans = client.get("/api/v1/membership-plans").json()
-    plan = next(item for item in plans if item["duration_months"] == 1)
+    plan = next(
+        item for item in plans if item["duration_months"] == 1 and item["service_type"] == "gym"
+    )
     phone = f"+21267{uuid.uuid4().int % 100_000_000:08d}"
 
     submitted = client.post(
