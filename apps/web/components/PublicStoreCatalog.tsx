@@ -2,7 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Eye, LogIn, Package, RefreshCw, ShoppingBag, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  LogIn,
+  Package,
+  Play,
+  RefreshCw,
+  ShoppingBag,
+  X,
+} from "lucide-react";
 import type { components } from "@masterz/api-client";
 import { buttonStyles } from "@masterz/ui";
 import { api, apiBaseUrl } from "@/lib/api";
@@ -199,7 +209,7 @@ function ProductDetails({
           <X className="h-5 w-5" />
         </button>
         <div className="grid lg:grid-cols-[1.35fr_0.85fr]">
-          <CatalogMedia product={product} size="detail" />
+          <ProductGallery product={product} />
           <div className="flex flex-col justify-center p-7 sm:p-10 lg:p-12">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">
@@ -271,24 +281,100 @@ function AvailabilityBadge({ available }: { available: boolean }) {
   );
 }
 
+function ProductGallery({ product }: { product: CatalogProduct }) {
+  const mediaUrls = getProductMediaUrls(product);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const activeMediaUrl = mediaUrls[activeIndex] ?? null;
+
+  function showPrevious() {
+    setActiveIndex((current) =>
+      current === 0 ? mediaUrls.length - 1 : current - 1,
+    );
+  }
+
+  function showNext() {
+    setActiveIndex((current) => (current + 1) % mediaUrls.length);
+  }
+
+  return (
+    <div className="relative overflow-hidden bg-[#f4f4f2]">
+      <CatalogMedia product={product} mediaUrl={activeMediaUrl} size="detail" />
+      {mediaUrls.length > 1 ? (
+        <>
+          <span className="absolute left-4 top-4 rounded-full bg-black/75 px-3 py-1 text-xs font-black text-white backdrop-blur-sm">
+            {activeIndex + 1} / {mediaUrls.length}
+          </span>
+          <button
+            type="button"
+            aria-label="Media precedent"
+            className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/75 text-white shadow-lg transition hover:bg-primary hover:text-black"
+            onClick={showPrevious}
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <button
+            type="button"
+            aria-label="Media suivant"
+            className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/75 text-white shadow-lg transition hover:bg-primary hover:text-black"
+            onClick={showNext}
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+          <div className="absolute bottom-4 left-1/2 flex max-w-[85%] -translate-x-1/2 gap-2 overflow-x-auto rounded-lg bg-black/75 p-2 backdrop-blur-sm">
+            {mediaUrls.map((mediaUrl, index) => (
+              <button
+                type="button"
+                key={`${mediaUrl}-${index}`}
+                aria-label={`Afficher media ${index + 1}`}
+                aria-current={index === activeIndex}
+                className={`flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border-2 bg-white bg-contain bg-center bg-no-repeat transition sm:h-16 sm:w-16 ${
+                  index === activeIndex
+                    ? "border-primary"
+                    : "border-transparent opacity-70 hover:opacity-100"
+                }`}
+                style={
+                  isMediaVideo(mediaUrl)
+                    ? undefined
+                    : {
+                        backgroundImage: `url("${resolveMediaUrl(mediaUrl)}")`,
+                      }
+                }
+                onClick={() => setActiveIndex(index)}
+              >
+                {isMediaVideo(mediaUrl) ? (
+                  <Play className="h-5 w-5 fill-black text-black" />
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 function CatalogMedia({
   product,
+  mediaUrl,
   size,
 }: {
   product: CatalogProduct;
+  mediaUrl?: string | null;
   size: "card" | "detail";
 }) {
-  const mediaUrl = resolveMediaUrl(product.image_url);
+  const resolvedMediaUrl = resolveMediaUrl(
+    mediaUrl === undefined ? getProductMediaUrls(product)[0] : mediaUrl,
+  );
   const sizeClasses =
     size === "detail"
       ? "min-h-[22rem] h-[55vh] max-h-[42rem] lg:h-[76vh]"
       : "h-80 sm:h-96";
 
-  if (mediaUrl && /\.(mp4|webm)(?:\?|$)/i.test(mediaUrl)) {
+  if (resolvedMediaUrl && isMediaVideo(resolvedMediaUrl)) {
     return (
       <video
         className={`${sizeClasses} w-full bg-black object-contain`}
-        src={mediaUrl}
+        src={resolvedMediaUrl}
         controls
         preload="metadata"
       />
@@ -301,9 +387,9 @@ function CatalogMedia({
       aria-label={"Photo " + product.name}
       className={`${sizeClasses} flex w-full items-center justify-center bg-[#f4f4f2] bg-contain bg-center bg-no-repeat transition duration-500 group-hover:brightness-[0.97]`}
       style={
-        mediaUrl
+        resolvedMediaUrl
           ? {
-              backgroundImage: 'url("' + mediaUrl + '")',
+              backgroundImage: 'url("' + resolvedMediaUrl + '")',
               backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
               backgroundSize: "contain",
@@ -311,9 +397,20 @@ function CatalogMedia({
           : undefined
       }
     >
-      {!mediaUrl ? <Package className="h-14 w-14 text-black/25" /> : null}
+      {!resolvedMediaUrl ? (
+        <Package className="h-14 w-14 text-black/25" />
+      ) : null}
     </div>
   );
+}
+
+function getProductMediaUrls(product: CatalogProduct) {
+  if (product.media_urls?.length) return product.media_urls;
+  return product.image_url ? [product.image_url] : [];
+}
+
+function isMediaVideo(mediaUrl: string) {
+  return /\.(mp4|webm)(?:\?|$)/i.test(mediaUrl);
 }
 
 function resolveMediaUrl(mediaUrl: string | null) {

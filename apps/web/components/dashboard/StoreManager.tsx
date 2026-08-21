@@ -62,7 +62,7 @@ export function AdminStoreManager({ session }: { session: AuthSession }) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [imageUploading, setImageUploading] = useState(false);
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("MAD");
@@ -97,7 +97,8 @@ export function AdminStoreManager({ session }: { session: AuthSession }) {
       body: {
         name: name.trim(),
         description: description.trim() || null,
-        image_url: imageUrl.trim() || null,
+        image_url: mediaUrls[0] ?? null,
+        media_urls: mediaUrls,
         price,
         currency: currency.trim().toUpperCase(),
         stock_quantity: Number(stock),
@@ -111,7 +112,7 @@ export function AdminStoreManager({ session }: { session: AuthSession }) {
     }
     setName("");
     setDescription("");
-    setImageUrl("");
+    setMediaUrls([]);
     setPrice("");
     setStock("0");
     await load();
@@ -169,10 +170,10 @@ export function AdminStoreManager({ session }: { session: AuthSession }) {
               />
             </Field>
           </div>
-          <ProductImageField
+          <ProductMediaField
             session={session}
-            value={imageUrl}
-            onChange={setImageUrl}
+            value={mediaUrls}
+            onChange={setMediaUrls}
             onUploadingChange={setImageUploading}
           />
           <div className="lg:col-span-2">
@@ -243,7 +244,7 @@ function ProductEditor({
   const headers = useStoreHeaders(session);
   const [name, setName] = useState(product.name);
   const [description, setDescription] = useState(product.description ?? "");
-  const [imageUrl, setImageUrl] = useState(product.image_url ?? "");
+  const [mediaUrls, setMediaUrls] = useState(() => getStoreMediaUrls(product));
   const [price, setPrice] = useState(product.price);
   const [currency, setCurrency] = useState(product.currency);
   const [stock, setStock] = useState(String(product.stock_quantity));
@@ -261,7 +262,8 @@ function ProductEditor({
       body: {
         name: name.trim(),
         description: description.trim() || null,
-        image_url: imageUrl.trim() || null,
+        image_url: mediaUrls[0] ?? null,
+        media_urls: mediaUrls,
         price,
         currency: currency.trim().toUpperCase(),
         stock_quantity: Number(stock),
@@ -280,7 +282,13 @@ function ProductEditor({
   return (
     <Card className="p-5">
       <div className="grid gap-5 sm:grid-cols-[140px_1fr]">
-        <ProductVisual product={{ ...product, image_url: imageUrl }} />
+        <ProductVisual
+          product={{
+            ...product,
+            image_url: mediaUrls[0] ?? null,
+            media_urls: mediaUrls,
+          }}
+        />
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Nom">
             <Input
@@ -315,10 +323,10 @@ function ProductEditor({
         </div>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <ProductImageField
+        <ProductMediaField
           session={session}
-          value={imageUrl}
-          onChange={setImageUrl}
+          value={mediaUrls}
+          onChange={setMediaUrls}
           onUploadingChange={setImageUploading}
         />
         <Field label="Visibilite">
@@ -364,26 +372,29 @@ export function MemberStoreManager({ session }: { session: AuthSession }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const load = useCallback(async (preserveFeedback = false) => {
-    const [productsResult, reservationsResult] = await Promise.all([
-      api.GET("/api/v1/store/products", {
-        headers,
-        params: { query: { active_only: true } },
-      }),
-      api.GET("/api/v1/store/reservations", {
-        headers,
-        params: { query: { limit: 100 } },
-      }),
-    ]);
-    setProducts(productsResult.data ?? []);
-    setReservations(reservationsResult.data ?? []);
-    if (productsResult.error || reservationsResult.error) {
-      setFeedback("Le Store n'a pas pu etre charge completement.");
-    } else if (!preserveFeedback) {
-      setFeedback(null);
-    }
-    setLoading(false);
-  }, [headers]);
+  const load = useCallback(
+    async (preserveFeedback = false) => {
+      const [productsResult, reservationsResult] = await Promise.all([
+        api.GET("/api/v1/store/products", {
+          headers,
+          params: { query: { active_only: true } },
+        }),
+        api.GET("/api/v1/store/reservations", {
+          headers,
+          params: { query: { limit: 100 } },
+        }),
+      ]);
+      setProducts(productsResult.data ?? []);
+      setReservations(reservationsResult.data ?? []);
+      if (productsResult.error || reservationsResult.error) {
+        setFeedback("Le Store n'a pas pu etre charge completement.");
+      } else if (!preserveFeedback) {
+        setFeedback(null);
+      }
+      setLoading(false);
+    },
+    [headers],
+  );
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => void load(), 0);
@@ -838,74 +849,149 @@ export function StaffStoreManager({ session }: { session: AuthSession }) {
   );
 }
 
-function ProductImageField({
+function ProductMediaField({
   session,
   value,
   onChange,
   onUploadingChange,
 }: {
   session: AuthSession;
-  value: string;
-  onChange: (value: string) => void;
+  value: string[];
+  onChange: (value: string[]) => void;
   onUploadingChange: (uploading: boolean) => void;
 }) {
   const inputId = useId();
   const [uploading, setUploading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const resolvedImageUrl = resolveStoreImageUrl(value);
 
-  async function uploadImage(file: File | undefined) {
-    if (!file) return;
+  async function uploadMedia(files: File[]) {
+    if (!files.length) return;
     setUploading(true);
     onUploadingChange(true);
     setFeedback(null);
-    const formData = new FormData();
-    formData.append("media", file);
     try {
-      const response = await authenticatedFetch("/api/v1/store/product-media", {
-        method: "POST",
-        headers: authorizationHeaders(session.accessToken),
-        body: formData,
-      });
-      const payload = (await response.json()) as
-        ProductMediaUpload | { detail?: { message?: string } };
-      if (!response.ok || !("media_url" in payload)) {
-        setFeedback(
-          "detail" in payload && payload.detail?.message
-            ? payload.detail.message
-            : "Le fichier n'a pas pu etre charge.",
-        );
-        return;
-      }
-      onChange(payload.media_url);
-      setFeedback("Fichier charge. Enregistrez le produit pour le confirmer.");
-    } catch {
-      setFeedback("Le fichier n'a pas pu etre charge.");
+      const uploadedUrls = await Promise.all(
+        files.map(async (file) => {
+          const formData = new FormData();
+          formData.append("media", file);
+          const response = await authenticatedFetch(
+            "/api/v1/store/product-media",
+            {
+              method: "POST",
+              headers: authorizationHeaders(session.accessToken),
+              body: formData,
+            },
+          );
+          const payload = (await response.json()) as
+            ProductMediaUpload | { detail?: { message?: string } };
+          if (!response.ok || !("media_url" in payload)) {
+            throw new Error(
+              "detail" in payload && payload.detail?.message
+                ? payload.detail.message
+                : "Un fichier n'a pas pu etre charge.",
+            );
+          }
+          return payload.media_url;
+        }),
+      );
+      onChange(Array.from(new Set([...value, ...uploadedUrls])));
+      setFeedback(
+        `${uploadedUrls.length} fichier(s) charge(s). Le premier est la couverture.`,
+      );
+    } catch (error) {
+      setFeedback(
+        error instanceof Error
+          ? error.message
+          : "Les fichiers n'ont pas pu etre charges.",
+      );
     } finally {
       setUploading(false);
       onUploadingChange(false);
     }
   }
 
+  function setAsCover(index: number) {
+    const selected = value[index];
+    if (!selected) return;
+    onChange([
+      selected,
+      ...value.filter((_, itemIndex) => itemIndex !== index),
+    ]);
+    setFeedback("Couverture modifiee. Enregistrez le produit pour confirmer.");
+  }
+
+  function removeMedia(index: number) {
+    onChange(value.filter((_, itemIndex) => itemIndex !== index));
+    setFeedback("Media retire. Enregistrez le produit pour confirmer.");
+  }
+
   return (
-    <Field label="Photo ou video du produit">
+    <Field label="Photos ou videos du produit">
       <div className="space-y-3">
-        {resolvedImageUrl ? (
-          isStoreVideo(resolvedImageUrl) ? (
-            <video
-              className="h-32 w-full rounded-sm border border-white/10 object-cover"
-              src={resolvedImageUrl}
-              controls
-              preload="metadata"
-            />
-          ) : (
-            <div
-              role="img"
-              aria-label="Apercu de la photo du produit"
-              className="h-24 rounded-sm border border-white/10 bg-cover bg-center"
-              style={{ backgroundImage: `url("${resolvedImageUrl}")` }}
-            />
-          )
+        {value.length ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {value.map((mediaUrl, index) => {
+              const resolvedMediaUrl = resolveStoreImageUrl(mediaUrl);
+              return (
+                <div
+                  key={`${mediaUrl}-${index}`}
+                  className="overflow-hidden rounded-sm border border-white/10 bg-black/30"
+                >
+                  <div className="relative">
+                    {resolvedMediaUrl && isStoreVideo(resolvedMediaUrl) ? (
+                      <video
+                        className="h-32 w-full bg-black object-contain"
+                        src={resolvedMediaUrl}
+                        controls
+                        preload="metadata"
+                      />
+                    ) : (
+                      <div
+                        role="img"
+                        aria-label={`Apercu media ${index + 1}`}
+                        className="h-32 bg-white bg-contain bg-center bg-no-repeat"
+                        style={
+                          resolvedMediaUrl
+                            ? {
+                                backgroundImage: `url("${resolvedMediaUrl}")`,
+                              }
+                            : undefined
+                        }
+                      />
+                    )}
+                    {index === 0 ? (
+                      <span className="absolute left-2 top-2 rounded-full bg-primary px-2.5 py-1 text-[0.6rem] font-black uppercase tracking-[0.08em] text-black">
+                        Couverture
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 p-2">
+                    {index > 0 ? (
+                      <button
+                        type="button"
+                        className="text-[0.6rem] font-black uppercase tracking-[0.06em] text-primary hover:underline"
+                        onClick={() => setAsCover(index)}
+                      >
+                        Mettre en couverture
+                      </button>
+                    ) : (
+                      <span className="text-[0.6rem] text-gray-500">
+                        Photo principale
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      aria-label={`Retirer media ${index + 1}`}
+                      className="flex h-8 w-8 items-center justify-center rounded-sm text-red-300 transition hover:bg-red-500/10"
+                      onClick={() => removeMedia(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : null}
         <div className="flex flex-wrap gap-2">
           <label
@@ -919,46 +1005,34 @@ function ProductImageField({
             ) : (
               <ImagePlus className="h-4 w-4" />
             )}
-            {uploading
-              ? "Chargement..."
-              : value
-                ? "Remplacer le fichier"
-                : "Choisir photo ou video"}
+            {uploading ? "Chargement..." : "Ajouter photos ou videos"}
           </label>
           <input
             id={inputId}
             className="sr-only"
             type="file"
-            aria-label={
-              value ? "Remplacer le fichier" : "Choisir photo ou video"
-            }
+            multiple
+            aria-label="Ajouter photos ou videos"
             accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
             disabled={uploading}
             onChange={(event) => {
-              void uploadImage(event.target.files?.[0]);
+              void uploadMedia(Array.from(event.target.files ?? []));
               event.target.value = "";
             }}
           />
-          {value ? (
-            <button
-              type="button"
-              className="inline-flex min-h-11 items-center gap-2 rounded-sm border border-red-400/40 px-4 text-xs font-black uppercase tracking-[0.08em] text-red-300 transition hover:bg-red-500/10"
-              disabled={uploading}
-              onClick={() => {
-                onChange("");
-                setFeedback("Le fichier sera retire apres enregistrement.");
-              }}
-            >
-              <Trash2 className="h-4 w-4" /> Retirer le fichier
-            </button>
-          ) : null}
         </div>
         <p className="text-xs text-gray-500">
-          Photo JPG, PNG, WEBP ou video MP4, WEBM. {feedback}
+          Selectionnez plusieurs fichiers en une seule fois. JPG, PNG, WEBP, MP4
+          ou WEBM. {feedback}
         </p>
       </div>
     </Field>
   );
+}
+
+function getStoreMediaUrls(product: Pick<Product, "image_url" | "media_urls">) {
+  if (product.media_urls?.length) return product.media_urls;
+  return product.image_url ? [product.image_url] : [];
 }
 
 function resolveStoreImageUrl(imageUrl: string | null) {
@@ -975,17 +1049,17 @@ function ProductVisual({
   product,
   large = false,
 }: {
-  product: Pick<Product, "name" | "image_url">;
+  product: Pick<Product, "name" | "image_url" | "media_urls">;
   large?: boolean;
 }) {
-  const imageUrl = resolveStoreImageUrl(product.image_url);
+  const imageUrl = resolveStoreImageUrl(getStoreMediaUrls(product)[0] ?? null);
   return (
     <div
       role={imageUrl && isStoreVideo(imageUrl) ? undefined : "img"}
       aria-label={
         imageUrl && isStoreVideo(imageUrl) ? undefined : `Photo ${product.name}`
       }
-      className={`flex items-center justify-center bg-[linear-gradient(135deg,rgba(0,212,255,0.14),rgba(5,10,15,0.9))] bg-cover bg-center ${
+      className={`flex items-center justify-center bg-[linear-gradient(135deg,rgba(0,212,255,0.14),rgba(5,10,15,0.9))] bg-contain bg-center bg-no-repeat ${
         large ? "h-48" : "h-36 rounded-sm"
       }`}
       style={
@@ -996,7 +1070,7 @@ function ProductVisual({
     >
       {imageUrl && isStoreVideo(imageUrl) ? (
         <video
-          className="h-full w-full rounded-sm object-cover"
+          className="h-full w-full rounded-sm object-contain"
           src={imageUrl}
           controls
           preload="metadata"

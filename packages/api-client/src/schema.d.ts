@@ -1889,6 +1889,8 @@ export interface components {
             description: string | null;
             /** Image Url */
             image_url: string | null;
+            /** Media Urls */
+            media_urls: string[];
             /** Price */
             price: string;
             /** Currency */
@@ -1909,6 +1911,8 @@ export interface components {
             description?: string | null;
             /** Image Url */
             image_url?: string | null;
+            /** Media Urls */
+            media_urls?: string[];
             /** Price */
             price: number | string;
             /** Currency */
@@ -1939,6 +1943,8 @@ export interface components {
             description: string | null;
             /** Image Url */
             image_url: string | null;
+            /** Media Urls */
+            media_urls: string[];
             /** Price */
             price: string;
             /** Currency */
@@ -1966,6 +1972,8 @@ export interface components {
             description?: string | null;
             /** Image Url */
             image_url?: string | null;
+            /** Media Urls */
+            media_urls?: string[] | null;
             /** Price */
             price?: number | string | null;
             /** Currency */

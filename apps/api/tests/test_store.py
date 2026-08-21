@@ -108,7 +108,7 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
         json={
             "name": "Proteine Masterz",
             "description": "Proteine pour les membres de la salle.",
-            "image_url": image_url,
+            "media_urls": [image_url, video_url],
             "price": "350.00",
             "currency": "MAD",
             "stock_quantity": 5,
@@ -120,6 +120,7 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
     assert product["stock_quantity"] == 5
     assert product["currency"] == "MAD"
     assert product["image_url"] == image_url
+    assert product["media_urls"] == [image_url, video_url]
 
     public_catalog = client.get("/api/v1/store/catalog")
     assert public_catalog.status_code == 200, public_catalog.text
@@ -129,6 +130,7 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
         "name": "Proteine Masterz",
         "description": "Proteine pour les membres de la salle.",
         "image_url": image_url,
+        "media_urls": [image_url, video_url],
         "price": "350.00",
         "currency": "MAD",
         "is_available": True,
@@ -138,6 +140,22 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
     assert member_products.status_code == 200, member_products.text
     member_product = next(item for item in member_products.json() if item["id"] == product["id"])
     assert member_product["name"] == "Proteine Masterz"
+
+    reordered_gallery = client.patch(
+        f"/api/v1/store/products/{product['id']}",
+        headers=admin_headers,
+        json={"media_urls": [video_url, image_url]},
+    )
+    assert reordered_gallery.status_code == 200, reordered_gallery.text
+    assert reordered_gallery.json()["image_url"] == video_url
+    assert reordered_gallery.json()["media_urls"] == [video_url, image_url]
+
+    restored_gallery = client.patch(
+        f"/api/v1/store/products/{product['id']}",
+        headers=admin_headers,
+        json={"media_urls": [image_url, video_url]},
+    )
+    assert restored_gallery.status_code == 200, restored_gallery.text
 
     reservation = client.post(
         "/api/v1/store/reservations",

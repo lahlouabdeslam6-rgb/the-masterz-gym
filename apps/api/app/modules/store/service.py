@@ -63,6 +63,7 @@ class StoreService:
                 name=product.name,
                 description=product.description,
                 image_url=product.image_url,
+                media_urls=product.media_urls,
                 price=product.price,
                 currency=product.currency,
                 is_available=product.stock_quantity > 0,
@@ -71,11 +72,13 @@ class StoreService:
         ]
 
     def create_product(self, data: StoreProductCreate, actor: User) -> StoreProductRead:
+        media_urls = self._media_urls(data.image_url, data.media_urls)
         product = self.store.add_product(
             StoreProduct(
                 name=data.name.strip(),
                 description=(data.description or "").strip() or None,
-                image_url=(data.image_url or "").strip() or None,
+                image_url=media_urls[0] if media_urls else None,
+                media_urls=media_urls,
                 price=data.price,
                 currency=data.currency.upper(),
                 stock_quantity=data.stock_quantity,
@@ -115,6 +118,15 @@ class StoreService:
             "is_active": product.is_active,
         }
         changes = data.model_dump(exclude_unset=True)
+        if "media_urls" in changes:
+            media_urls = self._media_urls(changes.get("image_url"), changes.pop("media_urls"))
+            product.media_urls = media_urls
+            product.image_url = media_urls[0] if media_urls else None
+            changes.pop("image_url", None)
+        elif "image_url" in changes:
+            media_urls = self._media_urls(changes.pop("image_url"), [])
+            product.media_urls = media_urls
+            product.image_url = media_urls[0] if media_urls else None
         for field, value in changes.items():
             if field in {"name", "description", "image_url"} and isinstance(value, str):
                 value = value.strip() or None
@@ -338,6 +350,14 @@ class StoreService:
                 "store_insufficient_stock",
                 "Le stock disponible est insuffisant.",
             )
+
+    @staticmethod
+    def _media_urls(image_url: str | None, media_urls: list[str]) -> list[str]:
+        normalized = [url.strip() for url in media_urls if url.strip()]
+        cover_url = (image_url or "").strip()
+        if cover_url and cover_url not in normalized:
+            normalized.insert(0, cover_url)
+        return list(dict.fromkeys(normalized))
 
     def _reservation_read(self, reservation: StoreReservation) -> StoreReservationRead:
         product = self.store.get_product(reservation.product_id)

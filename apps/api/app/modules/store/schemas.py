@@ -11,6 +11,7 @@ class StoreProductCreate(BaseModel):
     name: str = Field(min_length=2, max_length=160)
     description: str | None = Field(default=None, max_length=4000)
     image_url: str | None = Field(default=None, max_length=500)
+    media_urls: list[str] = Field(default_factory=list)
     price: Decimal = Field(gt=0, max_digits=10, decimal_places=2)
     currency: str = Field(min_length=3, max_length=3)
     stock_quantity: int = Field(ge=0)
@@ -26,11 +27,17 @@ class StoreProductCreate(BaseModel):
     def normalize_currency(cls, value):
         return value.strip().upper() if isinstance(value, str) else value
 
+    @field_validator("media_urls")
+    @classmethod
+    def validate_media_urls(cls, value: list[str]) -> list[str]:
+        return _normalize_media_urls(value)
+
 
 class StoreProductUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=160)
     description: str | None = Field(default=None, max_length=4000)
     image_url: str | None = Field(default=None, max_length=500)
+    media_urls: list[str] | None = None
     price: Decimal | None = Field(default=None, gt=0, max_digits=10, decimal_places=2)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     stock_quantity: int | None = Field(default=None, ge=0)
@@ -46,6 +53,11 @@ class StoreProductUpdate(BaseModel):
     def normalize_currency(cls, value):
         return value.strip().upper() if isinstance(value, str) else value
 
+    @field_validator("media_urls")
+    @classmethod
+    def validate_media_urls(cls, value: list[str] | None) -> list[str] | None:
+        return _normalize_media_urls(value) if value is not None else None
+
     @model_validator(mode="after")
     def reject_null_required_fields(self):
         required_fields = {
@@ -54,6 +66,7 @@ class StoreProductUpdate(BaseModel):
             "currency",
             "stock_quantity",
             "is_active",
+            "media_urls",
         }
         for field in required_fields & self.model_fields_set:
             if getattr(self, field) is None:
@@ -68,6 +81,7 @@ class StoreProductRead(BaseModel):
     name: str
     description: str | None
     image_url: str | None
+    media_urls: list[str]
     price: Decimal
     currency: str
     stock_quantity: int
@@ -85,9 +99,21 @@ class StoreCatalogProductRead(BaseModel):
     name: str
     description: str | None
     image_url: str | None
+    media_urls: list[str]
     price: Decimal
     currency: str
     is_available: bool
+
+
+def _normalize_media_urls(value: list[str]) -> list[str]:
+    normalized: list[str] = []
+    for media_url in value:
+        clean_url = media_url.strip()
+        if not clean_url or len(clean_url) > 500:
+            raise ValueError("Chaque media doit avoir une URL valide de 500 caracteres maximum.")
+        if clean_url not in normalized:
+            normalized.append(clean_url)
+    return normalized
 
 
 class StoreReservationCreate(BaseModel):

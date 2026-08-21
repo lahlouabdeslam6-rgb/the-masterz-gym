@@ -42,6 +42,7 @@ function product(stock = 5) {
     name: "Whey Protein Masterz",
     description: "Proteine disponible au Masterz Store.",
     image_url: null,
+    media_urls: [],
     price: "350.00",
     currency: "MAD",
     stock_quantity: stock,
@@ -62,7 +63,11 @@ test("le visiteur consulte le catalogue Store public", async ({ page }) => {
           id: productId,
           name: "Whey Protein Masterz",
           description: "Proteine disponible au Masterz Store.",
-          image_url: null,
+          image_url: "/media/store-products/product-front.png",
+          media_urls: [
+            "/media/store-products/product-front.png",
+            "/media/store-products/product-back.png",
+          ],
           price: "350.00",
           currency: "MAD",
           is_available: true,
@@ -89,6 +94,10 @@ test("le visiteur consulte le catalogue Store public", async ({ page }) => {
   await expect(
     productDialog.getByRole("img", { name: "Photo Whey Protein Masterz" }),
   ).toHaveCSS("background-size", "contain");
+  await page.getByRole("button", { name: "Media suivant" }).click();
+  await expect(
+    productDialog.getByRole("img", { name: "Photo Whey Protein Masterz" }),
+  ).toHaveCSS("background-image", /product-back\.png/);
   await expect(
     productDialog.getByText("Proteine disponible au Masterz Store."),
   ).toBeVisible();
@@ -178,7 +187,11 @@ test("le membre reserve un produit depuis son espace", async ({ page }) => {
 
 test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
   let createdBody: Record<string, unknown> | null = null;
-  const uploadedMediaUrl = "/media/store-products/test-produit.mp4";
+  const uploadedMediaUrls = [
+    "/media/store-products/ceinture-front.png",
+    "/media/store-products/ceinture-back.webp",
+  ];
+  let uploadedMediaIndex = 0;
   const products: Array<Record<string, unknown>> = [];
 
   await page.route("**/api/v1/**", async (route) => {
@@ -187,7 +200,10 @@ test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
     let status = 200;
     if (url.pathname === "/api/v1/users/me") body = admin;
     if (url.pathname === "/api/v1/store/product-media") {
-      body = { media_url: uploadedMediaUrl };
+      body = {
+        media_url:
+          uploadedMediaUrls[uploadedMediaIndex++] ?? uploadedMediaUrls[0],
+      };
       status = 201;
     }
     if (url.pathname === "/api/v1/store/products") {
@@ -197,6 +213,8 @@ test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
           ...product(12),
           name: (createdBody as { name: string }).name,
           price: (createdBody as { price: string }).price,
+          image_url: (createdBody as { image_url: string }).image_url,
+          media_urls: (createdBody as { media_urls: string[] }).media_urls,
         };
         products.push(body as Record<string, unknown>);
         status = 201;
@@ -220,13 +238,21 @@ test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
   await page.getByLabel("Nom du produit").fill("Ceinture musculation");
   await page.getByLabel("Prix").first().fill("220");
   await page.getByLabel("Stock initial").fill("12");
-  await page.getByLabel("Choisir photo ou video").setInputFiles({
-    name: "ceinture.mp4",
-    mimeType: "video/mp4",
-    buffer: Buffer.from("video-test"),
-  });
-  await expect(page.getByText(/Fichier charge/)).toBeVisible();
-  await expect(page.locator("video").first()).toBeVisible();
+  await page.getByLabel("Ajouter photos ou videos").setInputFiles([
+    {
+      name: "ceinture-front.png",
+      mimeType: "image/png",
+      buffer: Buffer.from("photo-front"),
+    },
+    {
+      name: "ceinture-back.webp",
+      mimeType: "image/webp",
+      buffer: Buffer.from("photo-back"),
+    },
+  ]);
+  await expect(page.getByText(/2 fichier\(s\) charge\(s\)/)).toBeVisible();
+  await expect(page.getByLabel(/Apercu media/)).toHaveCount(2);
+  await page.getByRole("button", { name: "Mettre en couverture" }).click();
   await page.getByRole("button", { name: "Ajouter le produit" }).click();
   await expect(page.getByText("Produit ajoute au Store.")).toBeVisible();
   await expect(page.getByLabel("Nom", { exact: true })).toHaveValue(
@@ -237,7 +263,8 @@ test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
     price: "220",
     stock_quantity: 12,
     currency: "MAD",
-    image_url: uploadedMediaUrl,
+    image_url: uploadedMediaUrls[1],
+    media_urls: [uploadedMediaUrls[1], uploadedMediaUrls[0]],
   });
 });
 
