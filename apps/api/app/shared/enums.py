@@ -77,6 +77,19 @@ class ComplaintStatus(StrEnum):
     RESOLVED = "resolved"
 
 
+class StoreReservationStatus(StrEnum):
+    PENDING = "pending"
+    READY = "ready"
+    REJECTED = "rejected"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class StorePaymentMethod(StrEnum):
+    CASH = "cash"
+    BANK_CARD = "bank_card"
+
+
 class CoachingTestType(StrEnum):
     IMPEDANCE = "impedance"
     NEUROMUSCULAR = "neuromuscular"

@@ -14,6 +14,7 @@ import { CoachingManager } from "../CoachingManager";
 import { ComplaintCenter } from "../ComplaintCenter";
 import { RecoveryManager } from "../RecoveryManager";
 import { StaffMemberManager } from "../StaffMemberManager";
+import { AdminStoreManager, StaffStoreManager } from "../StoreManager";
 import {
   type Application,
   type AuditLog,
@@ -270,6 +271,32 @@ export function AdminComplaintsSection() {
       >
         <ComplaintCenter session={session} mode="staff" />
       </Panel>
+    </AdminPage>
+  );
+}
+
+export function AdminStoreSection() {
+  const { session } = useAdminSession();
+  return (
+    <AdminPage
+      eyebrow="Catalogue, stock et ventes"
+      title="Masterz Store"
+      description="Gerez les produits et leur stock, puis suivez les reservations et les ventes realisees a la Reception."
+    >
+      <div className="space-y-7">
+        <Panel
+          title="Produits"
+          subtitle="L'Admin est le seul a pouvoir creer, modifier ou masquer un produit."
+        >
+          <AdminStoreManager session={session} />
+        </Panel>
+        <Panel
+          title="Reservations et caisse"
+          subtitle="Validez les demandes clients ou enregistrez une vente directe."
+        >
+          <StaffStoreManager session={session} />
+        </Panel>
+      </div>
     </AdminPage>
   );
 }

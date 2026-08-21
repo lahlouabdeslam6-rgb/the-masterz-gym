@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   MessageSquareWarning,
+  ShoppingBag,
   ShieldCheck,
   UsersRound,
   Waves,
@@ -55,6 +56,11 @@ const navigation = [
     label: "Reclamations",
     href: "/espace/reception/reclamations",
     icon: MessageSquareWarning,
+  },
+  {
+    label: "Store",
+    href: "/espace/reception/store",
+    icon: ShoppingBag,
   },
 ];
 

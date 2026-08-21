@@ -16,6 +16,7 @@ import { ApplicationManager } from "../ApplicationManager";
 import { ComplaintCenter } from "../ComplaintCenter";
 import { StaffMemberManager } from "../StaffMemberManager";
 import { RecoveryManager } from "../RecoveryManager";
+import { StaffStoreManager } from "../StoreManager";
 import { type Application, type Plan, Panel, Stat } from "../dashboard-shared";
 import { ReceptionPage } from "./ReceptionPage";
 import { useReceptionSession } from "./ReceptionShell";
@@ -293,6 +294,24 @@ export function ReceptionComplaintsSection() {
         subtitle="Les dossiers de coaching, de compte ou de comportement sont diriges vers l'Administration."
       >
         <ComplaintCenter session={session} mode="staff" />
+      </Panel>
+    </ReceptionPage>
+  );
+}
+
+export function ReceptionStoreSection() {
+  const session = useReceptionSession();
+  return (
+    <ReceptionPage
+      eyebrow="Reservations et ventes"
+      title="Masterz Store"
+      description="Validez les produits reserves par les membres et enregistrez les achats realises directement a l'accueil."
+    >
+      <Panel
+        title="Caisse Store"
+        subtitle="Le stock est mis a jour automatiquement apres validation ou vente."
+      >
+        <StaffStoreManager session={session} />
       </Panel>
     </ReceptionPage>
   );

@@ -6,6 +6,7 @@ import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 import { MemberRecoveryPanel } from "./RecoveryManager";
 import { MemberNotifications } from "./MemberNotifications";
 import { ComplaintCenter } from "./ComplaintCenter";
+import { MemberStoreManager } from "./StoreManager";
 import {
   type Attendance,
   type Receipt,
@@ -161,6 +162,12 @@ export function MemberDashboard({
         subtitle="Ecrivez a la Reception ou a l'Administration et suivez toutes les reponses dans la meme conversation."
       >
         <ComplaintCenter session={session} mode="member" />
+      </Panel>
+      <Panel
+        title="Masterz Store"
+        subtitle="Consultez les produits disponibles, reservez-les et suivez leur validation par la Reception."
+      >
+        <MemberStoreManager session={session} />
       </Panel>
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="p-5">

@@ -792,6 +792,94 @@ export interface paths {
         patch: operations["mark_notification_read_api_v1_notifications__notification_id__read_patch"];
         trace?: never;
     };
+    "/api/v1/store/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Products */
+        get: operations["list_products_api_v1_store_products_get"];
+        put?: never;
+        /** Create Product */
+        post: operations["create_product_api_v1_store_products_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/store/products/{product_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Product */
+        patch: operations["update_product_api_v1_store_products__product_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/store/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Reservations */
+        get: operations["list_reservations_api_v1_store_reservations_get"];
+        put?: never;
+        /** Create Reservation */
+        post: operations["create_reservation_api_v1_store_reservations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/store/reservations/{reservation_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Reservation Status */
+        patch: operations["update_reservation_status_api_v1_store_reservations__reservation_id__status_patch"];
+        trace?: never;
+    };
+    "/api/v1/store/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sales */
+        get: operations["list_sales_api_v1_store_sales_get"];
+        put?: never;
+        /** Record Sale */
+        post: operations["record_sale_api_v1_store_sales_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-logs": {
         parameters: {
             query?: never;
@@ -1748,6 +1836,216 @@ export interface components {
             value: number;
             /** Reason */
             reason: string;
+        };
+        /**
+         * StorePaymentMethod
+         * @enum {string}
+         */
+        StorePaymentMethod: "cash" | "bank_card";
+        /** StoreProductCreate */
+        StoreProductCreate: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Image Url */
+            image_url?: string | null;
+            /** Price */
+            price: number | string;
+            /** Currency */
+            currency: string;
+            /** Stock Quantity */
+            stock_quantity: number;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+        };
+        /** StoreProductRead */
+        StoreProductRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string | null;
+            /** Image Url */
+            image_url: string | null;
+            /** Price */
+            price: string;
+            /** Currency */
+            currency: string;
+            /** Stock Quantity */
+            stock_quantity: number;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** StoreProductUpdate */
+        StoreProductUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Image Url */
+            image_url?: string | null;
+            /** Price */
+            price?: number | string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Stock Quantity */
+            stock_quantity?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
+        /** StoreReservationCreate */
+        StoreReservationCreate: {
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /** StoreReservationRead */
+        StoreReservationRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Product Name */
+            product_name: string;
+            /** Product Image Url */
+            product_image_url: string | null;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Member Name */
+            member_name: string;
+            /** Member Number */
+            member_number: string;
+            /** Member Phone */
+            member_phone: string;
+            /** Quantity */
+            quantity: number;
+            /** Unit Price */
+            unit_price: string;
+            /** Total Amount */
+            total_amount: string;
+            /** Currency */
+            currency: string;
+            status: components["schemas"]["StoreReservationStatus"];
+            /** Processed By Id */
+            processed_by_id: string | null;
+            /** Processed By Name */
+            processed_by_name: string | null;
+            /** Processed At */
+            processed_at: string | null;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * StoreReservationStatus
+         * @enum {string}
+         */
+        StoreReservationStatus: "pending" | "ready" | "rejected" | "completed" | "cancelled";
+        /** StoreReservationStatusUpdate */
+        StoreReservationStatusUpdate: {
+            status: components["schemas"]["StoreReservationStatus"];
+            /** Notes */
+            notes?: string | null;
+            payment_method?: components["schemas"]["StorePaymentMethod"] | null;
+        };
+        /** StoreSaleCreate */
+        StoreSaleCreate: {
+            /** Idempotency Key */
+            idempotency_key: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Member Id */
+            member_id?: string | null;
+            /** Buyer Name */
+            buyer_name?: string | null;
+            /** Quantity */
+            quantity: number;
+            payment_method: components["schemas"]["StorePaymentMethod"];
+        };
+        /** StoreSaleRead */
+        StoreSaleRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Reservation Id */
+            reservation_id: string | null;
+            /** Product Name */
+            product_name: string;
+            /** Member Id */
+            member_id: string | null;
+            /** Buyer Name */
+            buyer_name: string;
+            /** Quantity */
+            quantity: number;
+            /** Unit Price */
+            unit_price: string;
+            /** Total Amount */
+            total_amount: string;
+            /** Currency */
+            currency: string;
+            payment_method: components["schemas"]["StorePaymentMethod"];
+            /**
+             * Recorded By Id
+             * Format: uuid
+             */
+            recorded_by_id: string;
+            /** Recorded By Name */
+            recorded_by_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** SubscriptionDatesUpdate */
         SubscriptionDatesUpdate: {
@@ -3617,6 +3915,268 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_products_api_v1_store_products_get: {
+        parameters: {
+            query?: {
+                active_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreProductRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_product_api_v1_store_products_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreProductCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreProductRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_product_api_v1_store_products__product_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreProductUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreProductRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reservations_api_v1_store_reservations_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreReservationRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_reservation_api_v1_store_reservations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreReservationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreReservationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_reservation_status_api_v1_store_reservations__reservation_id__status_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reservation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreReservationStatusUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreReservationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sales_api_v1_store_sales_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreSaleRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_sale_api_v1_store_sales_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreSaleCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreSaleRead"];
                 };
             };
             /** @description Validation Error */

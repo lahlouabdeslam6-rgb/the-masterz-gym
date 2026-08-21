@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   MessageSquareWarning,
+  ShoppingBag,
   Settings2,
   ShieldCheck,
   UserRoundCog,
@@ -57,6 +58,7 @@ const navigation = [
     href: "/espace/admin/reclamations",
     icon: MessageSquareWarning,
   },
+  { label: "Store", href: "/espace/admin/store", icon: ShoppingBag },
   { label: "Parametres", href: "/espace/admin/parametres", icon: Settings2 },
   { label: "Journal d'audit", href: "/espace/admin/audit", icon: FileClock },
 ];
