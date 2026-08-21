@@ -81,6 +81,9 @@ test("affiche et marque comme lue la fin du pack recovery", async ({
   }, member);
 
   await page.goto("/espace/membre");
+  await page
+    .getByRole("button", { name: "Notifications", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Mes notifications" }),
   ).toBeVisible();

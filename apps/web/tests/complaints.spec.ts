@@ -91,6 +91,7 @@ test("le membre cree une reclamation dirigee vers la reception", async ({
 
   await storeSession(page, member);
   await page.goto("/espace/membre");
+  await page.getByRole("button", { name: "Reclamations", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Mes reclamations" }),
   ).toBeVisible();
