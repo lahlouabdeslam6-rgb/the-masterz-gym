@@ -131,6 +131,7 @@ test("le membre reserve un produit depuis son espace", async ({ page }) => {
 
 test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
   let createdBody: Record<string, unknown> | null = null;
+  const uploadedMediaUrl = "/media/store-products/test-produit.mp4";
   const products: Array<Record<string, unknown>> = [];
 
   await page.route("**/api/v1/**", async (route) => {
@@ -138,6 +139,10 @@ test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
     let body: unknown = [];
     let status = 200;
     if (url.pathname === "/api/v1/users/me") body = admin;
+    if (url.pathname === "/api/v1/store/product-media") {
+      body = { media_url: uploadedMediaUrl };
+      status = 201;
+    }
     if (url.pathname === "/api/v1/store/products") {
       if (route.request().method() === "POST") {
         createdBody = route.request().postDataJSON();
@@ -168,6 +173,13 @@ test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
   await page.getByLabel("Nom du produit").fill("Ceinture musculation");
   await page.getByLabel("Prix").first().fill("220");
   await page.getByLabel("Stock initial").fill("12");
+  await page.getByLabel("Choisir photo ou video").setInputFiles({
+    name: "ceinture.mp4",
+    mimeType: "video/mp4",
+    buffer: Buffer.from("video-test"),
+  });
+  await expect(page.getByText(/Fichier charge/)).toBeVisible();
+  await expect(page.locator("video").first()).toBeVisible();
   await page.getByRole("button", { name: "Ajouter le produit" }).click();
   await expect(page.getByText("Produit ajoute au Store.")).toBeVisible();
   await expect(page.getByLabel("Nom", { exact: true })).toHaveValue(
@@ -178,6 +190,7 @@ test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
     price: "220",
     stock_quantity: 12,
     currency: "MAD",
+    image_url: uploadedMediaUrl,
   });
 });
 

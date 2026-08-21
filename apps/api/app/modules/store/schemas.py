@@ -76,6 +76,10 @@ class StoreProductRead(BaseModel):
     updated_at: datetime
 
 
+class StoreProductMediaRead(BaseModel):
+    media_url: str
+
+
 class StoreReservationCreate(BaseModel):
     product_id: uuid.UUID
     quantity: int = Field(ge=1)

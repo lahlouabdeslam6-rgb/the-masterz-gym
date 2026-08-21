@@ -34,10 +34,12 @@ services:
       CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost:3000","http://localhost:13000"]}'
       API_HOST: 0.0.0.0
       API_PORT: 8000
+      STORE_MEDIA_ROOT: /data/store-products
     ports:
       - "${MASTERZ_API_PORT:-8000}:8000"
     volumes:
       - ./apps/api:/app
+      - store_media:/data/store-products
     depends_on:
       postgres:
         condition: service_healthy
@@ -71,3 +73,4 @@ volumes:
   postgres_data:
   web_node_modules:
   web_next:
+  store_media:

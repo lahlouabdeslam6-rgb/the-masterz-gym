@@ -1,20 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import {
   Banknote,
   Check,
   CreditCard,
+  ImagePlus,
+  LoaderCircle,
   Package,
   PackageCheck,
   Save,
   ShoppingBag,
   ShoppingCart,
+  Trash2,
   X,
 } from "lucide-react";
 import type { components } from "@masterz/api-client";
 import { Alert, Button, Card, Input, Pill } from "@masterz/ui";
-import { api } from "@/lib/api";
+import { api, apiBaseUrl, authenticatedFetch } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
 import {
   EmptyState,
@@ -25,6 +28,7 @@ import {
 } from "./dashboard-shared";
 
 type Product = components["schemas"]["StoreProductRead"];
+type ProductMediaUpload = components["schemas"]["StoreProductMediaRead"];
 type Reservation = components["schemas"]["StoreReservationRead"];
 type ReservationStatus = components["schemas"]["StoreReservationStatus"];
 type Sale = components["schemas"]["StoreSaleRead"];
@@ -59,6 +63,7 @@ export function AdminStoreManager({ session }: { session: AuthSession }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [imageUploading, setImageUploading] = useState(false);
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("MAD");
   const [stock, setStock] = useState("0");
@@ -109,8 +114,8 @@ export function AdminStoreManager({ session }: { session: AuthSession }) {
     setImageUrl("");
     setPrice("");
     setStock("0");
-    setFeedback("Produit ajoute au Store.");
     await load();
+    setFeedback("Produit ajoute au Store.");
   }
 
   return (
@@ -124,7 +129,8 @@ export function AdminStoreManager({ session }: { session: AuthSession }) {
           <div>
             <h3 className="text-xl font-black text-white">Nouveau produit</h3>
             <p className="mt-1 text-sm text-gray-500">
-              L&apos;Admin definit le prix, la photo, le stock et la visibilite.
+              L&apos;Admin definit le prix, la photo ou video, le stock et la
+              visibilite.
             </p>
           </div>
         </div>
@@ -163,13 +169,12 @@ export function AdminStoreManager({ session }: { session: AuthSession }) {
               />
             </Field>
           </div>
-          <Field label="Lien de la photo">
-            <Input
-              value={imageUrl}
-              onChange={(event) => setImageUrl(event.target.value)}
-              placeholder="https://..."
-            />
-          </Field>
+          <ProductImageField
+            session={session}
+            value={imageUrl}
+            onChange={setImageUrl}
+            onUploadingChange={setImageUploading}
+          />
           <div className="lg:col-span-2">
             <Field label="Description">
               <textarea
@@ -182,7 +187,10 @@ export function AdminStoreManager({ session }: { session: AuthSession }) {
           </div>
         </div>
         <div className="mt-5 flex justify-end">
-          <Button disabled={busy} onClick={() => void createProduct()}>
+          <Button
+            disabled={busy || imageUploading}
+            onClick={() => void createProduct()}
+          >
             <Save className="h-4 w-4" /> Ajouter le produit
           </Button>
         </div>
@@ -241,6 +249,7 @@ function ProductEditor({
   const [stock, setStock] = useState(String(product.stock_quantity));
   const [active, setActive] = useState(product.is_active);
   const [busy, setBusy] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   async function save() {
@@ -306,12 +315,12 @@ function ProductEditor({
         </div>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <Field label="Lien de la photo">
-          <Input
-            value={imageUrl}
-            onChange={(event) => setImageUrl(event.target.value)}
-          />
-        </Field>
+        <ProductImageField
+          session={session}
+          value={imageUrl}
+          onChange={setImageUrl}
+          onUploadingChange={setImageUploading}
+        />
         <Field label="Visibilite">
           <select
             className={selectClass}
@@ -334,7 +343,11 @@ function ProductEditor({
       </div>
       <div className="mt-4 flex items-center justify-between gap-4">
         <p className="text-xs text-gray-500">{feedback}</p>
-        <Button variant="outline" disabled={busy} onClick={() => void save()}>
+        <Button
+          variant="outline"
+          disabled={busy || imageUploading}
+          onClick={() => void save()}
+        >
           <Save className="h-4 w-4" /> Enregistrer
         </Button>
       </div>
@@ -825,6 +838,139 @@ export function StaffStoreManager({ session }: { session: AuthSession }) {
   );
 }
 
+function ProductImageField({
+  session,
+  value,
+  onChange,
+  onUploadingChange,
+}: {
+  session: AuthSession;
+  value: string;
+  onChange: (value: string) => void;
+  onUploadingChange: (uploading: boolean) => void;
+}) {
+  const inputId = useId();
+  const [uploading, setUploading] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const resolvedImageUrl = resolveStoreImageUrl(value);
+
+  async function uploadImage(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    onUploadingChange(true);
+    setFeedback(null);
+    const formData = new FormData();
+    formData.append("media", file);
+    try {
+      const response = await authenticatedFetch("/api/v1/store/product-media", {
+        method: "POST",
+        headers: authorizationHeaders(session.accessToken),
+        body: formData,
+      });
+      const payload = (await response.json()) as
+        ProductMediaUpload | { detail?: { message?: string } };
+      if (!response.ok || !("media_url" in payload)) {
+        setFeedback(
+          "detail" in payload && payload.detail?.message
+            ? payload.detail.message
+            : "Le fichier n'a pas pu etre charge.",
+        );
+        return;
+      }
+      onChange(payload.media_url);
+      setFeedback("Fichier charge. Enregistrez le produit pour le confirmer.");
+    } catch {
+      setFeedback("Le fichier n'a pas pu etre charge.");
+    } finally {
+      setUploading(false);
+      onUploadingChange(false);
+    }
+  }
+
+  return (
+    <Field label="Photo ou video du produit">
+      <div className="space-y-3">
+        {resolvedImageUrl ? (
+          isStoreVideo(resolvedImageUrl) ? (
+            <video
+              className="h-32 w-full rounded-sm border border-white/10 object-cover"
+              src={resolvedImageUrl}
+              controls
+              preload="metadata"
+            />
+          ) : (
+            <div
+              role="img"
+              aria-label="Apercu de la photo du produit"
+              className="h-24 rounded-sm border border-white/10 bg-cover bg-center"
+              style={{ backgroundImage: `url("${resolvedImageUrl}")` }}
+            />
+          )
+        ) : null}
+        <div className="flex flex-wrap gap-2">
+          <label
+            htmlFor={inputId}
+            className={`inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-sm border border-primary/50 px-4 text-xs font-black uppercase tracking-[0.08em] text-primary transition hover:bg-primary/10 ${
+              uploading ? "pointer-events-none opacity-60" : ""
+            }`}
+          >
+            {uploading ? (
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+            ) : (
+              <ImagePlus className="h-4 w-4" />
+            )}
+            {uploading
+              ? "Chargement..."
+              : value
+                ? "Remplacer le fichier"
+                : "Choisir photo ou video"}
+          </label>
+          <input
+            id={inputId}
+            className="sr-only"
+            type="file"
+            aria-label={
+              value ? "Remplacer le fichier" : "Choisir photo ou video"
+            }
+            accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+            disabled={uploading}
+            onChange={(event) => {
+              void uploadImage(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+          {value ? (
+            <button
+              type="button"
+              className="inline-flex min-h-11 items-center gap-2 rounded-sm border border-red-400/40 px-4 text-xs font-black uppercase tracking-[0.08em] text-red-300 transition hover:bg-red-500/10"
+              disabled={uploading}
+              onClick={() => {
+                onChange("");
+                setFeedback("Le fichier sera retire apres enregistrement.");
+              }}
+            >
+              <Trash2 className="h-4 w-4" /> Retirer le fichier
+            </button>
+          ) : null}
+        </div>
+        <p className="text-xs text-gray-500">
+          Photo JPG, PNG, WEBP ou video MP4, WEBM. {feedback}
+        </p>
+      </div>
+    </Field>
+  );
+}
+
+function resolveStoreImageUrl(imageUrl: string | null) {
+  if (!imageUrl) return null;
+  if (/^(https?:|data:|blob:)/i.test(imageUrl)) return imageUrl;
+  return `${apiBaseUrl.replace(/\/$/, "")}/${imageUrl.replace(/^\//, "")}`;
+}
+
+function isStoreVideo(mediaUrl: string) {
+  return /\.(mp4|webm)(?:\?|$)/i.test(mediaUrl);
+}
+
 function ProductVisual({
   product,
   large = false,
@@ -832,20 +978,30 @@ function ProductVisual({
   product: Pick<Product, "name" | "image_url">;
   large?: boolean;
 }) {
+  const imageUrl = resolveStoreImageUrl(product.image_url);
   return (
     <div
-      role="img"
-      aria-label={`Photo ${product.name}`}
+      role={imageUrl && isStoreVideo(imageUrl) ? undefined : "img"}
+      aria-label={
+        imageUrl && isStoreVideo(imageUrl) ? undefined : `Photo ${product.name}`
+      }
       className={`flex items-center justify-center bg-[linear-gradient(135deg,rgba(0,212,255,0.14),rgba(5,10,15,0.9))] bg-cover bg-center ${
         large ? "h-48" : "h-36 rounded-sm"
       }`}
       style={
-        product.image_url
-          ? { backgroundImage: `url("${product.image_url}")` }
+        imageUrl && !isStoreVideo(imageUrl)
+          ? { backgroundImage: `url("${imageUrl}")` }
           : undefined
       }
     >
-      {!product.image_url ? (
+      {imageUrl && isStoreVideo(imageUrl) ? (
+        <video
+          className="h-full w-full rounded-sm object-cover"
+          src={imageUrl}
+          controls
+          preload="metadata"
+        />
+      ) : !imageUrl ? (
         <Package className="h-10 w-10 text-primary/50" />
       ) : null}
     </div>

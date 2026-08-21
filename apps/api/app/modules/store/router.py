@@ -1,11 +1,13 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 
 from app.core.dependencies import DbSession, require_roles
+from app.modules.store.media import StoreMediaService
 from app.modules.store.schemas import (
     StoreProductCreate,
+    StoreProductMediaRead,
     StoreProductRead,
     StoreProductUpdate,
     StoreReservationCreate,
@@ -40,6 +42,17 @@ def list_products(
 @router.post("/products", response_model=StoreProductRead, status_code=status.HTTP_201_CREATED)
 def create_product(data: StoreProductCreate, session: DbSession, actor: Admin):
     return StoreService(session).create_product(data, actor)
+
+
+@router.post(
+    "/product-media",
+    response_model=StoreProductMediaRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_product_media(actor: Admin, media: Annotated[UploadFile, File()]):
+    del actor
+    media_url = await StoreMediaService().save_product_media(media)
+    return StoreProductMediaRead(media_url=media_url)
 
 
 @router.patch("/products/{product_id}", response_model=StoreProductRead)

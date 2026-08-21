@@ -7,7 +7,8 @@ import {
   type AuthSession,
 } from "./auth";
 
-const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+export const apiBaseUrl =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 type TokenPair = components["schemas"]["TokenPair"];
 
 let refreshInFlight: Promise<AuthSession | null> | null = null;
@@ -16,7 +17,7 @@ async function requestFreshSession(): Promise<AuthSession | null> {
   const current = getSession();
   if (!current) return null;
 
-  const response = await globalThis.fetch(`${baseUrl}/api/v1/auth/refresh`, {
+  const response = await globalThis.fetch(`${apiBaseUrl}/api/v1/auth/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh_token: current.refreshToken }),
@@ -72,4 +73,12 @@ async function sessionAwareFetch(request: Request): Promise<Response> {
   return globalThis.fetch(new Request(retrySource, { headers }));
 }
 
-export const api = createMasterzClient(baseUrl, { fetch: sessionAwareFetch });
+export const api = createMasterzClient(apiBaseUrl, {
+  fetch: sessionAwareFetch,
+});
+
+export async function authenticatedFetch(path: string, init?: RequestInit) {
+  return sessionAwareFetch(
+    new Request(`${apiBaseUrl.replace(/\/$/, "")}${path}`, init),
+  );
+}

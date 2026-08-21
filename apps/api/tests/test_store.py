@@ -3,6 +3,7 @@ import uuid
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import hash_password
 from app.modules.users.models import User
 from app.shared.enums import AccountStatus, UserRole
@@ -52,6 +53,42 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
     )
     assert forbidden_product.status_code == 403
 
+    forbidden_image = client.post(
+        "/api/v1/store/product-media",
+        headers=reception_headers,
+        files={"media": ("produit.png", b"\x89PNG\r\n\x1a\nphoto", "image/png")},
+    )
+    assert forbidden_image.status_code == 403
+
+    invalid_image = client.post(
+        "/api/v1/store/product-media",
+        headers=admin_headers,
+        files={"media": ("produit.txt", b"pas un media", "text/plain")},
+    )
+    assert invalid_image.status_code == 415
+
+    uploaded_image = client.post(
+        "/api/v1/store/product-media",
+        headers=admin_headers,
+        files={"media": ("produit.png", b"\x89PNG\r\n\x1a\nphoto", "image/png")},
+    )
+    assert uploaded_image.status_code == 201, uploaded_image.text
+    image_url = uploaded_image.json()["media_url"]
+    assert image_url.startswith("/media/store-products/")
+    served_image = client.get(image_url)
+    assert served_image.status_code == 200
+    assert served_image.content == b"\x89PNG\r\n\x1a\nphoto"
+
+    uploaded_video = client.post(
+        "/api/v1/store/product-media",
+        headers=admin_headers,
+        files={"media": ("produit.mp4", b"\x00\x00\x00\x18ftypmp42video", "video/mp4")},
+    )
+    assert uploaded_video.status_code == 201, uploaded_video.text
+    video_url = uploaded_video.json()["media_url"]
+    assert video_url.endswith(".mp4")
+    assert client.get(video_url).content == b"\x00\x00\x00\x18ftypmp42video"
+
     blank_product = client.post(
         "/api/v1/store/products",
         headers=admin_headers,
@@ -71,7 +108,7 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
         json={
             "name": "Proteine Masterz",
             "description": "Proteine pour les membres de la salle.",
-            "image_url": "https://images.example.test/proteine.jpg",
+            "image_url": image_url,
             "price": "350.00",
             "currency": "MAD",
             "stock_quantity": 5,
@@ -82,6 +119,7 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
     product = created.json()
     assert product["stock_quantity"] == 5
     assert product["currency"] == "MAD"
+    assert product["image_url"] == image_url
 
     member_products = client.get("/api/v1/store/products", headers=member_headers)
     assert member_products.status_code == 200, member_products.text
@@ -199,3 +237,6 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
         "Produit disponible",
         "Produit recupere",
     }
+
+    (settings.store_media_root / image_url.rsplit("/", 1)[-1]).unlink(missing_ok=True)
+    (settings.store_media_root / video_url.rsplit("/", 1)[-1]).unlink(missing_ok=True)

@@ -1,4 +1,6 @@
 from functools import lru_cache
+from pathlib import Path
+from tempfile import gettempdir
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,6 +23,8 @@ class Settings(BaseSettings):
     access_token_minutes: int = 30
     refresh_token_days: int = 30
     otp_expiry_minutes: int = 10
+    store_media_root: Path = Path(gettempdir()) / "masterz-gym" / "store-products"
+    store_media_max_bytes: int = 30 * 1024 * 1024
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

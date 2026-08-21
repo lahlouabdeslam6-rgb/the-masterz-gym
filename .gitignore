@@ -8,6 +8,6 @@ node_modules/
 .next/
 playwright-report/
 test-results/
+debug.log
 coverage/
 .DS_Store
-
