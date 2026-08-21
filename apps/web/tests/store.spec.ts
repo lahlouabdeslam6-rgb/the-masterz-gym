@@ -80,7 +80,21 @@ test("le visiteur consulte le catalogue Store public", async ({ page }) => {
   await expect(page.getByText("Whey Protein Masterz")).toBeVisible();
   await expect(page.getByText("Disponible", { exact: true })).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Se connecter pour reserver" }),
+    page.getByText("Proteine disponible au Masterz Store.", { exact: true }),
+  ).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Voir le produit" }).click();
+  const productDialog = page.getByRole("dialog");
+  await expect(productDialog).toBeVisible();
+  await expect(
+    productDialog.getByRole("img", { name: "Photo Whey Protein Masterz" }),
+  ).toHaveCSS("background-size", "contain");
+  await expect(
+    productDialog.getByText("Proteine disponible au Masterz Store."),
+  ).toBeVisible();
+  await expect(productDialog.getByText("350.00")).toBeVisible();
+  await expect(
+    productDialog.getByRole("link", { name: "Se connecter pour reserver" }),
   ).toHaveAttribute("href", "/connexion");
 });
 

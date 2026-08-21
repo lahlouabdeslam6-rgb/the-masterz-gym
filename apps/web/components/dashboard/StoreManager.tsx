@@ -364,7 +364,7 @@ export function MemberStoreManager({ session }: { session: AuthSession }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (preserveFeedback = false) => {
     const [productsResult, reservationsResult] = await Promise.all([
       api.GET("/api/v1/store/products", {
         headers,
@@ -377,11 +377,11 @@ export function MemberStoreManager({ session }: { session: AuthSession }) {
     ]);
     setProducts(productsResult.data ?? []);
     setReservations(reservationsResult.data ?? []);
-    setFeedback(
-      productsResult.error || reservationsResult.error
-        ? "Le Store n'a pas pu etre charge completement."
-        : null,
-    );
+    if (productsResult.error || reservationsResult.error) {
+      setFeedback("Le Store n'a pas pu etre charge completement.");
+    } else if (!preserveFeedback) {
+      setFeedback(null);
+    }
     setLoading(false);
   }, [headers]);
 
@@ -404,7 +404,7 @@ export function MemberStoreManager({ session }: { session: AuthSession }) {
       return;
     }
     setFeedback("Reservation envoyee a la Reception.");
-    await load();
+    await load(true);
   }
 
   if (loading) {
