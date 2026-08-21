@@ -8,11 +8,13 @@ export function AuthShell({
   title,
   description,
   children,
+  backHref = "/",
 }: {
   eyebrow: string;
   title: string;
   description: string;
   children: ReactNode;
+  backHref?: string;
 }) {
   return (
     <div className="min-h-[calc(100vh-107px)] bg-[#05080b] px-5 py-12 sm:px-8 lg:py-16">
@@ -49,7 +51,7 @@ export function AuthShell({
               <BrandLogo compact />
             </div>
             <Link
-              href="/"
+              href={backHref}
               className="ml-auto inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-gray-500 transition hover:text-primary"
             >
               <ArrowLeft className="h-4 w-4" /> Retour

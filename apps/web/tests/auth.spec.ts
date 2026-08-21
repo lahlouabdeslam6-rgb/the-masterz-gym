@@ -33,6 +33,10 @@ test("lactivation envoie le numero membre avec lidentite", async ({ page }) => {
   );
 
   await page.goto("/activation-membre");
+  await expect(page.getByRole("link", { name: "Retour" })).toHaveAttribute(
+    "href",
+    "/connexion",
+  );
   await page.getByLabel("Numéro de téléphone").fill("+212687317890");
   await page.getByLabel("Nom complet").fill("LAHLOU");
   await page.getByLabel("Numéro membre").fill("TMG-2026-E2D9869E");

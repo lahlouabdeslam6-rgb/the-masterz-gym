@@ -72,6 +72,7 @@ export default function ActivationMembrePage() {
 
   return (
     <AuthShell
+      backHref="/connexion"
       eyebrow="Activation membre"
       title={
         step === 1
