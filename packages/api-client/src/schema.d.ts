@@ -655,6 +655,58 @@ export interface paths {
         patch: operations["end_assignment_api_v1_coaching_assignments__assignment_id__end_patch"];
         trace?: never;
     };
+    "/api/v1/complaints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Complaints */
+        get: operations["list_complaints_api_v1_complaints_get"];
+        put?: never;
+        /** Create Complaint */
+        post: operations["create_complaint_api_v1_complaints_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/complaints/{complaint_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reply To Complaint */
+        post: operations["reply_to_complaint_api_v1_complaints__complaint_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/complaints/{complaint_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Complaint Status */
+        patch: operations["update_complaint_status_api_v1_complaints__complaint_id__status_patch"];
+        trace?: never;
+    };
     "/api/v1/recovery/clients": {
         parameters: {
             query?: never;
@@ -704,6 +756,40 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Notifications */
+        get: operations["list_notifications_api_v1_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/{notification_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Mark Notification Read */
+        patch: operations["mark_notification_read_api_v1_notifications__notification_id__read_patch"];
         trace?: never;
     };
     "/api/v1/audit-logs": {
@@ -1074,6 +1160,87 @@ export interface components {
             /** Assessments */
             assessments: components["schemas"]["CoachingAssessmentRead"][];
         };
+        /**
+         * ComplaintCategory
+         * @enum {string}
+         */
+        ComplaintCategory: "payment" | "subscription" | "access" | "reservation" | "recovery" | "store" | "coaching" | "account" | "behavior" | "other";
+        /** ComplaintCreate */
+        ComplaintCreate: {
+            category: components["schemas"]["ComplaintCategory"];
+            /** Subject */
+            subject: string;
+            /** Message */
+            message: string;
+        };
+        /** ComplaintMessageCreate */
+        ComplaintMessageCreate: {
+            /** Body */
+            body: string;
+        };
+        /** ComplaintMessageRead */
+        ComplaintMessageRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Author Id */
+            author_id: string | null;
+            /** Author Name */
+            author_name: string;
+            author_role: components["schemas"]["UserRole"];
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ComplaintRead */
+        ComplaintRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Member Name */
+            member_name: string;
+            /** Member Number */
+            member_number: string;
+            category: components["schemas"]["ComplaintCategory"];
+            assigned_role: components["schemas"]["UserRole"];
+            /** Subject */
+            subject: string;
+            status: components["schemas"]["ComplaintStatus"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Messages */
+            messages: components["schemas"]["ComplaintMessageRead"][];
+        };
+        /**
+         * ComplaintStatus
+         * @enum {string}
+         */
+        ComplaintStatus: "open" | "in_progress" | "resolved";
+        /** ComplaintStatusUpdate */
+        ComplaintStatusUpdate: {
+            status: components["schemas"]["ComplaintStatus"];
+        };
         /** ExistingMemberActivationConfirm */
         ExistingMemberActivationConfirm: {
             /**
@@ -1312,6 +1479,27 @@ export interface components {
         MessageResponse: {
             /** Message */
             message: string;
+        };
+        /** NotificationRead */
+        NotificationRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Title */
+            title: string;
+            /** Body */
+            body: string;
+            /** Read At */
+            read_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** OTPRequest */
         OTPRequest: {
@@ -3147,6 +3335,140 @@ export interface operations {
             };
         };
     };
+    list_complaints_api_v1_complaints_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComplaintRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_complaint_api_v1_complaints_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComplaintCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComplaintRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reply_to_complaint_api_v1_complaints__complaint_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                complaint_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComplaintMessageCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComplaintRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_complaint_status_api_v1_complaints__complaint_id__status_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                complaint_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComplaintStatusUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComplaintRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_recovery_clients_api_v1_recovery_clients_get: {
         parameters: {
             query?: {
@@ -3232,6 +3554,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecoveryVisitRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_notifications_api_v1_notifications_get: {
+        parameters: {
+            query?: {
+                unread_only?: boolean;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_notification_read_api_v1_notifications__notification_id__read_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationRead"];
                 };
             };
             /** @description Validation Error */

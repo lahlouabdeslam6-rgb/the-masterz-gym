@@ -9,12 +9,14 @@ from app.modules.coaching.models import (
     CoachingClientProfile,
     CoachMemberAssignment,
 )
+from app.modules.complaints.models import Complaint, ComplaintMessage
 from app.modules.memberships.models import (
     MembershipPlan,
     Subscription,
     SubscriptionEvent,
     SystemSetting,
 )
+from app.modules.notifications.models import Notification
 from app.modules.payments.models import Payment, Receipt
 from app.modules.recovery.models import RecoveryVisit
 from app.modules.users.models import User
@@ -25,8 +27,11 @@ __all__ = [
     "CoachMemberAssignment",
     "CoachingAssessment",
     "CoachingClientProfile",
+    "Complaint",
+    "ComplaintMessage",
     "MembershipApplication",
     "MembershipPlan",
+    "Notification",
     "OTPChallenge",
     "Payment",
     "Receipt",

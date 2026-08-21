@@ -11,6 +11,7 @@ import {
 } from "../AdminManagement";
 import { ApplicationManager } from "../ApplicationManager";
 import { CoachingManager } from "../CoachingManager";
+import { ComplaintCenter } from "../ComplaintCenter";
 import { RecoveryManager } from "../RecoveryManager";
 import { StaffMemberManager } from "../StaffMemberManager";
 import {
@@ -251,6 +252,24 @@ export function AdminRecoverySection() {
       description="Consultez les packs, leur solde de seances et l'historique, puis enregistrez chaque passage sans le melanger avec les entrees salle."
     >
       <RecoveryManager session={session} />
+    </AdminPage>
+  );
+}
+
+export function AdminComplaintsSection() {
+  const { session } = useAdminSession();
+  return (
+    <AdminPage
+      eyebrow="Relation membres"
+      title="Reclamations"
+      description="Consultez toutes les reclamations, repondez au membre et suivez chaque dossier jusqu'a sa resolution."
+    >
+      <Panel
+        title="Suivi des reclamations"
+        subtitle="L'Administration voit tous les dossiers, y compris ceux traites par la Reception."
+      >
+        <ComplaintCenter session={session} mode="staff" />
+      </Panel>
     </AdminPage>
   );
 }

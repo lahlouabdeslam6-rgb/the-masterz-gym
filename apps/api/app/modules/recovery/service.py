@@ -11,6 +11,7 @@ from app.modules.audit.service import AuditService
 from app.modules.memberships.models import Subscription, SubscriptionEvent
 from app.modules.memberships.repository import MembershipRepository
 from app.modules.memberships.service import MembershipService
+from app.modules.notifications.service import NotificationService
 from app.modules.recovery.models import RecoveryVisit
 from app.modules.recovery.repository import RecoveryRepository
 from app.modules.recovery.schemas import (
@@ -32,6 +33,7 @@ class RecoveryServiceManager:
         self.recovery = RecoveryRepository(session)
         self.memberships = MembershipRepository(session)
         self.membership_service = MembershipService(session)
+        self.notifications = NotificationService(session)
         self.users = UserRepository(session)
         self.audit = AuditService(session)
 
@@ -158,6 +160,8 @@ class RecoveryServiceManager:
             },
             reason=visit.notes,
         )
+        if subscription.remaining_sessions == 0:
+            self.notifications.recovery_pack_exhausted(member, subscription)
         return self._visit_read(visit, recorded_by=actor)
 
     def _member_for_tracking(self, member_id: uuid.UUID, actor: User) -> User:

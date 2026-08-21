@@ -58,6 +58,25 @@ class RecoveryService(StrEnum):
     COMPRESSION = "compression"
 
 
+class ComplaintCategory(StrEnum):
+    PAYMENT = "payment"
+    SUBSCRIPTION = "subscription"
+    ACCESS = "access"
+    RESERVATION = "reservation"
+    RECOVERY = "recovery"
+    STORE = "store"
+    COACHING = "coaching"
+    ACCOUNT = "account"
+    BEHAVIOR = "behavior"
+    OTHER = "other"
+
+
+class ComplaintStatus(StrEnum):
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    RESOLVED = "resolved"
+
+
 class CoachingTestType(StrEnum):
     IMPEDANCE = "impedance"
     NEUROMUSCULAR = "neuromuscular"

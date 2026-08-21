@@ -4,6 +4,8 @@ import type { AuthSession } from "@/lib/auth";
 import { ReceiptSummary } from "./ApplicationManager";
 import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 import { MemberRecoveryPanel } from "./RecoveryManager";
+import { MemberNotifications } from "./MemberNotifications";
+import { ComplaintCenter } from "./ComplaintCenter";
 import {
   type Attendance,
   type Receipt,
@@ -31,6 +33,12 @@ export function MemberDashboard({
 }) {
   return (
     <div className="mt-8 space-y-6">
+      <Panel
+        title="Mes notifications"
+        subtitle="Les alertes importantes concernant vos abonnements et vos packs."
+      >
+        <MemberNotifications session={session} />
+      </Panel>
       <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <Panel
           title="Mon profil"
@@ -147,6 +155,12 @@ export function MemberDashboard({
         subtitle="Vos seances sauna, bain froid et compression, avec le solde et l'historique des passages."
       >
         <MemberRecoveryPanel session={session} memberId={user.id} />
+      </Panel>
+      <Panel
+        title="Mes reclamations"
+        subtitle="Ecrivez a la Reception ou a l'Administration et suivez toutes les reponses dans la meme conversation."
+      >
+        <ComplaintCenter session={session} mode="member" />
       </Panel>
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="p-5">

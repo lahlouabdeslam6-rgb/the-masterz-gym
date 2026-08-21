@@ -9,6 +9,7 @@ import {
   Gauge,
   LogOut,
   Menu,
+  MessageSquareWarning,
   ShieldCheck,
   UsersRound,
   Waves,
@@ -49,6 +50,11 @@ const navigation = [
     label: "Recovery",
     href: "/espace/reception/recovery",
     icon: Waves,
+  },
+  {
+    label: "Reclamations",
+    href: "/espace/reception/reclamations",
+    icon: MessageSquareWarning,
   },
 ];
 

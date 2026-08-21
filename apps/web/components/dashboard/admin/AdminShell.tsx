@@ -13,6 +13,7 @@ import {
   KeyRound,
   LogOut,
   Menu,
+  MessageSquareWarning,
   Settings2,
   ShieldCheck,
   UserRoundCog,
@@ -51,6 +52,11 @@ const navigation = [
   },
   { label: "Entrees", href: "/espace/admin/acces", icon: ShieldCheck },
   { label: "Recovery", href: "/espace/admin/recovery", icon: Waves },
+  {
+    label: "Reclamations",
+    href: "/espace/admin/reclamations",
+    icon: MessageSquareWarning,
+  },
   { label: "Parametres", href: "/espace/admin/parametres", icon: Settings2 },
   { label: "Journal d'audit", href: "/espace/admin/audit", icon: FileClock },
 ];

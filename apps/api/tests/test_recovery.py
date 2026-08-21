@@ -135,6 +135,23 @@ def test_recovery_pack_consumes_one_session_and_can_be_renewed_when_exhausted(
     )
     assert member_login.status_code == 200, member_login.text
     member_headers = {"Authorization": f"Bearer {member_login.json()['access_token']}"}
+    notifications = client.get("/api/v1/notifications", headers=member_headers)
+    assert notifications.status_code == 200, notifications.text
+    assert len(notifications.json()) == 1
+    notification = notifications.json()[0]
+    assert notification["kind"] == "recovery_pack_exhausted"
+    assert notification["read_at"] is None
+    assert "derniere seance" in notification["body"]
+
+    marked_read = client.patch(
+        f"/api/v1/notifications/{notification['id']}/read", headers=member_headers
+    )
+    assert marked_read.status_code == 200, marked_read.text
+    assert marked_read.json()["read_at"] is not None
+    unread = client.get("/api/v1/notifications?unread_only=true", headers=member_headers)
+    assert unread.status_code == 200, unread.text
+    assert unread.json() == []
+
     tracking = client.get(f"/api/v1/recovery/members/{member.id}", headers=member_headers)
     assert tracking.status_code == 200, tracking.text
     assert tracking.json()["subscriptions"][0]["remaining_sessions"] == 0

@@ -13,6 +13,7 @@ import { Alert, Card, LoadingMessage } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders } from "@/lib/auth";
 import { ApplicationManager } from "../ApplicationManager";
+import { ComplaintCenter } from "../ComplaintCenter";
 import { StaffMemberManager } from "../StaffMemberManager";
 import { RecoveryManager } from "../RecoveryManager";
 import { type Application, type Plan, Panel, Stat } from "../dashboard-shared";
@@ -275,6 +276,24 @@ export function ReceptionRecoverySection() {
       description="Choisissez un client, verifiez ses seances restantes puis enregistrez son passage. Un passage retire une seule seance."
     >
       <RecoveryManager session={session} />
+    </ReceptionPage>
+  );
+}
+
+export function ReceptionComplaintsSection() {
+  const session = useReceptionSession();
+  return (
+    <ReceptionPage
+      eyebrow="Relation membres"
+      title="Reclamations"
+      description="Repondez aux reclamations liees a l'accueil, aux paiements, aux abonnements et au Recovery."
+    >
+      <Panel
+        title="Reclamations de la Reception"
+        subtitle="Les dossiers de coaching, de compte ou de comportement sont diriges vers l'Administration."
+      >
+        <ComplaintCenter session={session} mode="staff" />
+      </Panel>
     </ReceptionPage>
   );
 }
