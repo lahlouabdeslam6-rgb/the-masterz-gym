@@ -11,6 +11,7 @@ import {
   Menu,
   ShieldCheck,
   UsersRound,
+  Waves,
   X,
 } from "lucide-react";
 import { Alert, LoadingMessage, Pill, buttonStyles } from "@masterz/ui";
@@ -43,6 +44,11 @@ const navigation = [
     label: "Entrees",
     href: "/espace/reception/acces",
     icon: ShieldCheck,
+  },
+  {
+    label: "Recovery",
+    href: "/espace/reception/recovery",
+    icon: Waves,
   },
 ];
 

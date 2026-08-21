@@ -613,13 +613,20 @@ export function StaffMemberManager({
       : mode === "access"
         ? "Membres classes par nom. Choisissez un membre pour enregistrer son entree."
         : "La liste est affichee directement. Filtrez-la ou choisissez un membre pour ouvrir son dossier.";
+  const purchasablePlans = plans.filter(
+    (plan) => plan.service_type !== "recovery" || Boolean(plan.session_count),
+  );
   const selectedPlan =
-    plans.find((plan) => plan.id === planId) ??
-    plans.find((plan) => plan.is_active);
+    purchasablePlans.find((plan) => plan.id === planId) ??
+    purchasablePlans.find((plan) => plan.is_active);
   const selectedServiceSubscription = selectedPlan
     ? subscriptions.find(
         (subscription) =>
           subscription.service_type === selectedPlan.service_type &&
+          !(
+            subscription.service_type === "recovery" &&
+            subscription.remaining_sessions === 0
+          ) &&
           !["suspended", "expired", "cancelled"].includes(
             subscription.effective_status ?? subscription.status,
           ),
@@ -824,7 +831,7 @@ export function StaffMemberManager({
                     }}
                   >
                     {serviceTypes.map((serviceType) => {
-                      const categoryPlans = plans.filter(
+                      const categoryPlans = purchasablePlans.filter(
                         (plan) =>
                           plan.is_active && plan.service_type === serviceType,
                       );
@@ -836,6 +843,10 @@ export function StaffMemberManager({
                           {categoryPlans.map((plan) => (
                             <option key={plan.id} value={plan.id}>
                               {plan.name} · {plan.price} {plan.currency}
+                              {plan.service_type === "recovery" &&
+                              plan.session_count
+                                ? ` · ${plan.session_count} seances`
+                                : ""}
                             </option>
                           ))}
                         </optgroup>
@@ -1236,6 +1247,15 @@ export function StaffMemberManager({
                                       {formatDate(subscription.starts_on)} au{" "}
                                       {formatDate(subscription.ends_on)}
                                     </p>
+                                    {subscription.service_type ===
+                                    "recovery" ? (
+                                      <p className="mt-2 text-sm font-bold text-primary">
+                                        {subscription.remaining_sessions ??
+                                          "Non configure"}{" "}
+                                        / {subscription.total_sessions ?? "—"}{" "}
+                                        seance(s) restante(s)
+                                      </p>
+                                    ) : null}
                                     <Pill className="mt-3">
                                       {statusLabels[
                                         subscription.effective_status ??

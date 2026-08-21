@@ -39,6 +39,8 @@ class PrintableReceiptData(BaseModel):
     subscription_status: SubscriptionStatus
     plan_name: str
     service_type: ServiceType
+    total_sessions: int | None
+    remaining_sessions: int | None
     starts_on: date
     ends_on: date
     amount: Decimal

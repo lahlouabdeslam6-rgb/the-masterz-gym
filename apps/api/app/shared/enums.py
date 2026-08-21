@@ -52,6 +52,12 @@ class ServiceType(StrEnum):
     RECOVERY = "recovery"
 
 
+class RecoveryService(StrEnum):
+    SAUNA = "sauna"
+    COLD_BATH = "cold_bath"
+    COMPRESSION = "compression"
+
+
 class CoachingTestType(StrEnum):
     IMPEDANCE = "impedance"
     NEUROMUSCULAR = "neuromuscular"

@@ -62,6 +62,7 @@ const recoveryPlan = {
   duration_months: 1,
   price: "600.00",
   service_type: "recovery",
+  session_count: 10,
 };
 
 const priorityMembers = [

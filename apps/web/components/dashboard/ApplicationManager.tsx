@@ -247,6 +247,15 @@ export function ReceiptSummary({ receipt }: { receipt: Receipt }) {
             {receipt.amount} {receipt.currency}
           </strong>
         </p>
+        {receipt.service_type === "recovery" ? (
+          <p>
+            Seances :{" "}
+            <strong className="text-white">
+              {receipt.remaining_sessions ?? "—"} /{" "}
+              {receipt.total_sessions ?? "—"}
+            </strong>
+          </p>
+        ) : null}
         <p>
           Paiement enregistre le :{" "}
           <strong className="text-white">{formatDate(receipt.paid_at)}</strong>

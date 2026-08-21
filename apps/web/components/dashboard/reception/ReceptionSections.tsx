@@ -14,6 +14,7 @@ import { api } from "@/lib/api";
 import { authorizationHeaders } from "@/lib/auth";
 import { ApplicationManager } from "../ApplicationManager";
 import { StaffMemberManager } from "../StaffMemberManager";
+import { RecoveryManager } from "../RecoveryManager";
 import { type Application, type Plan, Panel, Stat } from "../dashboard-shared";
 import { ReceptionPage } from "./ReceptionPage";
 import { useReceptionSession } from "./ReceptionShell";
@@ -261,6 +262,19 @@ export function ReceptionAccessSection() {
       >
         <StaffMemberManager session={session} plans={[]} mode="access" />
       </Panel>
+    </ReceptionPage>
+  );
+}
+
+export function ReceptionRecoverySection() {
+  const session = useReceptionSession();
+  return (
+    <ReceptionPage
+      eyebrow="Sauna, bain froid et compression"
+      title="Recovery"
+      description="Choisissez un client, verifiez ses seances restantes puis enregistrez son passage. Un passage retire une seule seance."
+    >
+      <RecoveryManager session={session} />
     </ReceptionPage>
   );
 }

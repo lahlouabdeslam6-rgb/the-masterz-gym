@@ -30,6 +30,7 @@ const plans = [
     price: "600.00",
     currency: "MAD",
     service_type: "recovery",
+    session_count: 10,
     is_active: true,
     created_at: "2026-08-17T10:00:00Z",
     updated_at: "2026-08-17T10:00:00Z",

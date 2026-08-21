@@ -16,6 +16,7 @@ from app.modules.memberships.models import (
     SystemSetting,
 )
 from app.modules.payments.models import Payment, Receipt
+from app.modules.recovery.models import RecoveryVisit
 from app.modules.users.models import User
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "Payment",
     "Receipt",
     "RefreshSession",
+    "RecoveryVisit",
     "Subscription",
     "SubscriptionEvent",
     "SystemSetting",

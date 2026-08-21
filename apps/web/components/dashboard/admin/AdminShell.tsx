@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   UserRoundCog,
   UsersRound,
+  Waves,
   X,
 } from "lucide-react";
 import { Alert, LoadingMessage, Pill, buttonStyles } from "@masterz/ui";
@@ -49,6 +50,7 @@ const navigation = [
     icon: BadgeDollarSign,
   },
   { label: "Entrees", href: "/espace/admin/acces", icon: ShieldCheck },
+  { label: "Recovery", href: "/espace/admin/recovery", icon: Waves },
   { label: "Parametres", href: "/espace/admin/parametres", icon: Settings2 },
   { label: "Journal d'audit", href: "/espace/admin/audit", icon: FileClock },
 ];

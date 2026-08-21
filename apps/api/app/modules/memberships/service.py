@@ -67,9 +67,20 @@ class MembershipService:
             "price": str(plan.price),
             "currency": plan.currency,
             "service_type": plan.service_type.value,
+            "session_count": plan.session_count,
             "is_active": plan.is_active,
         }
         changes = data.model_dump(exclude_none=True, exclude={"reason"})
+        final_service_type = changes.get("service_type", plan.service_type)
+        final_session_count = changes.get("session_count", plan.session_count)
+        if final_service_type == ServiceType.RECOVERY and final_session_count is None:
+            raise api_error(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "recovery_session_count_required",
+                "Le nombre de seances est requis pour une offre recovery.",
+            )
+        if final_service_type != ServiceType.RECOVERY:
+            changes["session_count"] = None
         for field, value in changes.items():
             setattr(plan, field, value)
         self.session.flush()
@@ -133,10 +144,13 @@ class MembershipService:
             def has_active_service(candidate: Subscription | None) -> bool:
                 if not candidate or candidate.starts_on > today:
                     return False
-                return self.effective_status(candidate, today) in {
+                active = self.effective_status(candidate, today) in {
                     SubscriptionStatus.ACTIVE,
                     SubscriptionStatus.EXPIRING_SOON,
                 }
+                if candidate.service_type == ServiceType.RECOVERY:
+                    return active and (candidate.remaining_sessions or 0) > 0
+                return active
 
             effective_status = self.effective_status(subscription, today) if subscription else None
             days_remaining = (

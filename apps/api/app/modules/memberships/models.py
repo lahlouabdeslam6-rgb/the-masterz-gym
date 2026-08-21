@@ -28,6 +28,10 @@ class MembershipPlan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("duration_months > 0", name="ck_membership_plans_duration_positive"),
         CheckConstraint("price > 0", name="ck_membership_plans_price_positive"),
+        CheckConstraint(
+            "session_count IS NULL OR session_count > 0",
+            name="ck_membership_plans_session_count_positive",
+        ),
     )
 
     name: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -40,6 +44,7 @@ class MembershipPlan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         default=ServiceType.GYM,
         index=True,
     )
+    session_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
 
@@ -60,6 +65,19 @@ class Subscription(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("ends_on <= grace_ends_on", name="ck_subscriptions_grace_range"),
         CheckConstraint("duration_months > 0", name="ck_subscriptions_duration_positive"),
         CheckConstraint("price > 0", name="ck_subscriptions_price_positive"),
+        CheckConstraint(
+            "total_sessions IS NULL OR total_sessions > 0",
+            name="ck_subscriptions_total_sessions_positive",
+        ),
+        CheckConstraint(
+            "remaining_sessions IS NULL OR remaining_sessions >= 0",
+            name="ck_subscriptions_remaining_sessions_non_negative",
+        ),
+        CheckConstraint(
+            "remaining_sessions IS NULL OR total_sessions IS NULL "
+            "OR remaining_sessions <= total_sessions",
+            name="ck_subscriptions_remaining_sessions_within_total",
+        ),
     )
 
     member_id: Mapped[uuid.UUID] = mapped_column(
@@ -84,6 +102,8 @@ class Subscription(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         default=ServiceType.GYM,
         index=True,
     )
+    total_sessions: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    remaining_sessions: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_by_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )

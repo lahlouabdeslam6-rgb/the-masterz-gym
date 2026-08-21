@@ -11,6 +11,7 @@ import {
 } from "../AdminManagement";
 import { ApplicationManager } from "../ApplicationManager";
 import { CoachingManager } from "../CoachingManager";
+import { RecoveryManager } from "../RecoveryManager";
 import { StaffMemberManager } from "../StaffMemberManager";
 import {
   type Application,
@@ -237,6 +238,19 @@ export function AdminAccessSection() {
       >
         <StaffMemberManager session={session} plans={[]} mode="access" />
       </Panel>
+    </AdminPage>
+  );
+}
+
+export function AdminRecoverySection() {
+  const { session } = useAdminSession();
+  return (
+    <AdminPage
+      eyebrow="Sauna, bain froid et compression"
+      title="Recovery"
+      description="Consultez les packs, leur solde de seances et l'historique, puis enregistrez chaque passage sans le melanger avec les entrees salle."
+    >
+      <RecoveryManager session={session} />
     </AdminPage>
   );
 }

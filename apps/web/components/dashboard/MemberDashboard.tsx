@@ -3,6 +3,7 @@ import { Card, Pill } from "@masterz/ui";
 import type { AuthSession } from "@/lib/auth";
 import { ReceiptSummary } from "./ApplicationManager";
 import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
+import { MemberRecoveryPanel } from "./RecoveryManager";
 import {
   type Attendance,
   type Receipt,
@@ -68,6 +69,12 @@ export function MemberDashboard({
                       <p className="mt-2 text-sm font-bold text-primary">
                         {subscription.price} {subscription.currency}
                       </p>
+                      {subscription.service_type === "recovery" ? (
+                        <p className="mt-2 text-sm font-bold text-emerald-200">
+                          {subscription.remaining_sessions ?? "—"} /{" "}
+                          {subscription.total_sessions ?? "—"} seance(s)
+                        </p>
+                      ) : null}
                     </div>
                     <Pill>
                       {statusLabels[
@@ -134,6 +141,12 @@ export function MemberDashboard({
         subtitle="Votre objectif, vos tests et leur historique, sans modifier les donnees saisies par votre coach."
       >
         <CoachingTrackingPanel session={session} memberId={user.id} />
+      </Panel>
+      <Panel
+        title="Mon pack recovery"
+        subtitle="Vos seances sauna, bain froid et compression, avec le solde et l'historique des passages."
+      >
+        <MemberRecoveryPanel session={session} memberId={user.id} />
       </Panel>
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="p-5">

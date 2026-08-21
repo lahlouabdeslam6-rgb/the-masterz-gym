@@ -3,7 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.shared.enums import AccountStatus, Gender, ServiceType, SubscriptionStatus
 
@@ -14,10 +14,19 @@ class MembershipPlanBase(BaseModel):
     price: Decimal = Field(gt=0, decimal_places=2)
     currency: str = Field(default="MAD", min_length=3, max_length=3)
     service_type: ServiceType = ServiceType.GYM
+    session_count: int | None = Field(default=None, ge=1, le=10000)
 
 
 class MembershipPlanCreate(MembershipPlanBase):
     is_active: bool = True
+
+    @model_validator(mode="after")
+    def validate_session_count(self):
+        if self.service_type == ServiceType.RECOVERY and self.session_count is None:
+            raise ValueError("Le nombre de seances est requis pour une offre recovery.")
+        if self.service_type != ServiceType.RECOVERY and self.session_count is not None:
+            raise ValueError("Le nombre de seances est reserve aux offres recovery.")
+        return self
 
 
 class MembershipPlanUpdate(BaseModel):
@@ -26,6 +35,7 @@ class MembershipPlanUpdate(BaseModel):
     price: Decimal | None = Field(default=None, gt=0, decimal_places=2)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     service_type: ServiceType | None = None
+    session_count: int | None = Field(default=None, ge=1, le=10000)
     is_active: bool | None = None
     reason: str = Field(min_length=3, max_length=500)
 
@@ -55,6 +65,8 @@ class SubscriptionRead(BaseModel):
     price: Decimal
     currency: str
     service_type: ServiceType
+    total_sessions: int | None
+    remaining_sessions: int | None
     created_by_id: uuid.UUID
     created_at: datetime
     updated_at: datetime

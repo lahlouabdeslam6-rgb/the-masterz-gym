@@ -721,6 +721,7 @@ export function AdminPlanManager({
     price: "",
     currency: "MAD",
     service_type: "gym" as Plan["service_type"],
+    session_count: "",
   });
   const initialEdits = useMemo(
     () =>
@@ -733,6 +734,7 @@ export function AdminPlanManager({
             price: plan.price,
             currency: plan.currency,
             service_type: plan.service_type,
+            session_count: plan.session_count ? String(plan.session_count) : "",
             active: plan.is_active,
             reason: "Mise à jour tarifaire",
           },
@@ -749,6 +751,7 @@ export function AdminPlanManager({
         price: string;
         currency: string;
         service_type: Plan["service_type"];
+        session_count: string;
         active: boolean;
         reason: string;
       }
@@ -769,6 +772,10 @@ export function AdminPlanManager({
         price: create.price,
         currency: create.currency.toUpperCase(),
         service_type: create.service_type,
+        session_count:
+          create.service_type === "recovery"
+            ? Number(create.session_count)
+            : null,
         is_active: true,
       },
     });
@@ -783,6 +790,7 @@ export function AdminPlanManager({
         price: "",
         currency: "MAD",
         service_type: activeServiceType,
+        session_count: "",
       });
       await onReload();
     }
@@ -800,6 +808,8 @@ export function AdminPlanManager({
         price: edit.price,
         currency: edit.currency.toUpperCase(),
         service_type: edit.service_type,
+        session_count:
+          edit.service_type === "recovery" ? Number(edit.session_count) : null,
         is_active: edit.active,
         reason: edit.reason,
       },
@@ -884,7 +894,7 @@ export function AdminPlanManager({
           </p>
         </div>
         <input type="hidden" value={create.service_type} readOnly />
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-[1.6fr_0.65fr_0.8fr_0.55fr_auto] xl:items-end">
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-6 xl:items-end">
           <Field label="Nom de la formule">
             <Input
               required
@@ -929,6 +939,20 @@ export function AdminPlanManager({
               }
             />
           </Field>
+          {create.service_type === "recovery" ? (
+            <Field label="Nombre de seances">
+              <Input
+                type="number"
+                min={1}
+                required
+                placeholder="Ex. 10"
+                value={create.session_count}
+                onChange={(event) =>
+                  setCreate({ ...create, session_count: event.target.value })
+                }
+              />
+            </Field>
+          ) : null}
           <Button type="submit" className="w-full" disabled={busy}>
             <Plus className="h-4 w-4" /> Creer une offre
           </Button>
@@ -958,6 +982,9 @@ export function AdminPlanManager({
                     </p>
                     <p className="mt-1 text-xs text-gray-500">
                       {plan.duration_months} mois · {plan.price} {plan.currency}
+                      {plan.service_type === "recovery"
+                        ? ` · ${plan.session_count ?? "A configurer"} seance(s)`
+                        : ""}
                     </p>
                   </div>
                   <span
@@ -1067,6 +1094,25 @@ export function AdminPlanManager({
                         <option value="inactive">Inactive</option>
                       </select>
                     </Field>
+                    {edit.service_type === "recovery" ? (
+                      <Field label="Nombre de seances">
+                        <Input
+                          type="number"
+                          min={1}
+                          required
+                          value={edit.session_count}
+                          onChange={(event) =>
+                            setEdits((current) => ({
+                              ...current,
+                              [plan.id]: {
+                                ...edit,
+                                session_count: event.target.value,
+                              },
+                            }))
+                          }
+                        />
+                      </Field>
+                    ) : null}
                   </div>
                   <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
                     <Field label="Motif de modification">
@@ -1082,7 +1128,12 @@ export function AdminPlanManager({
                     </Field>
                     <Button
                       onClick={() => updatePlan(plan)}
-                      disabled={busy || edit.reason.trim().length < 3}
+                      disabled={
+                        busy ||
+                        edit.reason.trim().length < 3 ||
+                        (edit.service_type === "recovery" &&
+                          !edit.session_count)
+                      }
                     >
                       <Save className="h-4 w-4" /> Enregistrer
                     </Button>

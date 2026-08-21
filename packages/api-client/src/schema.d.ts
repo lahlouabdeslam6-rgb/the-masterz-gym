@@ -655,6 +655,57 @@ export interface paths {
         patch: operations["end_assignment_api_v1_coaching_assignments__assignment_id__end_patch"];
         trace?: never;
     };
+    "/api/v1/recovery/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Recovery Clients */
+        get: operations["list_recovery_clients_api_v1_recovery_clients_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recovery/members/{member_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Recovery Tracking */
+        get: operations["get_recovery_tracking_api_v1_recovery_members__member_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recovery/visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record Recovery Visit */
+        post: operations["record_recovery_visit_api_v1_recovery_visits_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-logs": {
         parameters: {
             query?: never;
@@ -1196,6 +1247,8 @@ export interface components {
             currency: string;
             /** @default gym */
             service_type: components["schemas"]["ServiceType"];
+            /** Session Count */
+            session_count?: number | null;
             /**
              * Is Active
              * @default true
@@ -1217,6 +1270,8 @@ export interface components {
             currency: string;
             /** @default gym */
             service_type: components["schemas"]["ServiceType"];
+            /** Session Count */
+            session_count?: number | null;
             /**
              * Id
              * Format: uuid
@@ -1246,6 +1301,8 @@ export interface components {
             /** Currency */
             currency?: string | null;
             service_type?: components["schemas"]["ServiceType"] | null;
+            /** Session Count */
+            session_count?: number | null;
             /** Is Active */
             is_active?: boolean | null;
             /** Reason */
@@ -1315,6 +1372,10 @@ export interface components {
             /** Plan Name */
             plan_name: string;
             service_type: components["schemas"]["ServiceType"];
+            /** Total Sessions */
+            total_sessions: number | null;
+            /** Remaining Sessions */
+            remaining_sessions: number | null;
             /**
              * Starts On
              * Format: date
@@ -1344,6 +1405,130 @@ export interface components {
              * Format: date-time
              */
             paid_at: string;
+        };
+        /** RecoveryClientSummary */
+        RecoveryClientSummary: {
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Member Name */
+            member_name: string;
+            /** Member Number */
+            member_number: string;
+            /** Phone */
+            phone: string;
+            subscription: components["schemas"]["RecoverySubscriptionSummary"];
+        };
+        /**
+         * RecoveryService
+         * @enum {string}
+         */
+        RecoveryService: "sauna" | "cold_bath" | "compression";
+        /** RecoverySubscriptionSummary */
+        RecoverySubscriptionSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Plan Name */
+            plan_name: string;
+            /**
+             * Starts On
+             * Format: date
+             */
+            starts_on: string;
+            /**
+             * Ends On
+             * Format: date
+             */
+            ends_on: string;
+            status: components["schemas"]["SubscriptionStatus"];
+            effective_status: components["schemas"]["SubscriptionStatus"];
+            /** Total Sessions */
+            total_sessions: number | null;
+            /** Remaining Sessions */
+            remaining_sessions: number | null;
+            /** Is Usable */
+            is_usable: boolean;
+        };
+        /** RecoveryTrackingRead */
+        RecoveryTrackingRead: {
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Member Name */
+            member_name: string;
+            /** Member Number */
+            member_number: string;
+            /** Subscriptions */
+            subscriptions: components["schemas"]["RecoverySubscriptionSummary"][];
+            /** Visits */
+            visits: components["schemas"]["RecoveryVisitRead"][];
+        };
+        /** RecoveryVisitCreate */
+        RecoveryVisitCreate: {
+            /** Idempotency Key */
+            idempotency_key: string;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Services */
+            services: components["schemas"]["RecoveryService"][];
+            /** Notes */
+            notes?: string | null;
+        };
+        /** RecoveryVisitRead */
+        RecoveryVisitRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /**
+             * Subscription Id
+             * Format: uuid
+             */
+            subscription_id: string;
+            /**
+             * Recorded By Id
+             * Format: uuid
+             */
+            recorded_by_id: string;
+            /** Recorded By Name */
+            recorded_by_name: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Services */
+            services: components["schemas"]["RecoveryService"][];
+            /** Remaining Sessions After */
+            remaining_sessions_after: number;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** RefreshRequest */
         RefreshRequest: {
@@ -1460,6 +1645,10 @@ export interface components {
             /** Currency */
             currency: string;
             service_type: components["schemas"]["ServiceType"];
+            /** Total Sessions */
+            total_sessions: number | null;
+            /** Remaining Sessions */
+            remaining_sessions: number | null;
             /**
              * Created By Id
              * Format: uuid
@@ -2945,6 +3134,104 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CoachMemberAssignmentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_recovery_clients_api_v1_recovery_clients_get: {
+        parameters: {
+            query?: {
+                query?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryClientSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_recovery_tracking_api_v1_recovery_members__member_id__get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryTrackingRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_recovery_visit_api_v1_recovery_visits_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecoveryVisitCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryVisitRead"];
                 };
             };
             /** @description Validation Error */

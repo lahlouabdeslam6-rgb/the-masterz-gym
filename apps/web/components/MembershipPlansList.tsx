@@ -82,7 +82,12 @@ export function MembershipPlansList({
         }
 
         setPlans(
-          [...(data ?? [])].sort((a, b) => Number(a.price) - Number(b.price)),
+          [...(data ?? [])]
+            .filter(
+              (plan) =>
+                plan.service_type !== "recovery" || Boolean(plan.session_count),
+            )
+            .sort((a, b) => Number(a.price) - Number(b.price)),
         );
       } catch {
         if (active)
@@ -180,7 +185,10 @@ export function MembershipPlansList({
               </p>
               <CardTitle className="mt-4 pr-8 text-2xl">{plan.name}</CardTitle>
               <p className="mt-2 text-sm text-gray-500">
-                Engagement de {plan.duration_months} mois
+                Valable {plan.duration_months} mois
+                {serviceType === "recovery"
+                  ? ` · ${plan.session_count ?? "Nombre a confirmer"} seance(s)`
+                  : ""}
               </p>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col pt-6">
@@ -193,7 +201,13 @@ export function MembershipPlansList({
                 </span>
               </div>
               <ul className="mt-8 flex-1 space-y-3 text-sm text-gray-300">
-                {content.features.map((feature) => (
+                {(serviceType === "recovery" && plan.session_count
+                  ? [
+                      `${plan.session_count} séances à utiliser pendant la validité du pack`,
+                      ...content.features,
+                    ]
+                  : content.features
+                ).map((feature) => (
                   <li key={feature} className="flex gap-3">
                     <Check className="h-5 w-5 shrink-0 text-primary" />
                     {feature}

@@ -77,6 +77,12 @@ class PaymentService:
                 "inactive_plan",
                 "La formule n'est pas disponible.",
             )
+        if plan.service_type == ServiceType.RECOVERY and plan.session_count is None:
+            raise api_error(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "recovery_plan_not_configured",
+                "Le nombre de seances de cette offre recovery doit etre configure.",
+            )
 
         starts_on = self._resolve_start_date(member, data.starts_on, plan.service_type)
         ends_on = add_months(starts_on, plan.duration_months) - timedelta(days=1)
@@ -94,6 +100,12 @@ class PaymentService:
                 price=plan.price,
                 currency=plan.currency,
                 service_type=plan.service_type,
+                total_sessions=(
+                    plan.session_count if plan.service_type == ServiceType.RECOVERY else None
+                ),
+                remaining_sessions=(
+                    plan.session_count if plan.service_type == ServiceType.RECOVERY else None
+                ),
                 created_by_id=actor.id,
             )
         )
@@ -208,7 +220,7 @@ class PaymentService:
             SubscriptionStatus.SUSPENDED,
             SubscriptionStatus.EXPIRED,
             SubscriptionStatus.CANCELLED,
-        }:
+        } and not (service_type == ServiceType.RECOVERY and current.remaining_sessions == 0):
             raise api_error(
                 status.HTTP_409_CONFLICT,
                 "active_subscription",
@@ -240,6 +252,8 @@ class PaymentService:
             subscription_status=self.membership_service.effective_status(subscription),
             plan_name=subscription.plan_name,
             service_type=subscription.service_type,
+            total_sessions=subscription.total_sessions,
+            remaining_sessions=subscription.remaining_sessions,
             starts_on=subscription.starts_on,
             ends_on=subscription.ends_on,
             amount=payment.amount,

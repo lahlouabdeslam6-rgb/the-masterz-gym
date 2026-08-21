@@ -108,7 +108,9 @@ test("coach enregistre l'objectif et les tests de son client", async ({
   }, coach);
   await page.goto("/espace/coach");
 
-  await expect(page.getByText("Sara Coaching", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Sara Coaching", exact: true }),
+  ).toBeVisible();
   await page
     .getByLabel("Objectif du client")
     .fill("Gagner en force et ameliorer sa mobilite");

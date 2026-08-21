@@ -8,6 +8,7 @@ from app.modules.coaching.router import router as coaching_router
 from app.modules.health.router import router as health_router
 from app.modules.memberships.router import router as memberships_router
 from app.modules.payments.router import router as payments_router
+from app.modules.recovery.router import router as recovery_router
 from app.modules.users.router import router as users_router
 
 api_router = APIRouter()
@@ -19,4 +20,5 @@ api_router.include_router(memberships_router)
 api_router.include_router(payments_router)
 api_router.include_router(attendance_router)
 api_router.include_router(coaching_router)
+api_router.include_router(recovery_router)
 api_router.include_router(audit_router)
