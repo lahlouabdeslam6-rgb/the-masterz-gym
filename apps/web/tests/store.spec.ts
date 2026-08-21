@@ -35,6 +35,7 @@ const admin = {
 };
 
 const productId = "00000000-0000-0000-0000-000000000512";
+const unavailableProductId = "00000000-0000-0000-0000-000000000514";
 
 function product(stock = 5) {
   return {
@@ -72,6 +73,16 @@ test("le visiteur consulte le catalogue Store public", async ({ page }) => {
           currency: "MAD",
           is_available: true,
         },
+        {
+          id: unavailableProductId,
+          name: "Ceinture Masterz",
+          description: "Ceinture de musculation Masterz.",
+          image_url: null,
+          media_urls: [],
+          price: "220.00",
+          currency: "MAD",
+          is_available: false,
+        },
       ]),
     });
   });
@@ -82,13 +93,33 @@ test("le visiteur consulte le catalogue Store public", async ({ page }) => {
       name: "Votre performance continue hors de la salle.",
     }),
   ).toBeVisible();
+  await expect(page.getByText("2 produits")).toBeVisible();
   await expect(page.getByText("Whey Protein Masterz")).toBeVisible();
   await expect(page.getByText("Disponible", { exact: true })).toBeVisible();
   await expect(
     page.getByText("Proteine disponible au Masterz Store.", { exact: true }),
   ).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Voir le produit" }).click();
+  await page.getByLabel("Rechercher un produit").fill("Whey");
+  await expect(page.getByText("1 produit")).toBeVisible();
+  await expect(page.getByText("Ceinture Masterz")).toHaveCount(0);
+  await page.getByLabel("Rechercher un produit").fill("");
+  await page.getByRole("button", { name: "Indisponibles" }).click();
+  await expect(page.getByText("Ceinture Masterz")).toBeVisible();
+  await expect(page.getByText("Whey Protein Masterz")).toHaveCount(0);
+  await page.getByRole("button", { name: "Tous", exact: true }).click();
+
+  await page.getByLabel("Trier par prix").selectOption("price-desc");
+  await expect(page.locator("article h2").first()).toHaveText(
+    "Whey Protein Masterz",
+  );
+  await page.getByLabel("Rechercher un produit").fill("produit introuvable");
+  await expect(page.getByText("Aucun produit trouve")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Afficher tous les produits" })
+    .click();
+
+  await page.getByRole("button", { name: "Voir le produit" }).first().click();
   const productDialog = page.getByRole("dialog");
   await expect(productDialog).toBeVisible();
   await expect(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -9,7 +9,9 @@ import {
   LogIn,
   Package,
   Play,
+  RotateCcw,
   RefreshCw,
+  Search,
   ShoppingBag,
   X,
 } from "lucide-react";
@@ -19,6 +21,8 @@ import { api, apiBaseUrl } from "@/lib/api";
 import { getSession, type AuthSession } from "@/lib/auth";
 
 type CatalogProduct = components["schemas"]["StoreCatalogProductRead"];
+type AvailabilityFilter = "all" | "available" | "unavailable";
+type PriceSort = "default" | "price-asc" | "price-desc";
 
 export function PublicStoreCatalog() {
   const [products, setProducts] = useState<CatalogProduct[]>([]);
@@ -26,9 +30,34 @@ export function PublicStoreCatalog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [requestKey, setRequestKey] = useState(0);
+  const [query, setQuery] = useState("");
+  const [availability, setAvailability] = useState<AvailabilityFilter>("all");
+  const [priceSort, setPriceSort] = useState<PriceSort>("default");
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(
     null,
   );
+
+  const visibleProducts = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase("fr");
+    const filteredProducts = products.filter((product) => {
+      const matchesQuery =
+        !normalizedQuery ||
+        product.name.toLocaleLowerCase("fr").includes(normalizedQuery);
+      const matchesAvailability =
+        availability === "all" ||
+        (availability === "available"
+          ? product.is_available
+          : !product.is_available);
+      return matchesQuery && matchesAvailability;
+    });
+
+    if (priceSort === "default") return filteredProducts;
+    return [...filteredProducts].sort((firstProduct, secondProduct) => {
+      const difference =
+        Number(firstProduct.price) - Number(secondProduct.price);
+      return priceSort === "price-asc" ? difference : -difference;
+    });
+  }, [availability, priceSort, products, query]);
 
   useEffect(() => {
     let active = true;
@@ -111,57 +140,169 @@ export function PublicStoreCatalog() {
       ? "Reserver dans mon espace"
       : "Se connecter pour reserver";
 
+  const filtersAreActive =
+    query !== "" || availability !== "all" || priceSort !== "default";
+
+  function resetFilters() {
+    setQuery("");
+    setAvailability("all");
+    setPriceSort("default");
+  }
+
   return (
     <>
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-        {products.map((product) => (
-          <article
-            key={product.id}
-            className="group flex overflow-hidden rounded-lg border border-white/10 bg-[#080e13] shadow-[0_24px_70px_rgba(0,0,0,0.28)]"
+      <section
+        aria-label="Filtres du catalogue"
+        className="mb-8 rounded-lg border border-white/10 bg-surface p-4 sm:p-6"
+      >
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-end">
+          <label className="block">
+            <span className="mb-2 block text-[0.65rem] font-black uppercase tracking-[0.16em] text-gray-400">
+              Rechercher un produit
+            </span>
+            <span className="relative block">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Nom du produit..."
+                className="h-12 w-full rounded-sm border border-white/15 bg-[#050a0e] pl-12 pr-4 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-primary"
+              />
+            </span>
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block text-[0.65rem] font-black uppercase tracking-[0.16em] text-gray-400">
+              Trier par prix
+            </span>
+            <select
+              value={priceSort}
+              onChange={(event) =>
+                setPriceSort(event.target.value as PriceSort)
+              }
+              className="h-12 w-full min-w-56 rounded-sm border border-white/15 bg-[#050a0e] px-4 text-sm font-bold text-white outline-none transition focus:border-primary"
+            >
+              <option value="default">Ordre par defaut</option>
+              <option value="price-asc">Prix : moins cher</option>
+              <option value="price-desc">Prix : plus cher</option>
+            </select>
+          </label>
+
+          <button
+            type="button"
+            disabled={!filtersAreActive}
+            className={buttonStyles({
+              variant: "outline",
+              className: "h-12 disabled:cursor-not-allowed disabled:opacity-35",
+            })}
+            onClick={resetFilters}
           >
-            <div className="flex w-full flex-col">
+            <RotateCcw className="h-4 w-4" />
+            Effacer les filtres
+          </button>
+        </div>
+
+        <div className="mt-5 flex flex-col gap-4 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2" aria-label="Disponibilite">
+            {(
+              [
+                ["all", "Tous"],
+                ["available", "Disponibles"],
+                ["unavailable", "Indisponibles"],
+              ] as const
+            ).map(([value, label]) => (
               <button
+                key={value}
                 type="button"
-                className="block w-full overflow-hidden text-left"
-                aria-label={`Voir ${product.name}`}
-                onClick={() => setSelectedProduct(product)}
+                aria-pressed={availability === value}
+                className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.08em] transition ${
+                  availability === value
+                    ? "border-primary bg-primary text-black"
+                    : "border-white/15 text-gray-400 hover:border-primary/60 hover:text-white"
+                }`}
+                onClick={() => setAvailability(value)}
               >
-                <CatalogMedia product={product} size="card" />
+                {label}
               </button>
-              <div className="flex flex-1 flex-col p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-primary">
-                      Masterz Store
-                    </p>
-                    <h2 className="mt-2 text-2xl font-black text-white">
-                      {product.name}
-                    </h2>
-                  </div>
-                  <AvailabilityBadge available={product.is_available} />
-                </div>
-                <p className="mt-6 text-3xl font-black text-white">
-                  {product.price}{" "}
-                  <span className="text-sm uppercase tracking-[0.1em] text-primary">
-                    {product.currency}
-                  </span>
-                </p>
+            ))}
+          </div>
+          <p className="text-sm font-bold text-gray-400" aria-live="polite">
+            <span className="text-primary">{visibleProducts.length}</span>{" "}
+            {visibleProducts.length === 1 ? "produit" : "produits"}
+          </p>
+        </div>
+      </section>
+
+      {visibleProducts.length ? (
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          {visibleProducts.map((product) => (
+            <article
+              key={product.id}
+              className="group flex overflow-hidden rounded-lg border border-white/10 bg-[#080e13] shadow-[0_24px_70px_rgba(0,0,0,0.28)]"
+            >
+              <div className="flex w-full flex-col">
                 <button
                   type="button"
-                  className={buttonStyles({
-                    variant: "outline",
-                    className: "mt-6 w-full",
-                  })}
+                  className="block w-full overflow-hidden text-left"
+                  aria-label={`Voir ${product.name}`}
                   onClick={() => setSelectedProduct(product)}
                 >
-                  <Eye className="h-4 w-4" />
-                  Voir le produit
+                  <CatalogMedia product={product} size="card" />
                 </button>
+                <div className="flex flex-1 flex-col p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-primary">
+                        Masterz Store
+                      </p>
+                      <h2 className="mt-2 text-2xl font-black text-white">
+                        {product.name}
+                      </h2>
+                    </div>
+                    <AvailabilityBadge available={product.is_available} />
+                  </div>
+                  <p className="mt-6 text-3xl font-black text-white">
+                    {product.price}{" "}
+                    <span className="text-sm uppercase tracking-[0.1em] text-primary">
+                      {product.currency}
+                    </span>
+                  </p>
+                  <button
+                    type="button"
+                    className={buttonStyles({
+                      variant: "outline",
+                      className: "mt-6 w-full",
+                    })}
+                    onClick={() => setSelectedProduct(product)}
+                  >
+                    <Eye className="h-4 w-4" />
+                    Voir le produit
+                  </button>
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
-      </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-dashed border-white/15 bg-surface p-10 text-center">
+          <Package className="mx-auto h-10 w-10 text-primary/50" />
+          <h2 className="mt-5 text-2xl font-black uppercase text-white">
+            Aucun produit trouve
+          </h2>
+          <p className="mt-3 text-sm text-gray-500">
+            Essayez un autre nom ou effacez les filtres.
+          </p>
+          <button
+            type="button"
+            className={buttonStyles({ variant: "outline", className: "mt-6" })}
+            onClick={resetFilters}
+          >
+            <RotateCcw className="h-4 w-4" />
+            Afficher tous les produits
+          </button>
+        </div>
+      )}
 
       {selectedProduct ? (
         <ProductDetails
