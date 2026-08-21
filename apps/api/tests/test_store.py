@@ -121,9 +121,23 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
     assert product["currency"] == "MAD"
     assert product["image_url"] == image_url
 
+    public_catalog = client.get("/api/v1/store/catalog")
+    assert public_catalog.status_code == 200, public_catalog.text
+    public_product = next(item for item in public_catalog.json() if item["id"] == product["id"])
+    assert public_product == {
+        "id": product["id"],
+        "name": "Proteine Masterz",
+        "description": "Proteine pour les membres de la salle.",
+        "image_url": image_url,
+        "price": "350.00",
+        "currency": "MAD",
+        "is_available": True,
+    }
+
     member_products = client.get("/api/v1/store/products", headers=member_headers)
     assert member_products.status_code == 200, member_products.text
-    assert member_products.json()[0]["name"] == "Proteine Masterz"
+    member_product = next(item for item in member_products.json() if item["id"] == product["id"])
+    assert member_product["name"] == "Proteine Masterz"
 
     reservation = client.post(
         "/api/v1/store/reservations",
@@ -149,7 +163,10 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
 
     staff_list = client.get("/api/v1/store/reservations", headers=reception_headers)
     assert staff_list.status_code == 200, staff_list.text
-    assert staff_list.json()[0]["member_name"] == member.full_name
+    staff_reservation = next(
+        item for item in staff_list.json() if item["id"] == reservation_data["id"]
+    )
+    assert staff_reservation["member_name"] == member.full_name
 
     ready = client.patch(
         f"/api/v1/store/reservations/{reservation_data['id']}/status",
@@ -163,7 +180,10 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
         "/api/v1/store/products?active_only=false", headers=admin_headers
     )
     assert products_after_ready.status_code == 200
-    assert products_after_ready.json()[0]["stock_quantity"] == 3
+    product_after_ready = next(
+        item for item in products_after_ready.json() if item["id"] == product["id"]
+    )
+    assert product_after_ready["stock_quantity"] == 3
 
     ready_again = client.patch(
         f"/api/v1/store/reservations/{reservation_data['id']}/status",
@@ -174,7 +194,10 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
     products_after_retry = client.get(
         "/api/v1/store/products?active_only=false", headers=admin_headers
     )
-    assert products_after_retry.json()[0]["stock_quantity"] == 3
+    product_after_retry = next(
+        item for item in products_after_retry.json() if item["id"] == product["id"]
+    )
+    assert product_after_retry["stock_quantity"] == 3
 
     invalid_completion = client.patch(
         f"/api/v1/store/reservations/{reservation_data['id']}/status",
@@ -193,9 +216,10 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
 
     sales = client.get("/api/v1/store/sales", headers=reception_headers)
     assert sales.status_code == 200, sales.text
-    assert len(sales.json()) == 1
-    assert sales.json()[0]["reservation_id"] == reservation_data["id"]
-    assert sales.json()[0]["total_amount"] == "700.00"
+    reservation_sale = next(
+        item for item in sales.json() if item["reservation_id"] == reservation_data["id"]
+    )
+    assert reservation_sale["total_amount"] == "700.00"
 
     sale_key = f"direct-store-{uuid.uuid4()}"
     direct_sale = client.post(
@@ -229,7 +253,10 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
     products_after_sale = client.get(
         "/api/v1/store/products?active_only=false", headers=admin_headers
     )
-    assert products_after_sale.json()[0]["stock_quantity"] == 2
+    product_after_sale = next(
+        item for item in products_after_sale.json() if item["id"] == product["id"]
+    )
+    assert product_after_sale["stock_quantity"] == 2
 
     notifications = client.get("/api/v1/notifications", headers=member_headers)
     assert notifications.status_code == 200

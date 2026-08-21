@@ -7,6 +7,7 @@ const exploreLinks = [
   ["Abonnements", "/abonnements"],
   ["Coaching", "/coaching"],
   ["Recovery", "/recovery"],
+  ["Store", "/store"],
 ];
 
 const memberLinks = [

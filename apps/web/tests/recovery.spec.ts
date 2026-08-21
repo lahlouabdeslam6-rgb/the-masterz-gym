@@ -124,7 +124,9 @@ test("enregistre un passage recovery et retire une seule seance", async ({
   await expect(
     page.getByRole("heading", { name: "Recovery", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText(member.name, { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: member.name, exact: true }),
+  ).toBeVisible();
   await expect(page.getByText("4 / 10").first()).toBeVisible();
 
   await page.getByRole("button", { name: "Sauna" }).click();

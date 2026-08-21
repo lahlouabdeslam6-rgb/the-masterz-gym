@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from app.core.dependencies import DbSession, require_roles
 from app.modules.store.media import StoreMediaService
 from app.modules.store.schemas import (
+    StoreCatalogProductRead,
     StoreProductCreate,
     StoreProductMediaRead,
     StoreProductRead,
@@ -28,6 +29,11 @@ Reader = Annotated[
 Admin = Annotated[User, Depends(require_roles(UserRole.ADMIN))]
 Staff = Annotated[User, Depends(require_roles(UserRole.ADMIN, UserRole.RECEPTIONIST))]
 Member = Annotated[User, Depends(require_roles(UserRole.MEMBER))]
+
+
+@router.get("/catalog", response_model=list[StoreCatalogProductRead])
+def list_public_catalog(session: DbSession):
+    return StoreService(session).list_public_catalog()
 
 
 @router.get("/products", response_model=list[StoreProductRead])

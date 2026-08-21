@@ -10,6 +10,7 @@ from app.modules.notifications.service import NotificationService
 from app.modules.store.models import StoreProduct, StoreReservation, StoreSale
 from app.modules.store.repository import StoreRepository
 from app.modules.store.schemas import (
+    StoreCatalogProductRead,
     StoreProductCreate,
     StoreProductRead,
     StoreProductUpdate,
@@ -53,6 +54,20 @@ class StoreService:
         return [
             StoreProductRead.model_validate(product)
             for product in self.store.list_products(active_only=active_only)
+        ]
+
+    def list_public_catalog(self) -> list[StoreCatalogProductRead]:
+        return [
+            StoreCatalogProductRead(
+                id=product.id,
+                name=product.name,
+                description=product.description,
+                image_url=product.image_url,
+                price=product.price,
+                currency=product.currency,
+                is_available=product.stock_quantity > 0,
+            )
+            for product in self.store.list_products(active_only=True)
         ]
 
     def create_product(self, data: StoreProductCreate, actor: User) -> StoreProductRead:

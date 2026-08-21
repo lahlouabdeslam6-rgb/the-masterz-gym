@@ -51,6 +51,39 @@ function product(stock = 5) {
   };
 }
 
+test("le visiteur consulte le catalogue Store public", async ({ page }) => {
+  await page.route("**/api/v1/store/catalog", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify([
+        {
+          id: productId,
+          name: "Whey Protein Masterz",
+          description: "Proteine disponible au Masterz Store.",
+          image_url: null,
+          price: "350.00",
+          currency: "MAD",
+          is_available: true,
+        },
+      ]),
+    });
+  });
+
+  await page.goto("/store");
+  await expect(
+    page.getByRole("heading", {
+      name: "Votre performance continue hors de la salle.",
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("Whey Protein Masterz")).toBeVisible();
+  await expect(page.getByText("Disponible", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Se connecter pour reserver" }),
+  ).toHaveAttribute("href", "/connexion");
+});
+
 test("le membre reserve un produit depuis son espace", async ({ page }) => {
   let reservationBody: Record<string, unknown> | null = null;
   const reservations: Array<Record<string, unknown>> = [];

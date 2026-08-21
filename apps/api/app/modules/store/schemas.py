@@ -80,6 +80,16 @@ class StoreProductMediaRead(BaseModel):
     media_url: str
 
 
+class StoreCatalogProductRead(BaseModel):
+    id: uuid.UUID
+    name: str
+    description: str | None
+    image_url: str | None
+    price: Decimal
+    currency: str
+    is_available: bool
+
+
 class StoreReservationCreate(BaseModel):
     product_id: uuid.UUID
     quantity: int = Field(ge=1)

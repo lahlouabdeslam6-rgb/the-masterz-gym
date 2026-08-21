@@ -22,6 +22,7 @@ const navLinks = [
   { name: "Abonnements", href: "/abonnements" },
   { name: "Coaching", href: "/coaching" },
   { name: "Recovery", href: "/recovery" },
+  { name: "Store", href: "/store" },
   { name: "Analyse corporelle", href: "/analyse-corporelle" },
   { name: "Healthy Café", href: "/healthy-cafe" },
   { name: "Contact", href: "/contact" },
