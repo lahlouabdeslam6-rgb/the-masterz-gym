@@ -200,8 +200,11 @@ export function RecoveryManager({ session }: { session: AuthSession }) {
                     </p>
                   </div>
                   <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[0.65rem] font-black text-primary">
-                    {client.subscription.remaining_sessions ?? "?"} /{" "}
-                    {client.subscription.total_sessions ?? "?"}
+                    {client.subscription.is_usable
+                      ? `${client.subscription.remaining_sessions} / ${client.subscription.total_sessions}`
+                      : client.subscription.effective_status === "cancelled"
+                        ? "Annule"
+                        : "Indisponible"}
                   </span>
                 </div>
                 <p className="mt-3 text-xs text-gray-400">
@@ -262,78 +265,95 @@ export function RecoveryManager({ session }: { session: AuthSession }) {
                 ) : null}
               </Card>
 
-              <Card className="p-5 sm:p-7">
-                <div className="flex items-start gap-4">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-primary">
-                    <Check className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <h3 className="text-xl font-black text-white">
-                      Enregistrer un passage
-                    </h3>
-                    <p className="mt-1 text-sm leading-6 text-gray-500">
-                      Un passage retire une seule séance, même si le membre
-                      utilise les trois services.
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                  {serviceOptions.map(({ value, label, icon: Icon }) => {
-                    const checked = services.includes(value);
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => toggleService(value)}
-                        className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-sm border transition ${
-                          checked
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-white/10 bg-black/20 text-gray-400 hover:border-white/25"
-                        }`}
-                      >
-                        <Icon className="h-5 w-5" />
-                        <span className="text-xs font-black uppercase tracking-[0.08em]">
-                          {label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <Field label="Date et heure du passage">
-                    <Input
-                      type="datetime-local"
-                      value={occurredAt}
-                      max={dateTimeInputValue()}
-                      onChange={(event) => setOccurredAt(event.target.value)}
-                    />
-                    <span className="block text-[11px] font-normal normal-case tracking-normal text-gray-600">
-                      Vous pouvez choisir une autre date passée si le passage
-                      n’a pas été saisi le jour même.
+              {currentPack.is_usable ? (
+                <Card className="p-5 sm:p-7">
+                  <div className="flex items-start gap-4">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-primary">
+                      <Check className="h-5 w-5" />
                     </span>
-                  </Field>
-                  <Field label="Note optionnelle">
-                    <textarea
-                      className={`${textareaClass} min-h-12 py-3`}
-                      value={notes}
-                      onChange={(event) => setNotes(event.target.value)}
-                      placeholder="Ex. séance encadrée..."
-                    />
-                  </Field>
-                </div>
-                <Button
-                  className="mt-5 w-full sm:w-auto"
-                  disabled={
-                    busy ||
-                    services.length === 0 ||
-                    !occurredAt ||
-                    !currentPack.is_usable
-                  }
-                  onClick={() => void recordVisit()}
-                >
-                  <Check className="h-4 w-4" /> Confirmer le passage
-                </Button>
-              </Card>
+                    <div>
+                      <h3 className="text-xl font-black text-white">
+                        Enregistrer un passage
+                      </h3>
+                      <p className="mt-1 text-sm leading-6 text-gray-500">
+                        Un passage retire une seule séance, même si le membre
+                        utilise les trois services.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                    {serviceOptions.map(({ value, label, icon: Icon }) => {
+                      const checked = services.includes(value);
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => toggleService(value)}
+                          className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-sm border transition ${
+                            checked
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-white/10 bg-black/20 text-gray-400 hover:border-white/25"
+                          }`}
+                        >
+                          <Icon className="h-5 w-5" />
+                          <span className="text-xs font-black uppercase tracking-[0.08em]">
+                            {label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <Field label="Date et heure du passage">
+                      <Input
+                        type="datetime-local"
+                        value={occurredAt}
+                        max={dateTimeInputValue()}
+                        onChange={(event) => setOccurredAt(event.target.value)}
+                      />
+                      <span className="block text-[11px] font-normal normal-case tracking-normal text-gray-600">
+                        Vous pouvez choisir une autre date passée si le passage
+                        n’a pas été saisi le jour même.
+                      </span>
+                    </Field>
+                    <Field label="Note optionnelle">
+                      <textarea
+                        className={`${textareaClass} min-h-12 py-3`}
+                        value={notes}
+                        onChange={(event) => setNotes(event.target.value)}
+                        placeholder="Ex. séance encadrée..."
+                      />
+                    </Field>
+                  </div>
+                  <Button
+                    className="mt-5 w-full sm:w-auto"
+                    disabled={
+                      busy ||
+                      services.length === 0 ||
+                      !occurredAt ||
+                      !currentPack.is_usable
+                    }
+                    onClick={() => void recordVisit()}
+                  >
+                    <Check className="h-4 w-4" /> Confirmer le passage
+                  </Button>
+                </Card>
+              ) : (
+                <Card className="border-amber-300/20 bg-amber-300/[0.04] p-5 sm:p-7">
+                  <h3 className="text-xl font-black text-white">
+                    Passage indisponible
+                  </h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
+                    {currentPack.effective_status === "cancelled"
+                      ? "Ce pack est annule. Enregistrez un nouveau paiement Recovery avant de saisir un passage."
+                      : currentPack.effective_status === "expired"
+                        ? "Ce pack est expire. Renouvelez-le avant de saisir un passage."
+                        : (currentPack.remaining_sessions ?? 0) <= 0
+                          ? "Toutes les seances ont ete utilisees. Enregistrez un nouveau pack Recovery."
+                          : "Ce pack n'est pas utilisable a cette date. Verifiez sa date de debut et son statut."}
+                  </p>
+                </Card>
+              )}
 
               <RecoveryHistory tracking={tracking} />
             </>

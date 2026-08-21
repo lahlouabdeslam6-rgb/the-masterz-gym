@@ -82,12 +82,7 @@ export function MembershipPlansList({
         }
 
         setPlans(
-          [...(data ?? [])]
-            .filter(
-              (plan) =>
-                plan.service_type !== "recovery" || Boolean(plan.session_count),
-            )
-            .sort((a, b) => Number(a.price) - Number(b.price)),
+          [...(data ?? [])].sort((a, b) => Number(a.price) - Number(b.price)),
         );
       } catch {
         if (active)

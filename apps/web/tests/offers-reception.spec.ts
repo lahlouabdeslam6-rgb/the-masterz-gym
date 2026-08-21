@@ -35,6 +35,18 @@ const plans = [
     created_at: "2026-08-17T10:00:00Z",
     updated_at: "2026-08-17T10:00:00Z",
   },
+  {
+    id: "00000000-0000-0000-0000-000000000104",
+    name: "Ancienne offre Recovery",
+    duration_months: 1,
+    price: "450.00",
+    currency: "MAD",
+    service_type: "recovery",
+    session_count: null,
+    is_active: true,
+    created_at: "2026-08-17T10:00:00Z",
+    updated_at: "2026-08-17T10:00:00Z",
+  },
 ];
 
 test("affiche chaque offre dans sa page publique", async ({ page }) => {
@@ -66,6 +78,10 @@ test("affiche chaque offre dans sa page publique", async ({ page }) => {
 
   await page.goto("/recovery");
   await expect(page.getByText("Pack Recovery", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Ancienne offre Recovery", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(/Nombre a confirmer/)).toBeVisible();
   await expect(
     page.getByText("Coaching Performance", { exact: true }),
   ).toHaveCount(0);

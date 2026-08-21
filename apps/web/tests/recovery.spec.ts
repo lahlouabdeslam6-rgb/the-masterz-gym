@@ -148,3 +148,67 @@ test("enregistre un passage recovery et retire une seule seance", async ({
   });
   expect(submitted.occurred_at).toContain("T");
 });
+
+test("explique pourquoi un passage est bloque pour un pack annule", async ({
+  page,
+}) => {
+  const cancelledSubscription = {
+    id: "00000000-0000-0000-0000-000000000250",
+    plan_name: "Pack Recovery annule",
+    starts_on: "2026-08-01",
+    ends_on: "2026-09-01",
+    status: "cancelled",
+    effective_status: "cancelled",
+    total_sessions: 4,
+    remaining_sessions: 4,
+    is_usable: false,
+  };
+
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    let body: unknown = [];
+    if (url.pathname === "/api/v1/users/me") body = receptionist;
+    if (url.pathname === "/api/v1/recovery/clients") {
+      body = [
+        {
+          member_id: member.id,
+          member_name: member.name,
+          member_number: member.number,
+          phone: member.phone,
+          subscription: cancelledSubscription,
+        },
+      ];
+    }
+    if (url.pathname === `/api/v1/recovery/members/${member.id}`) {
+      body = {
+        member_id: member.id,
+        member_name: member.name,
+        member_number: member.number,
+        subscriptions: [cancelledSubscription],
+        visits: [],
+      };
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify(body),
+    });
+  });
+
+  await page.goto("/");
+  await page.evaluate((user) => {
+    window.localStorage.setItem("access_token", "recovery-access-token");
+    window.localStorage.setItem("refresh_token", "recovery-refresh-token");
+    window.localStorage.setItem("auth_user", JSON.stringify(user));
+  }, receptionist);
+
+  await page.goto("/espace/reception/recovery");
+  await expect(page.getByText("Annule", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(/Ce pack est annule.*nouveau paiement Recovery/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Confirmer le passage" }),
+  ).toHaveCount(0);
+});

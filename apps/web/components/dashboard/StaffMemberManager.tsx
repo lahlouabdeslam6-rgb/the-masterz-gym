@@ -613,12 +613,12 @@ export function StaffMemberManager({
       : mode === "access"
         ? "Membres classes par nom. Choisissez un membre pour enregistrer son entree."
         : "La liste est affichee directement. Filtrez-la ou choisissez un membre pour ouvrir son dossier.";
-  const purchasablePlans = plans.filter(
-    (plan) => plan.service_type !== "recovery" || Boolean(plan.session_count),
-  );
+  const activePlans = plans.filter((plan) => plan.is_active);
   const selectedPlan =
-    purchasablePlans.find((plan) => plan.id === planId) ??
-    purchasablePlans.find((plan) => plan.is_active);
+    activePlans.find((plan) => plan.id === planId) ?? activePlans[0];
+  const selectedPlanNeedsRecoverySetup = Boolean(
+    selectedPlan?.service_type === "recovery" && !selectedPlan.session_count,
+  );
   const selectedServiceSubscription = selectedPlan
     ? subscriptions.find(
         (subscription) =>
@@ -633,7 +633,9 @@ export function StaffMemberManager({
       )
     : undefined;
   const paymentAvailable = Boolean(
-    selectedPlan && !selectedServiceSubscription,
+    selectedPlan &&
+    !selectedPlanNeedsRecoverySetup &&
+    !selectedServiceSubscription,
   );
   const selectedStatus = selected
     ? (selected.effective_status ?? selected.status)
@@ -831,9 +833,8 @@ export function StaffMemberManager({
                     }}
                   >
                     {serviceTypes.map((serviceType) => {
-                      const categoryPlans = purchasablePlans.filter(
-                        (plan) =>
-                          plan.is_active && plan.service_type === serviceType,
+                      const categoryPlans = activePlans.filter(
+                        (plan) => plan.service_type === serviceType,
                       );
                       return categoryPlans.length ? (
                         <optgroup
@@ -846,7 +847,9 @@ export function StaffMemberManager({
                               {plan.service_type === "recovery" &&
                               plan.session_count
                                 ? ` · ${plan.session_count} seances`
-                                : ""}
+                                : plan.service_type === "recovery"
+                                  ? " · A configurer"
+                                  : ""}
                             </option>
                           ))}
                         </optgroup>
@@ -877,7 +880,18 @@ export function StaffMemberManager({
                   </select>
                 </Field>
               </div>
-              {paymentAvailable ? (
+              {selectedPlanNeedsRecoverySetup ? (
+                <div className="mt-5 rounded-sm border border-amber-300/25 bg-amber-300/[0.06] p-4">
+                  <p className="text-sm font-black uppercase text-amber-100">
+                    Nombre de seances manquant
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-gray-400">
+                    Cette offre Recovery est visible, mais l&apos;Admin doit
+                    enregistrer son nombre de seances dans Formules avant le
+                    paiement.
+                  </p>
+                </div>
+              ) : paymentAvailable ? (
                 <Button
                   className="mt-5"
                   onClick={recordPayment}

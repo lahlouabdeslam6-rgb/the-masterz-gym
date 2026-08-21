@@ -656,6 +656,7 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Nouveau paiement / renouvellement" }),
   ).toBeVisible();
+  await expect(page.getByLabel("Formule")).toContainText(recoveryPlan.name);
 
   const gymSubscriptions = page.getByTestId("subscription-category-gym");
   await expect(gymSubscriptions).toContainText(activePlan.name);
