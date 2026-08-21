@@ -5,6 +5,7 @@ import {
   Banknote,
   Check,
   CreditCard,
+  Eye,
   ImagePlus,
   LoaderCircle,
   Package,
@@ -863,6 +864,7 @@ function ProductMediaField({
   const inputId = useId();
   const [uploading, setUploading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   async function uploadMedia(files: File[]) {
     if (!files.length) return;
@@ -921,6 +923,7 @@ function ProductMediaField({
   }
 
   function removeMedia(index: number) {
+    if (!window.confirm("Supprimer cette photo ou video du produit ?")) return;
     onChange(value.filter((_, itemIndex) => itemIndex !== index));
     setFeedback("Media retire. Enregistrez le produit pour confirmer.");
   }
@@ -937,7 +940,7 @@ function ProductMediaField({
                   key={`${mediaUrl}-${index}`}
                   className="overflow-hidden rounded-sm border border-white/10 bg-black/30"
                 >
-                  <div className="relative">
+                  <div>
                     {resolvedMediaUrl && isStoreVideo(resolvedMediaUrl) ? (
                       <video
                         className="h-32 w-full bg-black object-contain"
@@ -959,34 +962,43 @@ function ProductMediaField({
                         }
                       />
                     )}
-                    {index === 0 ? (
-                      <span className="absolute left-2 top-2 rounded-full bg-primary px-2.5 py-1 text-[0.6rem] font-black uppercase tracking-[0.08em] text-black">
-                        Couverture
-                      </span>
-                    ) : null}
                   </div>
-                  <div className="flex items-center justify-between gap-2 p-2">
-                    {index > 0 ? (
+                  <div className="border-t border-white/10 p-2">
+                    <div className="mb-2 flex min-h-6 items-center justify-between gap-2">
+                      {index > 0 ? (
+                        <button
+                          type="button"
+                          className="text-[0.6rem] font-black uppercase tracking-[0.06em] text-primary hover:underline"
+                          onClick={() => setAsCover(index)}
+                        >
+                          Mettre en couverture
+                        </button>
+                      ) : (
+                        <span className="rounded-full bg-primary px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-black">
+                          Couverture
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
-                        className="text-[0.6rem] font-black uppercase tracking-[0.06em] text-primary hover:underline"
-                        onClick={() => setAsCover(index)}
+                        aria-label={`Voir media ${index + 1}`}
+                        className="flex min-h-9 items-center justify-center gap-1.5 rounded-sm border border-white/15 px-2 text-[0.6rem] font-black uppercase tracking-[0.05em] text-white transition hover:border-primary hover:text-primary"
+                        onClick={() => setPreviewUrl(mediaUrl)}
                       >
-                        Mettre en couverture
+                        <Eye className="h-3.5 w-3.5" />
+                        Voir
                       </button>
-                    ) : (
-                      <span className="text-[0.6rem] text-gray-500">
-                        Photo principale
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      aria-label={`Retirer media ${index + 1}`}
-                      className="flex h-8 w-8 items-center justify-center rounded-sm text-red-300 transition hover:bg-red-500/10"
-                      onClick={() => removeMedia(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                      <button
+                        type="button"
+                        aria-label={`Supprimer media ${index + 1}`}
+                        className="flex min-h-9 items-center justify-center gap-1.5 rounded-sm border border-red-400/25 px-2 text-[0.6rem] font-black uppercase tracking-[0.05em] text-red-300 transition hover:bg-red-500/10"
+                        onClick={() => removeMedia(index)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Supprimer
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -1026,6 +1038,45 @@ function ProductMediaField({
           ou WEBM. {feedback}
         </p>
       </div>
+      {previewUrl ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Apercu du media"
+          className="fixed inset-0 z-[140] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setPreviewUrl(null);
+          }}
+        >
+          <div className="relative flex max-h-[92vh] w-full max-w-5xl items-center justify-center overflow-hidden rounded-lg border border-white/15 bg-[#050a0f] p-4 shadow-2xl sm:p-8">
+            <button
+              type="button"
+              aria-label="Fermer l'apercu"
+              className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white text-black transition hover:bg-primary"
+              onClick={() => setPreviewUrl(null)}
+            >
+              <X className="h-5 w-5" />
+            </button>
+            {isStoreVideo(previewUrl) ? (
+              <video
+                src={resolveStoreImageUrl(previewUrl) ?? undefined}
+                className="max-h-[78vh] w-full object-contain"
+                controls
+                autoPlay
+              />
+            ) : (
+              <div
+                role="img"
+                aria-label="Apercu du produit"
+                className="h-[78vh] max-h-[78vh] w-full bg-contain bg-center bg-no-repeat"
+                style={{
+                  backgroundImage: `url("${resolveStoreImageUrl(previewUrl)}")`,
+                }}
+              />
+            )}
+          </div>
+        </div>
+      ) : null}
     </Field>
   );
 }

@@ -284,6 +284,15 @@ test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
   ]);
   await expect(page.getByText(/2 fichier\(s\) charge\(s\)/)).toBeVisible();
   await expect(page.getByLabel(/Apercu media/)).toHaveCount(2);
+  await expect(page.getByRole("button", { name: /Voir media/ })).toHaveCount(2);
+  await expect(
+    page.getByRole("button", { name: /Supprimer media/ }),
+  ).toHaveCount(2);
+  await page.getByRole("button", { name: "Voir media 1" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Apercu du media" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Fermer l'apercu" }).click();
   await page.getByRole("button", { name: "Mettre en couverture" }).click();
   await page.getByRole("button", { name: "Ajouter le produit" }).click();
   await expect(page.getByText("Produit ajoute au Store.")).toBeVisible();
