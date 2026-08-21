@@ -15,6 +15,7 @@ export default function ActivationMembrePage() {
   const [challengeId, setChallengeId] = useState("");
   const [phone, setPhone] = useState("");
   const [fullName, setFullName] = useState("");
+  const [memberNumber, setMemberNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
@@ -25,7 +26,13 @@ export default function ActivationMembrePage() {
     try {
       const { data, error: apiError } = await api.POST(
         "/api/v1/auth/member-activation/request",
-        { body: { phone, full_name: fullName } },
+        {
+          body: {
+            phone,
+            full_name: fullName,
+            member_number: memberNumber,
+          },
+        },
       );
       if (apiError)
         setError(
@@ -103,6 +110,21 @@ export default function ActivationMembrePage() {
               onChange={(event) => setFullName(event.target.value)}
               required
             />
+          </Field>
+          <Field id="memberNumber" label="Numéro membre">
+            <Input
+              id="memberNumber"
+              placeholder="TMG-2026-XXXXXXXX"
+              value={memberNumber}
+              onChange={(event) =>
+                setMemberNumber(event.target.value.toUpperCase())
+              }
+              autoComplete="off"
+              required
+            />
+            <p className="text-xs text-gray-600">
+              Ce numéro figure sur votre dossier validé par la salle.
+            </p>
           </Field>
           <Button type="submit" size="lg" className="w-full" disabled={loading}>
             {loading ? (
