@@ -25,9 +25,7 @@ def upgrade() -> None:
         sa.Column("price", sa.Numeric(precision=10, scale=2), nullable=False),
         sa.Column("currency", sa.String(length=3), nullable=False),
         sa.Column("stock_quantity", sa.Integer(), nullable=False),
-        sa.Column(
-            "is_active", sa.Boolean(), server_default="true", nullable=False
-        ),
+        sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
         sa.Column("id", sa.UUID(), nullable=False),
         sa.Column(
             "created_at",
@@ -41,12 +39,8 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.CheckConstraint(
-            "stock_quantity >= 0", name="ck_store_products_nonnegative_stock"
-        ),
-        sa.CheckConstraint(
-            "price > 0", name="ck_store_products_positive_price"
-        ),
+        sa.CheckConstraint("stock_quantity >= 0", name="ck_store_products_nonnegative_stock"),
+        sa.CheckConstraint("price > 0", name="ck_store_products_positive_price"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -55,9 +49,7 @@ def upgrade() -> None:
         ["is_active"],
         unique=False,
     )
-    op.create_index(
-        op.f("ix_store_products_name"), "store_products", ["name"], unique=False
-    )
+    op.create_index(op.f("ix_store_products_name"), "store_products", ["name"], unique=False)
 
     op.create_table(
         "store_reservations",
@@ -83,13 +75,9 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.CheckConstraint(
-            "quantity > 0", name="ck_store_reservations_positive_quantity"
-        ),
+        sa.CheckConstraint("quantity > 0", name="ck_store_reservations_positive_quantity"),
         sa.ForeignKeyConstraint(["member_id"], ["users.id"]),
-        sa.ForeignKeyConstraint(
-            ["processed_by_id"], ["users.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["processed_by_id"], ["users.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["product_id"], ["store_products.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -121,19 +109,11 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("id", sa.UUID(), nullable=False),
-        sa.CheckConstraint(
-            "quantity > 0", name="ck_store_sales_positive_quantity"
-        ),
-        sa.CheckConstraint(
-            "total_amount > 0", name="ck_store_sales_positive_total"
-        ),
-        sa.ForeignKeyConstraint(
-            ["member_id"], ["users.id"], ondelete="SET NULL"
-        ),
+        sa.CheckConstraint("quantity > 0", name="ck_store_sales_positive_quantity"),
+        sa.CheckConstraint("total_amount > 0", name="ck_store_sales_positive_total"),
+        sa.ForeignKeyConstraint(["member_id"], ["users.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["product_id"], ["store_products.id"]),
-        sa.ForeignKeyConstraint(
-            ["reservation_id"], ["store_reservations.id"]
-        ),
+        sa.ForeignKeyConstraint(["reservation_id"], ["store_reservations.id"]),
         sa.ForeignKeyConstraint(["recorded_by_id"], ["users.id"]),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("idempotency_key"),
@@ -164,9 +144,7 @@ def downgrade() -> None:
         "idempotency_key",
         "created_at",
     ):
-        op.drop_index(
-            op.f(f"ix_store_sales_{column}"), table_name="store_sales"
-        )
+        op.drop_index(op.f(f"ix_store_sales_{column}"), table_name="store_sales")
     op.drop_table("store_sales")
     for column in ("status", "product_id", "processed_by_id", "member_id"):
         op.drop_index(
@@ -175,7 +153,5 @@ def downgrade() -> None:
         )
     op.drop_table("store_reservations")
     op.drop_index(op.f("ix_store_products_name"), table_name="store_products")
-    op.drop_index(
-        op.f("ix_store_products_is_active"), table_name="store_products"
-    )
+    op.drop_index(op.f("ix_store_products_is_active"), table_name="store_products")
     op.drop_table("store_products")

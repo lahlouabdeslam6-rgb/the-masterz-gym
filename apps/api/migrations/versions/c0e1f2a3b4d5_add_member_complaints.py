@@ -50,15 +50,9 @@ def upgrade() -> None:
         ["assigned_role"],
         unique=False,
     )
-    op.create_index(
-        op.f("ix_complaints_category"), "complaints", ["category"], unique=False
-    )
-    op.create_index(
-        op.f("ix_complaints_member_id"), "complaints", ["member_id"], unique=False
-    )
-    op.create_index(
-        op.f("ix_complaints_status"), "complaints", ["status"], unique=False
-    )
+    op.create_index(op.f("ix_complaints_category"), "complaints", ["category"], unique=False)
+    op.create_index(op.f("ix_complaints_member_id"), "complaints", ["member_id"], unique=False)
+    op.create_index(op.f("ix_complaints_status"), "complaints", ["status"], unique=False)
 
     op.create_table(
         "complaint_messages",
@@ -74,12 +68,8 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("id", sa.UUID(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["author_id"], ["users.id"], ondelete="SET NULL"
-        ),
-        sa.ForeignKeyConstraint(
-            ["complaint_id"], ["complaints.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["author_id"], ["users.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["complaint_id"], ["complaints.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -103,16 +93,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(
-        op.f("ix_complaint_messages_created_at"), table_name="complaint_messages"
-    )
+    op.drop_index(op.f("ix_complaint_messages_created_at"), table_name="complaint_messages")
     op.drop_index(
         op.f("ix_complaint_messages_complaint_id"),
         table_name="complaint_messages",
     )
-    op.drop_index(
-        op.f("ix_complaint_messages_author_id"), table_name="complaint_messages"
-    )
+    op.drop_index(op.f("ix_complaint_messages_author_id"), table_name="complaint_messages")
     op.drop_table("complaint_messages")
     op.drop_index(op.f("ix_complaints_status"), table_name="complaints")
     op.drop_index(op.f("ix_complaints_member_id"), table_name="complaints")

@@ -1,12 +1,20 @@
 import uuid
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 
 from app.core.dependencies import DbSession, require_roles
 from app.modules.coaching.schemas import (
+    CoachAvailabilityCreate,
+    CoachAvailabilityRead,
+    CoachAvailabilityUpdate,
     CoachingAssessmentCreate,
     CoachingAssessmentRead,
+    CoachingBookingCreate,
+    CoachingBookingRead,
+    CoachingBookingReschedule,
+    CoachingBookingStatusUpdate,
     CoachingObjectiveRead,
     CoachingObjectiveUpdate,
     CoachingTrackingRead,
@@ -17,7 +25,7 @@ from app.modules.coaching.schemas import (
 )
 from app.modules.coaching.service import CoachingService
 from app.modules.users.models import User
-from app.shared.enums import UserRole
+from app.shared.enums import CoachingBookingStatus, UserRole
 
 router = APIRouter(prefix="/coaching", tags=["Coaching"])
 Staff = Annotated[User, Depends(require_roles(UserRole.ADMIN, UserRole.RECEPTIONIST))]
@@ -25,6 +33,17 @@ Coach = Annotated[User, Depends(require_roles(UserRole.COACH))]
 TrackingReader = Annotated[
     User,
     Depends(require_roles(UserRole.ADMIN, UserRole.COACH, UserRole.MEMBER)),
+]
+ScheduleReader = Annotated[
+    User,
+    Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.RECEPTIONIST,
+            UserRole.COACH,
+            UserRole.MEMBER,
+        )
+    ),
 ]
 
 
@@ -113,3 +132,102 @@ def end_assignment(
     actor: Staff,
 ):
     return CoachingService(session).end_assignment(assignment_id, data, actor)
+
+
+@router.get("/availability", response_model=list[CoachAvailabilityRead])
+def list_availability(
+    session: DbSession,
+    actor: ScheduleReader,
+    coach_id: Annotated[uuid.UUID | None, Query()] = None,
+    from_at: Annotated[datetime | None, Query()] = None,
+    to_at: Annotated[datetime | None, Query()] = None,
+    active_only: Annotated[bool, Query()] = True,
+):
+    return CoachingService(session).list_availability(
+        actor,
+        coach_id=coach_id,
+        from_at=from_at,
+        to_at=to_at,
+        active_only=active_only,
+    )
+
+
+@router.post(
+    "/availability",
+    response_model=CoachAvailabilityRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_availability(
+    data: CoachAvailabilityCreate,
+    session: DbSession,
+    actor: Coach,
+):
+    return CoachingService(session).create_availability(data, actor)
+
+
+@router.patch("/availability/{availability_id}", response_model=CoachAvailabilityRead)
+def update_availability(
+    availability_id: uuid.UUID,
+    data: CoachAvailabilityUpdate,
+    session: DbSession,
+    actor: Coach,
+):
+    return CoachingService(session).update_availability(availability_id, data, actor)
+
+
+@router.get("/bookings", response_model=list[CoachingBookingRead])
+def list_bookings(
+    session: DbSession,
+    actor: ScheduleReader,
+    coach_id: Annotated[uuid.UUID | None, Query()] = None,
+    member_id: Annotated[uuid.UUID | None, Query()] = None,
+    booking_status: Annotated[CoachingBookingStatus | None, Query()] = None,
+    from_at: Annotated[datetime | None, Query()] = None,
+    to_at: Annotated[datetime | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=500)] = 200,
+):
+    return CoachingService(session).list_bookings(
+        actor,
+        coach_id=coach_id,
+        member_id=member_id,
+        booking_status=booking_status,
+        from_at=from_at,
+        to_at=to_at,
+        limit=limit,
+    )
+
+
+@router.post(
+    "/bookings",
+    response_model=CoachingBookingRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_booking(
+    data: CoachingBookingCreate,
+    session: DbSession,
+    actor: Annotated[User, Depends(require_roles(UserRole.MEMBER))],
+):
+    return CoachingService(session).create_booking(data, actor)
+
+
+@router.patch("/bookings/{booking_id}/status", response_model=CoachingBookingRead)
+def update_booking_status(
+    booking_id: uuid.UUID,
+    data: CoachingBookingStatusUpdate,
+    session: DbSession,
+    actor: ScheduleReader,
+):
+    return CoachingService(session).update_booking_status(booking_id, data, actor)
+
+
+@router.patch("/bookings/{booking_id}/schedule", response_model=CoachingBookingRead)
+def reschedule_booking(
+    booking_id: uuid.UUID,
+    data: CoachingBookingReschedule,
+    session: DbSession,
+    actor: Annotated[
+        User,
+        Depends(require_roles(UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.COACH)),
+    ],
+):
+    return CoachingService(session).reschedule_booking(booking_id, data, actor)

@@ -11,6 +11,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
@@ -78,6 +79,8 @@ class StoreSale(UUIDPrimaryKeyMixin, Base):
     __table_args__ = (
         CheckConstraint("quantity > 0", name="ck_store_sales_positive_quantity"),
         CheckConstraint("total_amount > 0", name="ck_store_sales_positive_total"),
+        UniqueConstraint("idempotency_key"),
+        UniqueConstraint("reservation_id"),
     )
 
     idempotency_key: Mapped[str] = mapped_column(

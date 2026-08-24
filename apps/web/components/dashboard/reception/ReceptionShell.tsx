@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   BadgeDollarSign,
   ClipboardCheck,
+  Dumbbell,
   Gauge,
   LogOut,
   Menu,
@@ -46,6 +47,11 @@ const navigation = [
     label: "Entrees",
     href: "/espace/reception/acces",
     icon: ShieldCheck,
+  },
+  {
+    label: "Coaching",
+    href: "/espace/reception/coaching",
+    icon: Dumbbell,
   },
   {
     label: "Recovery",

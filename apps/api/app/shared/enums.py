@@ -98,6 +98,13 @@ class CoachingTestType(StrEnum):
     NUTRITION_SURVEY = "nutrition_survey"
 
 
+class CoachingBookingStatus(StrEnum):
+    REQUESTED = "requested"
+    CONFIRMED = "confirmed"
+    CANCELLED = "cancelled"
+    COMPLETED = "completed"
+
+
 class PaymentMethod(StrEnum):
     CASH = "cash"
     BANK_CARD = "bank_card"

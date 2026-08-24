@@ -1,7 +1,17 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -20,6 +30,7 @@ class RecoveryVisit(UUIDPrimaryKeyMixin, Base):
             "remaining_sessions_after >= 0",
             name="ck_recovery_visits_remaining_non_negative",
         ),
+        UniqueConstraint("idempotency_key"),
     )
 
     idempotency_key: Mapped[str] = mapped_column(

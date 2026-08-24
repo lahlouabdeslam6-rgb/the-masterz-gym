@@ -1,12 +1,12 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Index, Text, text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum, ForeignKey, Index, Text, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
-from app.shared.enums import CoachingTestType
+from app.shared.enums import CoachingBookingStatus, CoachingTestType
 from app.shared.models import TimestampMixin, UUIDPrimaryKeyMixin
 
 
@@ -73,3 +73,62 @@ class CoachingAssessment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     measured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     metrics: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class CoachAvailability(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "coach_availabilities"
+    __table_args__ = (
+        CheckConstraint("ends_at > starts_at", name="ck_coach_availability_valid_period"),
+        Index("ix_coach_availability_coach_starts_at", "coach_id", "starts_at"),
+    )
+
+    coach_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    )
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class CoachingBooking(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "coaching_bookings"
+    __table_args__ = (
+        CheckConstraint("ends_at > starts_at", name="ck_coaching_booking_valid_period"),
+        Index("ix_coaching_bookings_coach_starts_at", "coach_id", "starts_at"),
+        Index("ix_coaching_bookings_member_starts_at", "member_id", "starts_at"),
+        Index(
+            "uq_coaching_bookings_member_availability",
+            "member_id",
+            "availability_id",
+            unique=True,
+        ),
+    )
+
+    availability_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("coach_availabilities.id"), nullable=False, index=True
+    )
+    assignment_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("coach_member_assignments.id"), nullable=False, index=True
+    )
+    coach_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    )
+    member_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    )
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    status: Mapped[CoachingBookingStatus] = mapped_column(
+        Enum(CoachingBookingStatus, name="coaching_booking_status"),
+        nullable=False,
+        default=CoachingBookingStatus.REQUESTED,
+        index=True,
+    )
+    member_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    decision_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    decided_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    conflict_override: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

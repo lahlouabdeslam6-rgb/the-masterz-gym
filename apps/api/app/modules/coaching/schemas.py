@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
-from app.shared.enums import AccountStatus, CoachingTestType
+from app.shared.enums import AccountStatus, CoachingBookingStatus, CoachingTestType
 
 MetricValue = str | int | float | bool | None
 
@@ -90,3 +90,84 @@ class CoachingTrackingRead(BaseModel):
     coach_name: str | None
     objective: CoachingObjectiveRead | None
     assessments: list[CoachingAssessmentRead]
+
+
+def _validate_aware_datetime(value: datetime, field_name: str) -> datetime:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError(f"{field_name} doit inclure un fuseau horaire")
+    return value
+
+
+class CoachAvailabilityCreate(BaseModel):
+    starts_at: datetime
+    ends_at: datetime
+    note: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("starts_at", "ends_at")
+    @classmethod
+    def dates_must_be_timezone_aware(cls, value: datetime, info) -> datetime:
+        return _validate_aware_datetime(value, info.field_name)
+
+    @model_validator(mode="after")
+    def period_must_be_valid(self):
+        if self.ends_at <= self.starts_at:
+            raise ValueError("ends_at doit etre posterieur a starts_at")
+        return self
+
+
+class CoachAvailabilityUpdate(CoachAvailabilityCreate):
+    is_active: bool
+
+
+class CoachAvailabilityRead(BaseModel):
+    id: uuid.UUID
+    coach_id: uuid.UUID
+    coach_name: str
+    starts_at: datetime
+    ends_at: datetime
+    note: str | None
+    is_active: bool
+    requested_booking_count: int
+    confirmed_booking_count: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class CoachingBookingCreate(BaseModel):
+    availability_id: uuid.UUID
+    member_note: str | None = Field(default=None, max_length=1000)
+
+
+class CoachingBookingStatusUpdate(BaseModel):
+    status: CoachingBookingStatus
+    decision_note: str | None = Field(default=None, max_length=1000)
+    confirm_overlap: bool = False
+
+
+class CoachingBookingReschedule(BaseModel):
+    availability_id: uuid.UUID
+    decision_note: str | None = Field(default=None, max_length=1000)
+    confirm_overlap: bool = False
+
+
+class CoachingBookingRead(BaseModel):
+    id: uuid.UUID
+    availability_id: uuid.UUID
+    assignment_id: uuid.UUID
+    coach_id: uuid.UUID
+    coach_name: str
+    member_id: uuid.UUID
+    member_name: str
+    member_number: str
+    starts_at: datetime
+    ends_at: datetime
+    status: CoachingBookingStatus
+    member_note: str | None
+    decision_note: str | None
+    decided_by_id: uuid.UUID | None
+    decided_by_name: str | None
+    decided_at: datetime | None
+    conflict_override: bool
+    overlapping_confirmed_count: int
+    created_at: datetime
+    updated_at: datetime

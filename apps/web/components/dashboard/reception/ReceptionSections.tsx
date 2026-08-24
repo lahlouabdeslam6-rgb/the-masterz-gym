@@ -14,6 +14,7 @@ import { api } from "@/lib/api";
 import { authorizationHeaders } from "@/lib/auth";
 import { ApplicationManager } from "../ApplicationManager";
 import { ComplaintCenter } from "../ComplaintCenter";
+import { CoachingScheduleManager } from "../CoachingScheduleManager";
 import { StaffMemberManager } from "../StaffMemberManager";
 import { RecoveryManager } from "../RecoveryManager";
 import { StaffStoreManager } from "../StoreManager";
@@ -277,6 +278,24 @@ export function ReceptionRecoverySection() {
       description="Choisissez un client, verifiez ses seances restantes puis enregistrez son passage. Un passage retire une seule seance."
     >
       <RecoveryManager session={session} />
+    </ReceptionPage>
+  );
+}
+
+export function ReceptionCoachingSection() {
+  const session = useReceptionSession();
+  return (
+    <ReceptionPage
+      eyebrow="Planning des coachs"
+      title="Coaching"
+      description="Consultez les demandes, confirmez les seances et aidez les clients a changer leur horaire."
+    >
+      <Panel
+        title="Reservations coaching"
+        subtitle="En cas de double reservation, le systeme vous avertit avant toute confirmation."
+      >
+        <CoachingScheduleManager session={session} mode="staff" />
+      </Panel>
     </ReceptionPage>
   );
 }

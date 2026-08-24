@@ -655,6 +655,93 @@ export interface paths {
         patch: operations["end_assignment_api_v1_coaching_assignments__assignment_id__end_patch"];
         trace?: never;
     };
+    "/api/v1/coaching/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Availability */
+        get: operations["list_availability_api_v1_coaching_availability_get"];
+        put?: never;
+        /** Create Availability */
+        post: operations["create_availability_api_v1_coaching_availability_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coaching/availability/{availability_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Availability */
+        patch: operations["update_availability_api_v1_coaching_availability__availability_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/coaching/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Bookings */
+        get: operations["list_bookings_api_v1_coaching_bookings_get"];
+        put?: never;
+        /** Create Booking */
+        post: operations["create_booking_api_v1_coaching_bookings_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coaching/bookings/{booking_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Booking Status */
+        patch: operations["update_booking_status_api_v1_coaching_bookings__booking_id__status_patch"];
+        trace?: never;
+    };
+    "/api/v1/coaching/bookings/{booking_id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Reschedule Booking */
+        patch: operations["reschedule_booking_api_v1_coaching_bookings__booking_id__schedule_patch"];
+        trace?: never;
+    };
     "/api/v1/complaints": {
         parameters: {
             query?: never;
@@ -1133,6 +1220,81 @@ export interface components {
             /** Media */
             media: string;
         };
+        /** CoachAvailabilityCreate */
+        CoachAvailabilityCreate: {
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Note */
+            note?: string | null;
+        };
+        /** CoachAvailabilityRead */
+        CoachAvailabilityRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Coach Id
+             * Format: uuid
+             */
+            coach_id: string;
+            /** Coach Name */
+            coach_name: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Note */
+            note: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Requested Booking Count */
+            requested_booking_count: number;
+            /** Confirmed Booking Count */
+            confirmed_booking_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CoachAvailabilityUpdate */
+        CoachAvailabilityUpdate: {
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Note */
+            note?: string | null;
+            /** Is Active */
+            is_active: boolean;
+        };
         /** CoachMemberAssignmentCreate */
         CoachMemberAssignmentCreate: {
             /**
@@ -1274,6 +1436,116 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** CoachingBookingCreate */
+        CoachingBookingCreate: {
+            /**
+             * Availability Id
+             * Format: uuid
+             */
+            availability_id: string;
+            /** Member Note */
+            member_note?: string | null;
+        };
+        /** CoachingBookingRead */
+        CoachingBookingRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Availability Id
+             * Format: uuid
+             */
+            availability_id: string;
+            /**
+             * Assignment Id
+             * Format: uuid
+             */
+            assignment_id: string;
+            /**
+             * Coach Id
+             * Format: uuid
+             */
+            coach_id: string;
+            /** Coach Name */
+            coach_name: string;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Member Name */
+            member_name: string;
+            /** Member Number */
+            member_number: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            status: components["schemas"]["CoachingBookingStatus"];
+            /** Member Note */
+            member_note: string | null;
+            /** Decision Note */
+            decision_note: string | null;
+            /** Decided By Id */
+            decided_by_id: string | null;
+            /** Decided By Name */
+            decided_by_name: string | null;
+            /** Decided At */
+            decided_at: string | null;
+            /** Conflict Override */
+            conflict_override: boolean;
+            /** Overlapping Confirmed Count */
+            overlapping_confirmed_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CoachingBookingReschedule */
+        CoachingBookingReschedule: {
+            /**
+             * Availability Id
+             * Format: uuid
+             */
+            availability_id: string;
+            /** Decision Note */
+            decision_note?: string | null;
+            /**
+             * Confirm Overlap
+             * @default false
+             */
+            confirm_overlap: boolean;
+        };
+        /**
+         * CoachingBookingStatus
+         * @enum {string}
+         */
+        CoachingBookingStatus: "requested" | "confirmed" | "cancelled" | "completed";
+        /** CoachingBookingStatusUpdate */
+        CoachingBookingStatusUpdate: {
+            status: components["schemas"]["CoachingBookingStatus"];
+            /** Decision Note */
+            decision_note?: string | null;
+            /**
+             * Confirm Overlap
+             * @default false
+             */
+            confirm_overlap: boolean;
         };
         /** CoachingObjectiveRead */
         CoachingObjectiveRead: {
@@ -3773,6 +4045,247 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CoachMemberAssignmentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_availability_api_v1_coaching_availability_get: {
+        parameters: {
+            query?: {
+                coach_id?: string | null;
+                from_at?: string | null;
+                to_at?: string | null;
+                active_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachAvailabilityRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_availability_api_v1_coaching_availability_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachAvailabilityCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachAvailabilityRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_availability_api_v1_coaching_availability__availability_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                availability_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachAvailabilityUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachAvailabilityRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_bookings_api_v1_coaching_bookings_get: {
+        parameters: {
+            query?: {
+                coach_id?: string | null;
+                member_id?: string | null;
+                booking_status?: components["schemas"]["CoachingBookingStatus"] | null;
+                from_at?: string | null;
+                to_at?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingBookingRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_booking_api_v1_coaching_bookings_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachingBookingCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingBookingRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_booking_status_api_v1_coaching_bookings__booking_id__status_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachingBookingStatusUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingBookingRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reschedule_booking_api_v1_coaching_bookings__booking_id__schedule_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachingBookingReschedule"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingBookingRead"];
                 };
             };
             /** @description Validation Error */

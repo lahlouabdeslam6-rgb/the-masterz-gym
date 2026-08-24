@@ -5,7 +5,9 @@ from app.modules.attendance.models import Attendance
 from app.modules.audit.models import AuditLog
 from app.modules.auth.models import OTPChallenge, RefreshSession
 from app.modules.coaching.models import (
+    CoachAvailability,
     CoachingAssessment,
+    CoachingBooking,
     CoachingClientProfile,
     CoachMemberAssignment,
 )
@@ -25,8 +27,10 @@ from app.modules.users.models import User
 __all__ = [
     "Attendance",
     "AuditLog",
+    "CoachAvailability",
     "CoachMemberAssignment",
     "CoachingAssessment",
+    "CoachingBooking",
     "CoachingClientProfile",
     "Complaint",
     "ComplaintMessage",

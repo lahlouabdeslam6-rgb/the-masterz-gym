@@ -11,6 +11,7 @@ import {
 } from "../AdminManagement";
 import { ApplicationManager } from "../ApplicationManager";
 import { CoachingManager } from "../CoachingManager";
+import { CoachingScheduleManager } from "../CoachingScheduleManager";
 import { ComplaintCenter } from "../ComplaintCenter";
 import { RecoveryManager } from "../RecoveryManager";
 import { StaffMemberManager } from "../StaffMemberManager";
@@ -181,7 +182,15 @@ export function AdminCoachesSection() {
       title="Coachs"
       description="Consultez les coachs, leurs clients et changez l'affectation d'un membre depuis un dossier simple."
     >
-      <CoachingManager session={session} />
+      <div className="space-y-7">
+        <CoachingManager session={session} />
+        <Panel
+          title="Planning coaching"
+          subtitle="Consultez les horaires de tous les coachs, confirmez les demandes et gerez les conflits."
+        >
+          <CoachingScheduleManager session={session} mode="staff" />
+        </Panel>
+      </div>
     </AdminPage>
   );
 }

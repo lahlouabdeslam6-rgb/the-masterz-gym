@@ -9,7 +9,7 @@ from app.modules.memberships.models import Subscription
 from app.modules.notifications.models import Notification
 from app.modules.notifications.repository import NotificationRepository
 from app.modules.users.models import User
-from app.shared.enums import StoreReservationStatus
+from app.shared.enums import CoachingBookingStatus, StoreReservationStatus
 
 
 class NotificationService:
@@ -117,6 +117,93 @@ class NotificationService:
                 kind="store_reservation_update",
                 title=title,
                 body=body,
+                deduplication_key=deduplication_key,
+            )
+        )
+
+    def coaching_booking_requested(
+        self,
+        coach: User,
+        *,
+        booking_id: uuid.UUID,
+        member: User,
+        starts_at: datetime,
+    ) -> Notification:
+        deduplication_key = f"coaching_booking_requested:{booking_id}"
+        existing = self.repository.by_deduplication_key(deduplication_key)
+        if existing:
+            return existing
+        return self.repository.add(
+            Notification(
+                user_id=coach.id,
+                kind="coaching_booking_requested",
+                title="Nouvelle reservation coaching",
+                body=(
+                    f"{member.full_name} a demande une seance le "
+                    f"{starts_at.isoformat()}. Confirmez-la depuis votre planning."
+                ),
+                deduplication_key=deduplication_key,
+            )
+        )
+
+    def coaching_booking_status(
+        self,
+        member: User,
+        *,
+        booking_id: uuid.UUID,
+        booking_status: CoachingBookingStatus,
+        coach_name: str,
+        starts_at: datetime,
+    ) -> Notification:
+        messages = {
+            CoachingBookingStatus.CONFIRMED: (
+                "Seance coaching confirmee",
+                f"Votre seance avec {coach_name} le {starts_at.isoformat()} est confirmee.",
+            ),
+            CoachingBookingStatus.CANCELLED: (
+                "Seance coaching annulee",
+                f"Votre seance avec {coach_name} le {starts_at.isoformat()} est annulee.",
+            ),
+            CoachingBookingStatus.COMPLETED: (
+                "Seance coaching terminee",
+                f"Votre seance avec {coach_name} a ete marquee comme terminee.",
+            ),
+        }
+        if booking_status not in messages:
+            raise ValueError("Statut coaching sans notification.")
+        title, body = messages[booking_status]
+        deduplication_key = f"coaching_booking_status:{booking_id}:{booking_status.value}"
+        existing = self.repository.by_deduplication_key(deduplication_key)
+        if existing:
+            return existing
+        return self.repository.add(
+            Notification(
+                user_id=member.id,
+                kind="coaching_booking_update",
+                title=title,
+                body=body,
+                deduplication_key=deduplication_key,
+            )
+        )
+
+    def coaching_booking_rescheduled(
+        self,
+        member: User,
+        *,
+        booking_id: uuid.UUID,
+        coach_name: str,
+        starts_at: datetime,
+    ) -> Notification:
+        deduplication_key = f"coaching_booking_rescheduled:{booking_id}:{starts_at.isoformat()}"
+        existing = self.repository.by_deduplication_key(deduplication_key)
+        if existing:
+            return existing
+        return self.repository.add(
+            Notification(
+                user_id=member.id,
+                kind="coaching_booking_rescheduled",
+                title="Horaire de seance modifie",
+                body=(f"Votre seance avec {coach_name} a ete deplacee au {starts_at.isoformat()}."),
                 deduplication_key=deduplication_key,
             )
         )

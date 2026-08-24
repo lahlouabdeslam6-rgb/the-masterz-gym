@@ -6,6 +6,7 @@ import { Alert, Card, Input, LoadingMessage, Pill } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
 import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
+import { CoachingScheduleManager } from "./CoachingScheduleManager";
 import {
   type CoachingAssignment,
   EmptyState,
@@ -65,6 +66,13 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
         />
         <Stat icon={Target} value="5" label="Tests disponibles" />
       </div>
+
+      <Panel
+        title="Mon planning"
+        subtitle="Ajoutez vos disponibilites, suivez les demandes de vos clients et confirmez chaque seance."
+      >
+        <CoachingScheduleManager session={session} mode="coach" />
+      </Panel>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(300px,0.65fr)_minmax(0,1.35fr)]">
         <Panel

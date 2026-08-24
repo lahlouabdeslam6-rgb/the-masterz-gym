@@ -19,6 +19,7 @@ import { Card, Pill } from "@masterz/ui";
 import type { AuthSession } from "@/lib/auth";
 import { ReceiptSummary } from "./ApplicationManager";
 import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
+import { CoachingScheduleManager } from "./CoachingScheduleManager";
 import { MemberRecoveryPanel } from "./RecoveryManager";
 import { MemberNotifications } from "./MemberNotifications";
 import { ComplaintCenter } from "./ComplaintCenter";
@@ -251,12 +252,20 @@ export function MemberDashboard({
             <AttendancePanel attendance={attendance} />
           ) : null}
           {activeSection === "coaching" ? (
-            <Panel
-              title="Ma progression coaching"
-              subtitle="Votre objectif, vos tests et leur historique, sans modifier les donnees saisies par votre coach."
-            >
-              <CoachingTrackingPanel session={session} memberId={user.id} />
-            </Panel>
+            <div className="space-y-6">
+              <Panel
+                title="Mes seances coaching"
+                subtitle="Choisissez un horaire propose par votre coach et suivez sa confirmation."
+              >
+                <CoachingScheduleManager session={session} mode="member" />
+              </Panel>
+              <Panel
+                title="Ma progression coaching"
+                subtitle="Votre objectif, vos tests et leur historique, sans modifier les donnees saisies par votre coach."
+              >
+                <CoachingTrackingPanel session={session} memberId={user.id} />
+              </Panel>
+            </div>
           ) : null}
           {activeSection === "recovery" ? (
             <Panel
