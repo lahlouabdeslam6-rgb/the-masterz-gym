@@ -122,6 +122,17 @@ test("le visiteur consulte le catalogue Store public", async ({ page }) => {
   await page.getByRole("button", { name: "Voir le produit" }).first().click();
   const productDialog = page.getByRole("dialog");
   await expect(productDialog).toBeVisible();
+  await expect(productDialog.getByTestId("product-details-scroll")).toHaveCSS(
+    "overflow-y",
+    "auto",
+  );
+  await expect(
+    productDialog.getByRole("button", { name: /Afficher media/ }),
+  ).toHaveCount(2);
+  const mediaViewport = await productDialog
+    .getByTestId("product-media-viewport")
+    .boundingBox();
+  expect(mediaViewport?.height).toBeGreaterThan(400);
   await expect(
     productDialog.getByRole("img", { name: "Photo Whey Protein Masterz" }),
   ).toHaveCSS("background-size", "contain");

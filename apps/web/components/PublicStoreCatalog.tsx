@@ -340,7 +340,7 @@ function ProductDetails({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <article className="relative max-h-[94vh] w-full max-w-6xl overflow-y-auto rounded-xl border border-white/15 bg-[#071019] shadow-[0_30px_120px_rgba(0,0,0,0.7)]">
+      <article className="relative max-h-[94vh] w-full max-w-[96rem] overflow-y-auto rounded-xl border border-white/15 bg-[#071019] shadow-[0_30px_120px_rgba(0,0,0,0.7)] lg:overflow-hidden">
         <button
           type="button"
           aria-label="Fermer"
@@ -349,9 +349,12 @@ function ProductDetails({
         >
           <X className="h-5 w-5" />
         </button>
-        <div className="grid lg:grid-cols-[1.35fr_0.85fr]">
+        <div className="grid lg:h-[94vh] lg:grid-cols-[minmax(0,1.45fr)_minmax(28rem,0.75fr)]">
           <ProductGallery product={product} />
-          <div className="flex flex-col justify-center p-7 sm:p-10 lg:p-12">
+          <div
+            data-testid="product-details-scroll"
+            className="flex flex-col justify-center p-7 sm:p-10 lg:h-full lg:justify-start lg:overflow-y-auto lg:p-12 lg:pt-20"
+          >
             <div className="flex flex-wrap items-center justify-between gap-4">
               <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">
                 Masterz Store
@@ -438,57 +441,75 @@ function ProductGallery({ product }: { product: CatalogProduct }) {
   }
 
   return (
-    <div className="relative overflow-hidden bg-[#f4f4f2]">
-      <CatalogMedia product={product} mediaUrl={activeMediaUrl} size="detail" />
+    <div
+      data-testid="product-gallery"
+      className={`relative overflow-hidden bg-[#f4f4f2] lg:h-full ${
+        mediaUrls.length > 1
+          ? "lg:grid lg:grid-cols-[minmax(0,1fr)_6.5rem]"
+          : ""
+      }`}
+    >
+      <div
+        data-testid="product-media-viewport"
+        className="relative h-full min-h-0 overflow-hidden"
+      >
+        <CatalogMedia
+          product={product}
+          mediaUrl={activeMediaUrl}
+          size="detail"
+        />
+        {mediaUrls.length > 1 ? (
+          <>
+            <span className="absolute left-4 top-4 rounded-full bg-black/75 px-3 py-1 text-xs font-black text-white backdrop-blur-sm">
+              {activeIndex + 1} / {mediaUrls.length}
+            </span>
+            <button
+              type="button"
+              aria-label="Media precedent"
+              className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/75 text-white shadow-lg transition hover:bg-primary hover:text-black"
+              onClick={showPrevious}
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <button
+              type="button"
+              aria-label="Media suivant"
+              className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/75 text-white shadow-lg transition hover:bg-primary hover:text-black"
+              onClick={showNext}
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </>
+        ) : null}
+      </div>
       {mediaUrls.length > 1 ? (
-        <>
-          <span className="absolute left-4 top-4 rounded-full bg-black/75 px-3 py-1 text-xs font-black text-white backdrop-blur-sm">
-            {activeIndex + 1} / {mediaUrls.length}
-          </span>
-          <button
-            type="button"
-            aria-label="Media precedent"
-            className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/75 text-white shadow-lg transition hover:bg-primary hover:text-black"
-            onClick={showPrevious}
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </button>
-          <button
-            type="button"
-            aria-label="Media suivant"
-            className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/75 text-white shadow-lg transition hover:bg-primary hover:text-black"
-            onClick={showNext}
-          >
-            <ChevronRight className="h-6 w-6" />
-          </button>
-          <div className="absolute bottom-4 left-1/2 flex max-w-[85%] -translate-x-1/2 gap-2 overflow-x-auto rounded-lg bg-black/75 p-2 backdrop-blur-sm">
-            {mediaUrls.map((mediaUrl, index) => (
-              <button
-                type="button"
-                key={`${mediaUrl}-${index}`}
-                aria-label={`Afficher media ${index + 1}`}
-                aria-current={index === activeIndex}
-                className={`flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border-2 bg-white bg-contain bg-center bg-no-repeat transition sm:h-16 sm:w-16 ${
-                  index === activeIndex
-                    ? "border-primary"
-                    : "border-transparent opacity-70 hover:opacity-100"
-                }`}
-                style={
-                  isMediaVideo(mediaUrl)
-                    ? undefined
-                    : {
-                        backgroundImage: `url("${resolveMediaUrl(mediaUrl)}")`,
-                      }
-                }
-                onClick={() => setActiveIndex(index)}
-              >
-                {isMediaVideo(mediaUrl) ? (
-                  <Play className="h-5 w-5 fill-black text-black" />
-                ) : null}
-              </button>
-            ))}
-          </div>
-        </>
+        <div className="absolute bottom-4 left-1/2 flex max-w-[85%] -translate-x-1/2 gap-2 overflow-x-auto rounded-lg bg-black/75 p-2 backdrop-blur-sm lg:static lg:h-full lg:max-w-none lg:translate-x-0 lg:flex-col lg:gap-3 lg:overflow-y-auto lg:overflow-x-hidden lg:rounded-none lg:border-l lg:border-black/10 lg:bg-[#071019] lg:p-3 lg:backdrop-blur-none">
+          {mediaUrls.map((mediaUrl, index) => (
+            <button
+              type="button"
+              key={`${mediaUrl}-${index}`}
+              aria-label={`Afficher media ${index + 1}`}
+              aria-current={index === activeIndex}
+              className={`flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border-2 bg-white bg-contain bg-center bg-no-repeat transition sm:h-16 sm:w-16 lg:h-20 lg:w-full ${
+                index === activeIndex
+                  ? "border-primary"
+                  : "border-transparent opacity-70 hover:opacity-100"
+              }`}
+              style={
+                isMediaVideo(mediaUrl)
+                  ? undefined
+                  : {
+                      backgroundImage: `url("${resolveMediaUrl(mediaUrl)}")`,
+                    }
+              }
+              onClick={() => setActiveIndex(index)}
+            >
+              {isMediaVideo(mediaUrl) ? (
+                <Play className="h-5 w-5 fill-black text-black" />
+              ) : null}
+            </button>
+          ))}
+        </div>
       ) : null}
     </div>
   );
@@ -508,7 +529,7 @@ function CatalogMedia({
   );
   const sizeClasses =
     size === "detail"
-      ? "min-h-[22rem] h-[55vh] max-h-[42rem] lg:h-[76vh]"
+      ? "h-[62vh] min-h-[28rem] lg:h-full lg:min-h-0 lg:max-h-none"
       : "h-80 sm:h-96";
 
   if (resolvedMediaUrl && isMediaVideo(resolvedMediaUrl)) {
