@@ -242,6 +242,16 @@ test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
     let body: unknown = [];
     let status = 200;
     if (url.pathname === "/api/v1/users/me") body = admin;
+    if (url.pathname === "/api/v1/store/inventory-summary") {
+      body = {
+        low_stock_threshold: 5,
+        total_units: 0,
+        low_stock_products: [],
+      };
+    }
+    if (url.pathname === "/api/v1/store/stock-movements") body = [];
+    if (url.pathname === "/api/v1/store/reservations") body = [];
+    if (url.pathname === "/api/v1/store/sales") body = [];
     if (url.pathname === "/api/v1/store/product-media") {
       body = {
         media_url:
@@ -277,7 +287,7 @@ test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
   await page.goto("/espace/admin/store");
   await expect(
     page.getByRole("heading", { name: "Masterz Store", exact: true }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 15_000 });
   await page.getByLabel("Nom du produit").fill("Ceinture musculation");
   await page.getByLabel("Prix").first().fill("220");
   await page.getByLabel("Stock initial").fill("12");
@@ -326,6 +336,8 @@ test("la reception valide une reservation et le stock se met a jour", async ({
   let stock = 5;
   let reservationStatus = "pending";
   let patchBody: Record<string, unknown> | null = null;
+  let directSaleBody: Record<string, unknown> | null = null;
+  const sales: Array<Record<string, unknown>> = [];
   const reservationId = "00000000-0000-0000-0000-000000000520";
 
   function reservation() {
@@ -362,7 +374,81 @@ test("la reception valide une reservation et le stock se met a jour", async ({
     if (url.pathname === "/api/v1/store/reservations") {
       body = [reservation()];
     }
-    if (url.pathname === "/api/v1/store/sales") body = [];
+    if (url.pathname === "/api/v1/store/inventory-summary") {
+      body = {
+        low_stock_threshold: 5,
+        total_units: stock,
+        low_stock_products: [product(stock)],
+      };
+    }
+    if (url.pathname === "/api/v1/store/stock-movements") {
+      body = [
+        ...(sales.length
+          ? [
+              {
+                id: "00000000-0000-0000-0000-000000000523",
+                product_id: productId,
+                product_name: product().name,
+                movement_type: "direct_sale",
+                quantity_delta: -1,
+                stock_before: 3,
+                stock_after: 2,
+                actor_id: receptionist.id,
+                actor_name: receptionist.full_name,
+                source_type: "store_sale",
+                source_id: "00000000-0000-0000-0000-000000000522",
+                reason: null,
+                created_at: "2026-08-21T10:20:00Z",
+              },
+            ]
+          : []),
+        ...(reservationStatus === "ready"
+          ? [
+              {
+                id: "00000000-0000-0000-0000-000000000521",
+                product_id: productId,
+                product_name: product().name,
+                movement_type: "reservation_hold",
+                quantity_delta: -2,
+                stock_before: 5,
+                stock_after: 3,
+                actor_id: receptionist.id,
+                actor_name: receptionist.full_name,
+                source_type: "store_reservation",
+                source_id: reservationId,
+                reason: null,
+                created_at: "2026-08-21T10:10:00Z",
+              },
+            ]
+          : []),
+      ];
+    }
+    if (url.pathname === "/api/v1/store/sales") {
+      if (route.request().method() === "POST") {
+        directSaleBody = route.request().postDataJSON();
+        const quantity = (directSaleBody as { quantity: number }).quantity;
+        stock -= quantity;
+        body = {
+          id: "00000000-0000-0000-0000-000000000522",
+          product_id: productId,
+          reservation_id: null,
+          product_name: product().name,
+          member_id: null,
+          buyer_name: (directSaleBody as { buyer_name: string }).buyer_name,
+          quantity,
+          unit_price: "350.00",
+          total_amount: "350.00",
+          currency: "MAD",
+          payment_method: "cash",
+          recorded_by_id: receptionist.id,
+          recorded_by_name: receptionist.full_name,
+          created_at: "2026-08-21T10:20:00Z",
+        };
+        sales.unshift(body as Record<string, unknown>);
+      } else {
+        body = sales;
+      }
+    }
     if (
       url.pathname === `/api/v1/store/reservations/${reservationId}/status` &&
       route.request().method() === "PATCH"
@@ -385,11 +471,25 @@ test("la reception valide une reservation et le stock se met a jour", async ({
   await expect(
     page.getByRole("heading", { name: "Masterz Store", exact: true }),
   ).toBeVisible();
+  await expect(page.getByText("Produits a reapprovisionner")).toBeVisible();
+  await expect(page.getByText("Mouvements du stock")).toBeVisible();
   await expect(page.getByText(member.full_name, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Valider disponible" }).click();
   await expect(page.getByText("Reservation: Disponible.")).toBeVisible();
   await expect(page.getByText("3", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Stock: 5 vers 3")).toBeVisible();
   expect(patchBody).toMatchObject({ status: "ready" });
+
+  await page.getByLabel("Nom du client").fill("Client sans compte");
+  await page.getByRole("button", { name: "Enregistrer la vente" }).click();
+  await expect(page.getByText("Vente enregistree: 350.00 MAD.")).toBeVisible();
+  await expect(page.getByText("Stock: 3 vers 2")).toBeVisible();
+  expect(directSaleBody).toMatchObject({
+    product_id: productId,
+    buyer_name: "Client sans compte",
+    quantity: 1,
+    payment_method: "cash",
+  });
 });
 
 async function storeSession(

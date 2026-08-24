@@ -122,6 +122,14 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
     assert product["image_url"] == image_url
     assert product["media_urls"] == [image_url, video_url]
 
+    inventory_summary = client.get("/api/v1/store/inventory-summary", headers=reception_headers)
+    assert inventory_summary.status_code == 200, inventory_summary.text
+    assert inventory_summary.json()["low_stock_threshold"] == 5
+    assert inventory_summary.json()["total_units"] >= 5
+    assert product["id"] in {item["id"] for item in inventory_summary.json()["low_stock_products"]}
+    forbidden_inventory = client.get("/api/v1/store/inventory-summary", headers=member_headers)
+    assert forbidden_inventory.status_code == 403
+
     public_catalog = client.get("/api/v1/store/catalog")
     assert public_catalog.status_code == 200, public_catalog.text
     public_product = next(item for item in public_catalog.json() if item["id"] == product["id"])
@@ -275,6 +283,46 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
         item for item in products_after_sale.json() if item["id"] == product["id"]
     )
     assert product_after_sale["stock_quantity"] == 2
+
+    stock_movements = client.get(
+        "/api/v1/store/stock-movements?limit=100", headers=reception_headers
+    )
+    assert stock_movements.status_code == 200, stock_movements.text
+    product_movements = [
+        movement for movement in stock_movements.json() if movement["product_id"] == product["id"]
+    ]
+    assert {movement["movement_type"] for movement in product_movements} >= {
+        "initial_stock",
+        "reservation_hold",
+        "direct_sale",
+    }
+    assert {movement["quantity_delta"] for movement in product_movements} >= {5, -2, -1}
+    forbidden_movements = client.get("/api/v1/store/stock-movements", headers=member_headers)
+    assert forbidden_movements.status_code == 403
+
+    adjusted = client.patch(
+        f"/api/v1/store/products/{product['id']}",
+        headers=admin_headers,
+        json={"stock_quantity": 7},
+    )
+    assert adjusted.status_code == 200, adjusted.text
+    assert adjusted.json()["stock_quantity"] == 7
+    adjusted_movements = client.get("/api/v1/store/stock-movements?limit=10", headers=admin_headers)
+    assert adjusted_movements.status_code == 200
+    assert any(
+        movement["product_id"] == product["id"]
+        and movement["movement_type"] == "manual_adjustment"
+        and movement["quantity_delta"] == 5
+        for movement in adjusted_movements.json()
+    )
+
+    inventory_after_adjustment = client.get(
+        "/api/v1/store/inventory-summary", headers=admin_headers
+    )
+    assert inventory_after_adjustment.status_code == 200
+    assert product["id"] not in {
+        item["id"] for item in inventory_after_adjustment.json()["low_stock_products"]
+    }
 
     notifications = client.get("/api/v1/notifications", headers=member_headers)
     assert notifications.status_code == 200

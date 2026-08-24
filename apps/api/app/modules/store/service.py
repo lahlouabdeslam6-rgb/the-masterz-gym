@@ -5,12 +5,16 @@ from fastapi import status
 from sqlalchemy.orm import Session
 
 from app.core.errors import api_error
+from app.modules.audit.models import AuditLog
+from app.modules.audit.repository import AuditRepository
 from app.modules.audit.service import AuditService
+from app.modules.memberships.service import MembershipService
 from app.modules.notifications.service import NotificationService
 from app.modules.store.models import StoreProduct, StoreReservation, StoreSale
 from app.modules.store.repository import StoreRepository
 from app.modules.store.schemas import (
     StoreCatalogProductRead,
+    StoreInventorySummaryRead,
     StoreProductCreate,
     StoreProductRead,
     StoreProductUpdate,
@@ -19,6 +23,7 @@ from app.modules.store.schemas import (
     StoreReservationStatusUpdate,
     StoreSaleCreate,
     StoreSaleRead,
+    StoreStockMovementRead,
 )
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
@@ -47,6 +52,8 @@ class StoreService:
         self.users = UserRepository(session)
         self.notifications = NotificationService(session)
         self.audit = AuditService(session)
+        self.audit_repository = AuditRepository(session)
+        self.memberships = MembershipService(session)
 
     def list_products(self, actor: User, *, active_only: bool) -> list[StoreProductRead]:
         if actor.role != UserRole.ADMIN:
@@ -70,6 +77,39 @@ class StoreService:
             )
             for product in self.store.list_products(active_only=True)
         ]
+
+    def inventory_summary(self) -> StoreInventorySummaryRead:
+        products = self.store.list_products(active_only=True)
+        threshold = self.memberships.get_setting_int("store_low_stock_threshold")
+        return StoreInventorySummaryRead(
+            low_stock_threshold=threshold,
+            total_units=sum(product.stock_quantity for product in products),
+            low_stock_products=[
+                StoreProductRead.model_validate(product)
+                for product in products
+                if product.stock_quantity <= threshold
+            ],
+        )
+
+    def list_stock_movements(self, *, limit: int) -> list[StoreStockMovementRead]:
+        actions = {
+            "store.product.created",
+            "store.product.updated",
+            "store.reservation.status_updated",
+            "store.sale.recorded",
+        }
+        audit_entries = self.audit_repository.list_actions(
+            actions,
+            limit=min(limit * 4, 500),
+        )
+        movements: list[StoreStockMovementRead] = []
+        for entry in audit_entries:
+            movement = self._stock_movement_read(entry)
+            if movement:
+                movements.append(movement)
+            if len(movements) == limit:
+                break
+        return movements
 
     def create_product(self, data: StoreProductCreate, actor: User) -> StoreProductRead:
         media_urls = self._media_urls(data.image_url, data.media_urls)
@@ -350,6 +390,71 @@ class StoreService:
                 "store_insufficient_stock",
                 "Le stock disponible est insuffisant.",
             )
+
+    def _stock_movement_read(self, entry: AuditLog) -> StoreStockMovementRead | None:
+        previous_value = entry.previous_value or {}
+        new_value = entry.new_value or {}
+        product_id: uuid.UUID | None = None
+        movement_type: str | None = None
+        stock_before: int | None = None
+        stock_after: int | None = None
+
+        try:
+            if entry.action == "store.product.created":
+                product_id = uuid.UUID(entry.entity_id)
+                movement_type = "initial_stock"
+                stock_before = 0
+                stock_after = int(new_value["stock_quantity"])
+            elif entry.action == "store.product.updated":
+                product_id = uuid.UUID(entry.entity_id)
+                movement_type = "manual_adjustment"
+                stock_before = int(previous_value["stock_quantity"])
+                stock_after = int(new_value["stock_quantity"])
+            elif entry.action == "store.reservation.status_updated":
+                reservation = self.store.get_reservation(uuid.UUID(entry.entity_id))
+                if not reservation:
+                    return None
+                product_id = reservation.product_id
+                stock_before = int(previous_value["stock_quantity"])
+                stock_after = int(new_value["stock_quantity"])
+                movement_type = (
+                    "reservation_hold" if stock_after < stock_before else "reservation_release"
+                )
+            elif entry.action == "store.sale.recorded":
+                product_id = uuid.UUID(str(new_value["product_id"]))
+                movement_type = "direct_sale"
+                stock_before = int(new_value["stock_before"])
+                stock_after = int(new_value["stock_after"])
+        except (KeyError, TypeError, ValueError):
+            return None
+
+        if (
+            product_id is None
+            or movement_type is None
+            or stock_before is None
+            or stock_after is None
+            or stock_before == stock_after
+        ):
+            return None
+        product = self.store.get_product(product_id)
+        if not product:
+            return None
+        actor = self.users.get(entry.actor_id) if entry.actor_id else None
+        return StoreStockMovementRead(
+            id=entry.id,
+            product_id=product.id,
+            product_name=product.name,
+            movement_type=movement_type,
+            quantity_delta=stock_after - stock_before,
+            stock_before=stock_before,
+            stock_after=stock_after,
+            actor_id=entry.actor_id,
+            actor_name=actor.full_name if actor else "Systeme",
+            source_type=entry.entity_type,
+            source_id=entry.entity_id,
+            reason=entry.reason,
+            created_at=entry.created_at,
+        )
 
     @staticmethod
     def _media_urls(image_url: str | None, media_urls: list[str]) -> list[str]:

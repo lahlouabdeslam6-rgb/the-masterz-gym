@@ -94,6 +94,12 @@ class StoreProductMediaRead(BaseModel):
     media_url: str
 
 
+class StoreInventorySummaryRead(BaseModel):
+    low_stock_threshold: int
+    total_units: int
+    low_stock_products: list[StoreProductRead]
+
+
 class StoreCatalogProductRead(BaseModel):
     id: uuid.UUID
     name: str
@@ -184,4 +190,20 @@ class StoreSaleRead(BaseModel):
     payment_method: StorePaymentMethod
     recorded_by_id: uuid.UUID
     recorded_by_name: str
+    created_at: datetime
+
+
+class StoreStockMovementRead(BaseModel):
+    id: uuid.UUID
+    product_id: uuid.UUID
+    product_name: str
+    movement_type: str
+    quantity_delta: int
+    stock_before: int
+    stock_after: int
+    actor_id: uuid.UUID | None
+    actor_name: str
+    source_type: str
+    source_id: str
+    reason: str | None
     created_at: datetime

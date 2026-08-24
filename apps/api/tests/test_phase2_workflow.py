@@ -160,6 +160,7 @@ def test_admin_can_list_membership_settings(
     assert response.status_code == 200
     assert {item["key"] for item in response.json()} == {
         "attendance_duplicate_window_minutes",
+        "store_low_stock_threshold",
         "subscription_expiring_soon_days",
         "subscription_grace_days",
     }

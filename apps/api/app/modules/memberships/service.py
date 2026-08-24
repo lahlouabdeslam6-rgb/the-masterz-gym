@@ -29,6 +29,7 @@ SETTING_KEYS = {
     "subscription_grace_days",
     "subscription_expiring_soon_days",
     "attendance_duplicate_window_minutes",
+    "store_low_stock_threshold",
 }
 
 

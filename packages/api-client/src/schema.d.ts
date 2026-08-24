@@ -827,6 +827,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/store/inventory-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inventory Summary */
+        get: operations["inventory_summary_api_v1_store_inventory_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/store/stock-movements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Stock Movements */
+        get: operations["list_stock_movements_api_v1_store_stock_movements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/store/product-media": {
         parameters: {
             query?: never;
@@ -1898,6 +1932,15 @@ export interface components {
             /** Is Available */
             is_available: boolean;
         };
+        /** StoreInventorySummaryRead */
+        StoreInventorySummaryRead: {
+            /** Low Stock Threshold */
+            low_stock_threshold: number;
+            /** Total Units */
+            total_units: number;
+            /** Low Stock Products */
+            low_stock_products: components["schemas"]["StoreProductRead"][];
+        };
         /**
          * StorePaymentMethod
          * @enum {string}
@@ -2113,6 +2156,44 @@ export interface components {
             recorded_by_id: string;
             /** Recorded By Name */
             recorded_by_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** StoreStockMovementRead */
+        StoreStockMovementRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Product Name */
+            product_name: string;
+            /** Movement Type */
+            movement_type: string;
+            /** Quantity Delta */
+            quantity_delta: number;
+            /** Stock Before */
+            stock_before: number;
+            /** Stock After */
+            stock_after: number;
+            /** Actor Id */
+            actor_id: string | null;
+            /** Actor Name */
+            actor_name: string;
+            /** Source Type */
+            source_type: string;
+            /** Source Id */
+            source_id: string;
+            /** Reason */
+            reason: string | null;
             /**
              * Created At
              * Format: date-time
@@ -4071,6 +4152,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StoreProductRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inventory_summary_api_v1_store_inventory_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreInventorySummaryRead"];
+                };
+            };
+        };
+    };
+    list_stock_movements_api_v1_store_stock_movements_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreStockMovementRead"][];
                 };
             };
             /** @description Validation Error */

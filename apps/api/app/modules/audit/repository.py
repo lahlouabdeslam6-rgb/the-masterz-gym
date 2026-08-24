@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import uuid
+from collections.abc import Collection
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -19,4 +22,15 @@ class AuditRepository:
         statement = select(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit)
         if actor_id:
             statement = statement.where(AuditLog.actor_id == actor_id)
+        return list(self.session.scalars(statement))
+
+    def list_actions(self, actions: Collection[str], *, limit: int = 100) -> list[AuditLog]:
+        if not actions:
+            return []
+        statement = (
+            select(AuditLog)
+            .where(AuditLog.action.in_(tuple(actions)))
+            .order_by(AuditLog.created_at.desc())
+            .limit(limit)
+        )
         return list(self.session.scalars(statement))

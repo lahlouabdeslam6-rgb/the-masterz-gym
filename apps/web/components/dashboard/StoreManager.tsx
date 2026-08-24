@@ -2,11 +2,15 @@
 
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import {
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowUpRight,
   Banknote,
   Check,
   CreditCard,
   Eye,
   ImagePlus,
+  History,
   LoaderCircle,
   Package,
   PackageCheck,
@@ -30,10 +34,12 @@ import {
 
 type Product = components["schemas"]["StoreProductRead"];
 type ProductMediaUpload = components["schemas"]["StoreProductMediaRead"];
+type InventorySummary = components["schemas"]["StoreInventorySummaryRead"];
 type Reservation = components["schemas"]["StoreReservationRead"];
 type ReservationStatus = components["schemas"]["StoreReservationStatus"];
 type Sale = components["schemas"]["StoreSaleRead"];
 type StorePaymentMethod = components["schemas"]["StorePaymentMethod"];
+type StockMovement = components["schemas"]["StoreStockMovementRead"];
 
 const reservationLabels: Record<ReservationStatus, string> = {
   pending: "En attente",
@@ -46,6 +52,14 @@ const reservationLabels: Record<ReservationStatus, string> = {
 const paymentLabels: Record<StorePaymentMethod, string> = {
   cash: "Especes",
   bank_card: "Carte",
+};
+
+const stockMovementLabels: Record<string, string> = {
+  initial_stock: "Stock initial",
+  manual_adjustment: "Ajustement Admin",
+  reservation_hold: "Reservation preparee",
+  reservation_release: "Reservation liberee",
+  direct_sale: "Vente directe",
 };
 
 function useStoreHeaders(session: AuthSession) {
@@ -528,6 +542,9 @@ export function StaffStoreManager({ session }: { session: AuthSession }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [inventorySummary, setInventorySummary] =
+    useState<InventorySummary | null>(null);
+  const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -540,32 +557,49 @@ export function StaffStoreManager({ session }: { session: AuthSession }) {
   const [salePayment, setSalePayment] = useState<StorePaymentMethod>("cash");
 
   const load = useCallback(async () => {
-    const [productsResult, reservationsResult, salesResult] = await Promise.all(
-      [
-        api.GET("/api/v1/store/products", {
-          headers,
-          params: { query: { active_only: true } },
-        }),
-        api.GET("/api/v1/store/reservations", {
-          headers,
-          params: { query: { limit: 100 } },
-        }),
-        api.GET("/api/v1/store/sales", {
-          headers,
-          params: { query: { limit: 100 } },
-        }),
-      ],
-    );
+    const [
+      productsResult,
+      reservationsResult,
+      salesResult,
+      inventoryResult,
+      movementsResult,
+    ] = await Promise.all([
+      api.GET("/api/v1/store/products", {
+        headers,
+        params: { query: { active_only: true } },
+      }),
+      api.GET("/api/v1/store/reservations", {
+        headers,
+        params: { query: { limit: 100 } },
+      }),
+      api.GET("/api/v1/store/sales", {
+        headers,
+        params: { query: { limit: 100 } },
+      }),
+      api.GET("/api/v1/store/inventory-summary", { headers }),
+      api.GET("/api/v1/store/stock-movements", {
+        headers,
+        params: { query: { limit: 100 } },
+      }),
+    ]);
     const nextProducts = productsResult.data ?? [];
     setProducts(nextProducts);
     setReservations(reservationsResult.data ?? []);
     setSales(salesResult.data ?? []);
+    setInventorySummary(inventoryResult.data ?? null);
+    setStockMovements(movementsResult.data ?? []);
     setSaleProductId((current) => current || nextProducts[0]?.id || "");
-    setFeedback(
-      productsResult.error || reservationsResult.error || salesResult.error
-        ? "Les donnees du Store n'ont pas pu etre chargees completement."
-        : null,
-    );
+    if (
+      productsResult.error ||
+      reservationsResult.error ||
+      salesResult.error ||
+      inventoryResult.error ||
+      movementsResult.error
+    ) {
+      setFeedback(
+        "Les donnees du Store n'ont pas pu etre chargees completement.",
+      );
+    }
     setLoading(false);
   }, [headers]);
 
@@ -645,18 +679,60 @@ export function StaffStoreManager({ session }: { session: AuthSession }) {
   return (
     <div className="space-y-8">
       {feedback ? <Alert type="info" message={feedback} /> : null}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StoreStat icon={ShoppingBag} value={pending} label="A valider" />
         <StoreStat
           icon={Package}
-          value={products.reduce(
-            (total, product) => total + product.stock_quantity,
-            0,
-          )}
+          value={
+            inventorySummary?.total_units ??
+            products.reduce(
+              (total, product) => total + product.stock_quantity,
+              0,
+            )
+          }
           label="Unites en stock"
+        />
+        <StoreStat
+          icon={AlertTriangle}
+          value={inventorySummary?.low_stock_products?.length ?? 0}
+          label="Stock faible"
         />
         <StoreStat icon={ShoppingCart} value={sales.length} label="Ventes" />
       </div>
+
+      {inventorySummary?.low_stock_products?.length ? (
+        <Card className="border-amber-300/30 bg-amber-300/[0.04] p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-amber-300/10 text-amber-200">
+              <AlertTriangle className="h-5 w-5" />
+            </span>
+            <div>
+              <h3 className="text-xl font-black text-white">
+                Produits a reapprovisionner
+              </h3>
+              <p className="mt-1 text-sm text-gray-400">
+                Alerte a {inventorySummary.low_stock_threshold} unite(s) ou
+                moins. Ce seuil se modifie dans Parametres Admin.
+              </p>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {inventorySummary.low_stock_products.map((product) => (
+              <div
+                key={product.id}
+                className="flex items-center justify-between gap-4 rounded-sm border border-amber-200/15 bg-black/20 px-4 py-3"
+              >
+                <p className="font-black text-white">{product.name}</p>
+                <Pill>
+                  {product.stock_quantity === 0
+                    ? "Rupture"
+                    : `${product.stock_quantity} restante(s)`}
+                </Pill>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : null}
 
       <section>
         <h3 className="text-xl font-black text-white">Reservations clients</h3>
@@ -843,6 +919,74 @@ export function StaffStoreManager({ session }: { session: AuthSession }) {
             ))
           ) : (
             <EmptyState text="Aucune vente Store enregistree." />
+          )}
+        </div>
+      </section>
+
+      <section>
+        <div className="flex items-start gap-3">
+          <History className="mt-0.5 h-5 w-5 text-primary" />
+          <div>
+            <h3 className="text-xl font-black text-white">
+              Mouvements du stock
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Entrees, ajustements, reservations et ventes avec le stock avant
+              et apres.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 space-y-3">
+          {stockMovements.length ? (
+            stockMovements.map((movement) => {
+              const isIncrease = movement.quantity_delta > 0;
+              const MovementIcon = isIncrease ? ArrowUpRight : ArrowDownRight;
+              return (
+                <Card key={movement.id} className="p-4 sm:p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3">
+                      <span
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                          isIncrease
+                            ? "bg-emerald-400/10 text-emerald-300"
+                            : "bg-red-400/10 text-red-300"
+                        }`}
+                      >
+                        <MovementIcon className="h-5 w-5" />
+                      </span>
+                      <div>
+                        <p className="font-black text-white">
+                          {movement.product_name}
+                        </p>
+                        <p className="mt-1 text-sm text-gray-400">
+                          Stock: {movement.stock_before} vers{" "}
+                          {movement.stock_after} · {movement.actor_name}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-600">
+                          {formatDate(movement.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 sm:flex-col sm:items-end">
+                      <p
+                        className={`text-lg font-black ${
+                          isIncrease ? "text-emerald-300" : "text-red-300"
+                        }`}
+                      >
+                        {isIncrease ? "+" : ""}
+                        {movement.quantity_delta}
+                      </p>
+                      <Pill>
+                        {stockMovementLabels[movement.movement_type] ??
+                          movement.movement_type}
+                      </Pill>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })
+          ) : (
+            <EmptyState text="Aucun mouvement de stock enregistre." />
           )}
         </div>
       </section>

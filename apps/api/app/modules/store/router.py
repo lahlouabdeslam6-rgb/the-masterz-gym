@@ -7,6 +7,7 @@ from app.core.dependencies import DbSession, require_roles
 from app.modules.store.media import StoreMediaService
 from app.modules.store.schemas import (
     StoreCatalogProductRead,
+    StoreInventorySummaryRead,
     StoreProductCreate,
     StoreProductMediaRead,
     StoreProductRead,
@@ -16,6 +17,7 @@ from app.modules.store.schemas import (
     StoreReservationStatusUpdate,
     StoreSaleCreate,
     StoreSaleRead,
+    StoreStockMovementRead,
 )
 from app.modules.store.service import StoreService
 from app.modules.users.models import User
@@ -43,6 +45,22 @@ def list_products(
     active_only: bool = True,
 ):
     return StoreService(session).list_products(actor, active_only=active_only)
+
+
+@router.get("/inventory-summary", response_model=StoreInventorySummaryRead)
+def inventory_summary(session: DbSession, actor: Staff):
+    del actor
+    return StoreService(session).inventory_summary()
+
+
+@router.get("/stock-movements", response_model=list[StoreStockMovementRead])
+def list_stock_movements(
+    session: DbSession,
+    actor: Staff,
+    limit: Annotated[int, Query(ge=1, le=300)] = 100,
+):
+    del actor
+    return StoreService(session).list_stock_movements(limit=limit)
 
 
 @router.post("/products", response_model=StoreProductRead, status_code=status.HTTP_201_CREATED)

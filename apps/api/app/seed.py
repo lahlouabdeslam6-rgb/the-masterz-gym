@@ -64,6 +64,7 @@ DEFAULT_SETTINGS = {
     "subscription_grace_days": 4,
     "subscription_expiring_soon_days": 7,
     "attendance_duplicate_window_minutes": 30,
+    "store_low_stock_threshold": 5,
 }
 
 

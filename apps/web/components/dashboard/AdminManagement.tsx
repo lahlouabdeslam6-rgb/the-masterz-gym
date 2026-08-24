@@ -72,6 +72,28 @@ const serviceTypeLabels: Record<Plan["service_type"], string> = {
   recovery: "Recovery (sauna, bain froid, compression)",
 };
 
+const settingPresentation: Record<
+  string,
+  { label: string; description: string }
+> = {
+  attendance_duplicate_window_minutes: {
+    label: "Anti-double entree",
+    description: "Delai minimum en minutes entre deux passages.",
+  },
+  subscription_expiring_soon_days: {
+    label: "Abonnement bientot expire",
+    description: "Nombre de jours avant l'alerte de renouvellement.",
+  },
+  subscription_grace_days: {
+    label: "Delai de grace",
+    description: "Jours accordes apres la fin de l'abonnement.",
+  },
+  store_low_stock_threshold: {
+    label: "Alerte stock Store",
+    description: "Alerte quand un produit atteint ce nombre d'unites.",
+  },
+};
+
 export function AdminUserManager({
   session,
   users,
@@ -1192,7 +1214,11 @@ export function AdminSettingsManager({
           <Card key={setting.key} className="p-5">
             <Settings2 className="h-6 w-6 text-primary" />
             <p className="mt-4 break-words text-sm font-black text-white">
-              {setting.key}
+              {settingPresentation[setting.key]?.label ?? setting.key}
+            </p>
+            <p className="mt-2 min-h-10 text-xs leading-5 text-gray-500">
+              {settingPresentation[setting.key]?.description ??
+                "Parametre configurable du systeme."}
             </p>
             <div className="mt-4 flex gap-2">
               <Input
