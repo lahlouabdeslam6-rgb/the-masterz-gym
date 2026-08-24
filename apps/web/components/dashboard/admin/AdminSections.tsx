@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, ClipboardCheck, UsersRound } from "lucide-react";
+import {
+  CalendarDays,
+  ClipboardCheck,
+  Package,
+  ShoppingCart,
+  UsersRound,
+} from "lucide-react";
 import { Alert, Card, LoadingMessage } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders } from "@/lib/auth";
@@ -24,6 +30,7 @@ import {
   type Plan,
   type Setting,
   type User,
+  DashboardTabs,
   EmptyState,
   Panel,
   formatDate,
@@ -187,56 +194,30 @@ export function AdminCoachesSection() {
       title="Coachs"
       description="Consultez les coachs, leurs clients et changez l'affectation d'un membre depuis un dossier simple."
     >
-      <div className="grid items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
-        <aside className="rounded-lg border border-white/10 bg-[#081119] p-3 shadow-xl lg:sticky lg:top-6">
-          <p className="px-3 pb-3 pt-2 text-[0.65rem] font-black uppercase tracking-[0.16em] text-gray-500">
-            Rubriques coaching
-          </p>
-          <nav
-            aria-label="Rubriques administration coaching"
-            className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1"
-          >
-            <button
-              type="button"
-              aria-current={activeView === "requests" ? "page" : undefined}
-              onClick={() => setActiveView("requests")}
-              className={`flex items-center gap-3 rounded-sm border px-3 py-3 text-left text-sm font-black transition ${
-                activeView === "requests"
-                  ? "border-primary/35 bg-primary/10 text-white"
-                  : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
-              }`}
-            >
-              <ClipboardCheck className="h-5 w-5 shrink-0 text-primary" />
-              Demandes clients
-            </button>
-            <button
-              type="button"
-              aria-current={activeView === "management" ? "page" : undefined}
-              onClick={() => setActiveView("management")}
-              className={`flex items-center gap-3 rounded-sm border px-3 py-3 text-left text-sm font-black transition ${
-                activeView === "management"
-                  ? "border-primary/35 bg-primary/10 text-white"
-                  : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
-              }`}
-            >
-              <UsersRound className="h-5 w-5 shrink-0 text-primary" />
-              Coachs et clients
-            </button>
-            <button
-              type="button"
-              aria-current={activeView === "schedule" ? "page" : undefined}
-              onClick={() => setActiveView("schedule")}
-              className={`flex items-center gap-3 rounded-sm border px-3 py-3 text-left text-sm font-black transition ${
-                activeView === "schedule"
-                  ? "border-primary/35 bg-primary/10 text-white"
-                  : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
-              }`}
-            >
-              <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
-              Planning des seances
-            </button>
-          </nav>
-        </aside>
+      <div className="space-y-6">
+        <DashboardTabs
+          eyebrow="Rubriques coaching"
+          ariaLabel="Rubriques administration coaching"
+          activeTab={activeView}
+          onChange={setActiveView}
+          tabs={[
+            {
+              id: "requests",
+              label: "Demandes clients",
+              icon: ClipboardCheck,
+            },
+            {
+              id: "management",
+              label: "Coachs et clients",
+              icon: UsersRound,
+            },
+            {
+              id: "schedule",
+              label: "Planning des seances",
+              icon: CalendarDays,
+            },
+          ]}
+        />
 
         <div className="min-w-0">
           {activeView === "requests" ? (
@@ -355,25 +336,46 @@ export function AdminComplaintsSection() {
 
 export function AdminStoreSection() {
   const { session } = useAdminSession();
+  const [activeView, setActiveView] = useState<"products" | "operations">(
+    "products",
+  );
   return (
     <AdminPage
       eyebrow="Catalogue, stock et ventes"
       title="Masterz Store"
       description="Gerez les produits et leur stock, puis suivez les reservations et les ventes realisees a la Reception."
     >
-      <div className="space-y-7">
-        <Panel
-          title="Produits"
-          subtitle="L'Admin est le seul a pouvoir creer, modifier ou masquer un produit."
-        >
-          <AdminStoreManager session={session} />
-        </Panel>
-        <Panel
-          title="Reservations et caisse"
-          subtitle="Validez les demandes clients ou enregistrez une vente directe."
-        >
-          <StaffStoreManager session={session} />
-        </Panel>
+      <div className="space-y-6">
+        <DashboardTabs
+          eyebrow="Rubriques Store"
+          ariaLabel="Rubriques administration Store"
+          activeTab={activeView}
+          onChange={setActiveView}
+          tabs={[
+            { id: "products", label: "Produits et stock", icon: Package },
+            {
+              id: "operations",
+              label: "Reservations et caisse",
+              icon: ShoppingCart,
+            },
+          ]}
+        />
+        {activeView === "products" ? (
+          <Panel
+            title="Produits"
+            subtitle="L'Admin est le seul a pouvoir creer, modifier ou masquer un produit."
+          >
+            <AdminStoreManager session={session} />
+          </Panel>
+        ) : null}
+        {activeView === "operations" ? (
+          <Panel
+            title="Reservations et caisse"
+            subtitle="Validez les demandes clients ou enregistrez une vente directe."
+          >
+            <StaffStoreManager session={session} />
+          </Panel>
+        ) : null}
       </div>
     </AdminPage>
   );

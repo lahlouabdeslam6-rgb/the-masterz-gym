@@ -12,6 +12,7 @@ import {
   MessageSquareText,
   ReceiptText,
   ShoppingBag,
+  TrendingUp,
   UserRound,
   Waves,
 } from "lucide-react";
@@ -30,6 +31,7 @@ import {
   type Receipt,
   type Subscription,
   type User,
+  DashboardTabs,
   EmptyState,
   Info,
   Panel,
@@ -260,23 +262,11 @@ export function MemberDashboard({
             <AttendancePanel attendance={attendance} />
           ) : null}
           {activeSection === "coaching" ? (
-            <MemberCoachingAssignmentRequest
+            <MemberCoachingWorkspace
               session={session}
+              memberId={user.id}
               hasActiveCoaching={hasActiveCoaching}
-            >
-              <Panel
-                title="Mes seances coaching"
-                subtitle="Choisissez un horaire propose par votre coach et suivez sa confirmation."
-              >
-                <CoachingScheduleManager session={session} mode="member" />
-              </Panel>
-              <Panel
-                title="Ma progression coaching"
-                subtitle="Votre objectif, vos tests et leur historique, sans modifier les donnees saisies par votre coach."
-              >
-                <CoachingTrackingPanel session={session} memberId={user.id} />
-              </Panel>
-            </MemberCoachingAssignmentRequest>
+            />
           ) : null}
           {activeSection === "recovery" ? (
             <Panel
@@ -305,6 +295,64 @@ export function MemberDashboard({
         </div>
       </main>
     </div>
+  );
+}
+
+function MemberCoachingWorkspace({
+  session,
+  memberId,
+  hasActiveCoaching,
+}: {
+  session: AuthSession;
+  memberId: string;
+  hasActiveCoaching: boolean;
+}) {
+  const [activeView, setActiveView] = useState<"schedule" | "progress">(
+    "schedule",
+  );
+
+  return (
+    <MemberCoachingAssignmentRequest
+      session={session}
+      hasActiveCoaching={hasActiveCoaching}
+    >
+      <DashboardTabs
+        eyebrow="Rubriques coaching"
+        ariaLabel="Rubriques coaching membre"
+        activeTab={activeView}
+        onChange={setActiveView}
+        tabs={[
+          {
+            id: "schedule",
+            label: "Mes seances",
+            icon: CalendarCheck,
+          },
+          {
+            id: "progress",
+            label: "Ma progression",
+            icon: TrendingUp,
+          },
+        ]}
+      />
+
+      {activeView === "schedule" ? (
+        <Panel
+          title="Mes seances coaching"
+          subtitle="Choisissez un horaire propose par votre coach et suivez sa confirmation."
+        >
+          <CoachingScheduleManager session={session} mode="member" />
+        </Panel>
+      ) : null}
+
+      {activeView === "progress" ? (
+        <Panel
+          title="Ma progression coaching"
+          subtitle="Votre objectif, vos tests et leur historique, sans modifier les donnees saisies par votre coach."
+        >
+          <CoachingTrackingPanel session={session} memberId={memberId} />
+        </Panel>
+      ) : null}
+    </MemberCoachingAssignmentRequest>
   );
 }
 

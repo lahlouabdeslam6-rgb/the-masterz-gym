@@ -12,14 +12,16 @@
   box-sizing: border-box;
 }
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
+  overflow-y: auto;
   background: #030609;
   color: #ffffff;
 }
 body {
   margin: 0;
   min-width: 320px;
-  overflow-x: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
   font-family:
     Inter,
     ui-sans-serif,

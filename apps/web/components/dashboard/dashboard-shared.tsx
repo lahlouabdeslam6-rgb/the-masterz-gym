@@ -1,4 +1,5 @@
-import { UserRound } from "lucide-react";
+import { ChevronRight, UserRound } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { components } from "@masterz/api-client";
 import { Card } from "@masterz/ui";
 
@@ -72,6 +73,91 @@ export function Panel({
       </h2>
       <p className="mt-2 text-sm leading-6 text-gray-500">{subtitle}</p>
       <div className="mt-6">{children}</div>
+    </section>
+  );
+}
+
+export function DashboardTabs<T extends string>({
+  eyebrow,
+  ariaLabel,
+  activeTab,
+  tabs,
+  onChange,
+}: {
+  eyebrow: string;
+  ariaLabel: string;
+  activeTab: T;
+  tabs: Array<{
+    id: T;
+    label: string;
+    icon: LucideIcon;
+    badge?: string | number;
+  }>;
+  onChange: (tab: T) => void;
+}) {
+  return (
+    <section className="rounded-lg border border-white/10 bg-[#081119]/95 p-3 shadow-xl sm:p-4">
+      <p className="px-2 pb-3 text-[0.65rem] font-black uppercase tracking-[0.18em] text-gray-500">
+        {eyebrow}
+      </p>
+      <nav
+        aria-label={ariaLabel}
+        className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(210px,1fr))]"
+      >
+        {tabs.map((tab, index) => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              aria-label={tab.label}
+              aria-current={active ? "page" : undefined}
+              onClick={() => onChange(tab.id)}
+              className={`group grid min-h-24 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 rounded-sm border px-5 py-4 text-left transition ${
+                active
+                  ? "border-primary/70 bg-primary/[0.12] text-white shadow-[inset_0_0_0_1px_rgba(0,212,255,0.08)]"
+                  : "border-white/10 bg-black/20 text-gray-400 hover:border-primary/35 hover:bg-primary/[0.05] hover:text-white"
+              }`}
+            >
+              <span
+                className={`flex h-11 w-11 items-center justify-center rounded-sm ${
+                  active
+                    ? "bg-primary text-black"
+                    : "bg-white/[0.04] text-primary"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[0.62rem] font-black uppercase tracking-[0.14em] text-gray-600">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="mt-1 block font-black text-current">
+                  {tab.label}
+                </span>
+              </span>
+              {tab.badge !== undefined ? (
+                <span
+                  className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-xs font-black ${
+                    active
+                      ? "bg-primary text-black"
+                      : "bg-white/[0.05] text-gray-400"
+                  }`}
+                >
+                  {tab.badge}
+                </span>
+              ) : (
+                <ChevronRight
+                  className={`h-4 w-4 transition group-hover:translate-x-0.5 ${
+                    active ? "text-primary" : "text-gray-600"
+                  }`}
+                />
+              )}
+            </button>
+          );
+        })}
+      </nav>
     </section>
   );
 }

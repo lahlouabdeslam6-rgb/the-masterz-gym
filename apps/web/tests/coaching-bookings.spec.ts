@@ -265,6 +265,17 @@ test("membre reserve un creneau propose par son coach", async ({ page }) => {
     page.getByRole("heading", { name: "Mes seances coaching" }),
   ).toBeVisible();
   await page
+    .getByRole("button", { name: "Ma progression", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Ma progression coaching" }),
+  ).toBeVisible();
+  await expect(page.getByText("Suivi coaching indisponible.")).toBeVisible();
+  await page.getByRole("button", { name: "Mes seances", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Mes seances coaching" }),
+  ).toBeVisible();
+  await page
     .getByLabel(`Note reservation ${availability.id}`)
     .fill("Bghit nkhdem 3la lforce");
   await page.getByRole("button", { name: "Reserver ce creneau" }).click();

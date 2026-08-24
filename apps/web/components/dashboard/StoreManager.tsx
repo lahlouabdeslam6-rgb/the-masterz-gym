@@ -25,6 +25,7 @@ import { Alert, Button, Card, Input, Pill } from "@masterz/ui";
 import { api, apiBaseUrl, authenticatedFetch } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
 import {
+  DashboardTabs,
   EmptyState,
   Field,
   formatDate,
@@ -555,6 +556,9 @@ export function StaffStoreManager({ session }: { session: AuthSession }) {
   const [buyerName, setBuyerName] = useState("");
   const [saleQuantity, setSaleQuantity] = useState("1");
   const [salePayment, setSalePayment] = useState<StorePaymentMethod>("cash");
+  const [activeView, setActiveView] = useState<
+    "reservations" | "direct_sale" | "history"
+  >("reservations");
 
   const load = useCallback(async () => {
     const [
@@ -700,7 +704,34 @@ export function StaffStoreManager({ session }: { session: AuthSession }) {
         <StoreStat icon={ShoppingCart} value={sales.length} label="Ventes" />
       </div>
 
-      {inventorySummary?.low_stock_products?.length ? (
+      <DashboardTabs
+        eyebrow="Taches Store"
+        ariaLabel="Rubriques caisse Store"
+        activeTab={activeView}
+        onChange={setActiveView}
+        tabs={[
+          {
+            id: "reservations",
+            label: "Reservations clients",
+            icon: ShoppingBag,
+            badge: pending,
+          },
+          {
+            id: "direct_sale",
+            label: "Vente directe",
+            icon: ShoppingCart,
+          },
+          {
+            id: "history",
+            label: "Historique et stock",
+            icon: History,
+            badge: stockMovements.length,
+          },
+        ]}
+      />
+
+      {activeView === "history" &&
+      inventorySummary?.low_stock_products?.length ? (
         <Card className="border-amber-300/30 bg-amber-300/[0.04] p-5 sm:p-6">
           <div className="flex items-start gap-4">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-amber-300/10 text-amber-200">
@@ -734,262 +765,276 @@ export function StaffStoreManager({ session }: { session: AuthSession }) {
         </Card>
       ) : null}
 
-      <section>
-        <h3 className="text-xl font-black text-white">Reservations clients</h3>
-        <p className="mt-1 text-sm text-gray-500">
-          Validez la disponibilite, puis confirmez le retrait et le paiement.
-        </p>
-        <div className="mt-4 space-y-4">
-          {reservations.length ? (
-            reservations.map((reservation) => (
-              <Card key={reservation.id} className="p-5">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <p className="text-lg font-black text-white">
-                      {reservation.member_name}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      {reservation.member_number} · {reservation.member_phone}
-                    </p>
-                    <p className="mt-4 font-bold text-gray-200">
-                      {reservation.product_name} · {reservation.quantity}{" "}
-                      unite(s)
-                    </p>
-                    <p className="mt-1 text-sm font-bold text-primary">
-                      {reservation.total_amount} {reservation.currency}
-                    </p>
+      {activeView === "reservations" ? (
+        <section>
+          <h3 className="text-xl font-black text-white">
+            Reservations clients
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Validez la disponibilite, puis confirmez le retrait et le paiement.
+          </p>
+          <div className="mt-4 space-y-4">
+            {reservations.length ? (
+              reservations.map((reservation) => (
+                <Card key={reservation.id} className="p-5">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <p className="text-lg font-black text-white">
+                        {reservation.member_name}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {reservation.member_number} · {reservation.member_phone}
+                      </p>
+                      <p className="mt-4 font-bold text-gray-200">
+                        {reservation.product_name} · {reservation.quantity}{" "}
+                        unite(s)
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-primary">
+                        {reservation.total_amount} {reservation.currency}
+                      </p>
+                    </div>
+                    <Pill>{reservationLabels[reservation.status]}</Pill>
                   </div>
-                  <Pill>{reservationLabels[reservation.status]}</Pill>
-                </div>
-                {reservation.status === "pending" ? (
-                  <div className="mt-5 flex flex-wrap gap-3 border-t border-white/10 pt-4">
-                    <Button
-                      disabled={busyId === reservation.id}
-                      onClick={() => void changeStatus(reservation, "ready")}
-                    >
-                      <PackageCheck className="h-4 w-4" /> Valider disponible
-                    </Button>
-                    <Button
-                      variant="outline"
-                      disabled={busyId === reservation.id}
-                      onClick={() => void changeStatus(reservation, "rejected")}
-                    >
-                      <X className="h-4 w-4" /> Refuser
-                    </Button>
-                  </div>
-                ) : null}
-                {reservation.status === "ready" ? (
-                  <div className="mt-5 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-[220px_1fr_auto]">
-                    <select
-                      aria-label={`Paiement ${reservation.product_name}`}
-                      className={selectClass}
-                      value={paymentMethods[reservation.id] ?? "cash"}
-                      onChange={(event) =>
-                        setPaymentMethods((current) => ({
-                          ...current,
-                          [reservation.id]: event.target
-                            .value as StorePaymentMethod,
-                        }))
-                      }
-                    >
-                      <option value="cash">Especes</option>
-                      <option value="bank_card">Carte</option>
-                    </select>
-                    <Button
-                      disabled={busyId === reservation.id}
-                      onClick={() =>
-                        void changeStatus(reservation, "completed")
-                      }
-                    >
-                      <Check className="h-4 w-4" /> Confirmer retrait
-                    </Button>
-                    <Button
-                      variant="outline"
-                      disabled={busyId === reservation.id}
-                      onClick={() =>
-                        void changeStatus(reservation, "cancelled")
-                      }
-                    >
-                      Annuler
-                    </Button>
-                  </div>
-                ) : null}
-              </Card>
-            ))
-          ) : (
-            <EmptyState text="Aucune reservation Store." />
-          )}
-        </div>
-      </section>
-
-      <Card className="p-5 sm:p-6">
-        <div className="flex items-start gap-4">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-primary">
-            <ShoppingCart className="h-5 w-5" />
-          </span>
-          <div>
-            <h3 className="text-xl font-black text-white">Vente directe</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Pour un client qui achete directement dans la salle.
-            </p>
-          </div>
-        </div>
-        <div className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-          <Field label="Produit">
-            <select
-              className={selectClass}
-              value={saleProductId}
-              onChange={(event) => setSaleProductId(event.target.value)}
-            >
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name} · stock {product.stock_quantity}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Nom du client">
-            <Input
-              value={buyerName}
-              onChange={(event) => setBuyerName(event.target.value)}
-              placeholder="Client local"
-            />
-          </Field>
-          <Field label="Quantite">
-            <Input
-              type="number"
-              min="1"
-              value={saleQuantity}
-              onChange={(event) => setSaleQuantity(event.target.value)}
-            />
-          </Field>
-          <Field label="Paiement">
-            <select
-              className={selectClass}
-              value={salePayment}
-              onChange={(event) =>
-                setSalePayment(event.target.value as StorePaymentMethod)
-              }
-            >
-              <option value="cash">Especes</option>
-              <option value="bank_card">Carte</option>
-            </select>
-          </Field>
-        </div>
-        <div className="mt-5 flex justify-end">
-          <Button
-            disabled={busyId === "direct-sale" || products.length === 0}
-            onClick={() => void recordDirectSale()}
-          >
-            <Banknote className="h-4 w-4" /> Enregistrer la vente
-          </Button>
-        </div>
-      </Card>
-
-      <section>
-        <h3 className="text-xl font-black text-white">Dernieres ventes</h3>
-        <div className="mt-4 grid gap-3 xl:grid-cols-2">
-          {sales.length ? (
-            sales.map((sale) => (
-              <Card key={sale.id} className="p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="font-black text-white">
-                      {sale.product_name} · {sale.quantity}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      {sale.buyer_name} · {formatDate(sale.created_at)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-black text-primary">
-                      {sale.total_amount} {sale.currency}
-                    </p>
-                    <p className="mt-1 flex items-center justify-end gap-1 text-xs text-gray-500">
-                      {sale.payment_method === "cash" ? (
-                        <Banknote className="h-3.5 w-3.5" />
-                      ) : (
-                        <CreditCard className="h-3.5 w-3.5" />
-                      )}
-                      {paymentLabels[sale.payment_method]}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ))
-          ) : (
-            <EmptyState text="Aucune vente Store enregistree." />
-          )}
-        </div>
-      </section>
-
-      <section>
-        <div className="flex items-start gap-3">
-          <History className="mt-0.5 h-5 w-5 text-primary" />
-          <div>
-            <h3 className="text-xl font-black text-white">
-              Mouvements du stock
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Entrees, ajustements, reservations et ventes avec le stock avant
-              et apres.
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 space-y-3">
-          {stockMovements.length ? (
-            stockMovements.map((movement) => {
-              const isIncrease = movement.quantity_delta > 0;
-              const MovementIcon = isIncrease ? ArrowUpRight : ArrowDownRight;
-              return (
-                <Card key={movement.id} className="p-4 sm:p-5">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-start gap-3">
-                      <span
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                          isIncrease
-                            ? "bg-emerald-400/10 text-emerald-300"
-                            : "bg-red-400/10 text-red-300"
-                        }`}
+                  {reservation.status === "pending" ? (
+                    <div className="mt-5 flex flex-wrap gap-3 border-t border-white/10 pt-4">
+                      <Button
+                        disabled={busyId === reservation.id}
+                        onClick={() => void changeStatus(reservation, "ready")}
                       >
-                        <MovementIcon className="h-5 w-5" />
-                      </span>
+                        <PackageCheck className="h-4 w-4" /> Valider disponible
+                      </Button>
+                      <Button
+                        variant="outline"
+                        disabled={busyId === reservation.id}
+                        onClick={() =>
+                          void changeStatus(reservation, "rejected")
+                        }
+                      >
+                        <X className="h-4 w-4" /> Refuser
+                      </Button>
+                    </div>
+                  ) : null}
+                  {reservation.status === "ready" ? (
+                    <div className="mt-5 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-[220px_1fr_auto]">
+                      <select
+                        aria-label={`Paiement ${reservation.product_name}`}
+                        className={selectClass}
+                        value={paymentMethods[reservation.id] ?? "cash"}
+                        onChange={(event) =>
+                          setPaymentMethods((current) => ({
+                            ...current,
+                            [reservation.id]: event.target
+                              .value as StorePaymentMethod,
+                          }))
+                        }
+                      >
+                        <option value="cash">Especes</option>
+                        <option value="bank_card">Carte</option>
+                      </select>
+                      <Button
+                        disabled={busyId === reservation.id}
+                        onClick={() =>
+                          void changeStatus(reservation, "completed")
+                        }
+                      >
+                        <Check className="h-4 w-4" /> Confirmer retrait
+                      </Button>
+                      <Button
+                        variant="outline"
+                        disabled={busyId === reservation.id}
+                        onClick={() =>
+                          void changeStatus(reservation, "cancelled")
+                        }
+                      >
+                        Annuler
+                      </Button>
+                    </div>
+                  ) : null}
+                </Card>
+              ))
+            ) : (
+              <EmptyState text="Aucune reservation Store." />
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeView === "direct_sale" ? (
+        <Card className="p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-primary">
+              <ShoppingCart className="h-5 w-5" />
+            </span>
+            <div>
+              <h3 className="text-xl font-black text-white">Vente directe</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Pour un client qui achete directement dans la salle.
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+            <Field label="Produit">
+              <select
+                className={selectClass}
+                value={saleProductId}
+                onChange={(event) => setSaleProductId(event.target.value)}
+              >
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name} · stock {product.stock_quantity}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Nom du client">
+              <Input
+                value={buyerName}
+                onChange={(event) => setBuyerName(event.target.value)}
+                placeholder="Client local"
+              />
+            </Field>
+            <Field label="Quantite">
+              <Input
+                type="number"
+                min="1"
+                value={saleQuantity}
+                onChange={(event) => setSaleQuantity(event.target.value)}
+              />
+            </Field>
+            <Field label="Paiement">
+              <select
+                className={selectClass}
+                value={salePayment}
+                onChange={(event) =>
+                  setSalePayment(event.target.value as StorePaymentMethod)
+                }
+              >
+                <option value="cash">Especes</option>
+                <option value="bank_card">Carte</option>
+              </select>
+            </Field>
+          </div>
+          <div className="mt-5 flex justify-end">
+            <Button
+              disabled={busyId === "direct-sale" || products.length === 0}
+              onClick={() => void recordDirectSale()}
+            >
+              <Banknote className="h-4 w-4" /> Enregistrer la vente
+            </Button>
+          </div>
+        </Card>
+      ) : null}
+
+      {activeView === "history" ? (
+        <div className="grid items-start gap-6 xl:grid-cols-2">
+          <section>
+            <h3 className="text-xl font-black text-white">Dernieres ventes</h3>
+            <div className="mt-4 space-y-3">
+              {sales.length ? (
+                sales.map((sale) => (
+                  <Card key={sale.id} className="p-4">
+                    <div className="flex items-center justify-between gap-4">
                       <div>
                         <p className="font-black text-white">
-                          {movement.product_name}
+                          {sale.product_name} · {sale.quantity}
                         </p>
-                        <p className="mt-1 text-sm text-gray-400">
-                          Stock: {movement.stock_before} vers{" "}
-                          {movement.stock_after} · {movement.actor_name}
+                        <p className="mt-1 text-xs text-gray-500">
+                          {sale.buyer_name} · {formatDate(sale.created_at)}
                         </p>
-                        <p className="mt-1 text-xs text-gray-600">
-                          {formatDate(movement.created_at)}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-primary">
+                          {sale.total_amount} {sale.currency}
+                        </p>
+                        <p className="mt-1 flex items-center justify-end gap-1 text-xs text-gray-500">
+                          {sale.payment_method === "cash" ? (
+                            <Banknote className="h-3.5 w-3.5" />
+                          ) : (
+                            <CreditCard className="h-3.5 w-3.5" />
+                          )}
+                          {paymentLabels[sale.payment_method]}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 sm:flex-col sm:items-end">
-                      <p
-                        className={`text-lg font-black ${
-                          isIncrease ? "text-emerald-300" : "text-red-300"
-                        }`}
-                      >
-                        {isIncrease ? "+" : ""}
-                        {movement.quantity_delta}
-                      </p>
-                      <Pill>
-                        {stockMovementLabels[movement.movement_type] ??
-                          movement.movement_type}
-                      </Pill>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })
-          ) : (
-            <EmptyState text="Aucun mouvement de stock enregistre." />
-          )}
+                  </Card>
+                ))
+              ) : (
+                <EmptyState text="Aucune vente Store enregistree." />
+              )}
+            </div>
+          </section>
+
+          <section>
+            <div className="flex items-start gap-3">
+              <History className="mt-0.5 h-5 w-5 text-primary" />
+              <div>
+                <h3 className="text-xl font-black text-white">
+                  Mouvements du stock
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Entrees, ajustements, reservations et ventes avec le stock
+                  avant et apres.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 space-y-3">
+              {stockMovements.length ? (
+                stockMovements.map((movement) => {
+                  const isIncrease = movement.quantity_delta > 0;
+                  const MovementIcon = isIncrease
+                    ? ArrowUpRight
+                    : ArrowDownRight;
+                  return (
+                    <Card key={movement.id} className="p-4 sm:p-5">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-start gap-3">
+                          <span
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                              isIncrease
+                                ? "bg-emerald-400/10 text-emerald-300"
+                                : "bg-red-400/10 text-red-300"
+                            }`}
+                          >
+                            <MovementIcon className="h-5 w-5" />
+                          </span>
+                          <div>
+                            <p className="font-black text-white">
+                              {movement.product_name}
+                            </p>
+                            <p className="mt-1 text-sm text-gray-400">
+                              Stock: {movement.stock_before} vers{" "}
+                              {movement.stock_after} · {movement.actor_name}
+                            </p>
+                            <p className="mt-1 text-xs text-gray-600">
+                              {formatDate(movement.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 sm:flex-col sm:items-end">
+                          <p
+                            className={`text-lg font-black ${
+                              isIncrease ? "text-emerald-300" : "text-red-300"
+                            }`}
+                          >
+                            {isIncrease ? "+" : ""}
+                            {movement.quantity_delta}
+                          </p>
+                          <Pill>
+                            {stockMovementLabels[movement.movement_type] ??
+                              movement.movement_type}
+                          </Pill>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })
+              ) : (
+                <EmptyState text="Aucun mouvement de stock enregistre." />
+              )}
+            </div>
+          </section>
         </div>
-      </section>
+      ) : null}
     </div>
   );
 }

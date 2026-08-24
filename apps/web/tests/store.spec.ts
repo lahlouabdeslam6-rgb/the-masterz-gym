@@ -471,18 +471,27 @@ test("la reception valide une reservation et le stock se met a jour", async ({
   await expect(
     page.getByRole("heading", { name: "Masterz Store", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("Produits a reapprovisionner")).toBeVisible();
-  await expect(page.getByText("Mouvements du stock")).toBeVisible();
   await expect(page.getByText(member.full_name, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Valider disponible" }).click();
   await expect(page.getByText("Reservation: Disponible.")).toBeVisible();
   await expect(page.getByText("3", { exact: true }).first()).toBeVisible();
+  await page
+    .getByRole("button", { name: "Historique et stock", exact: true })
+    .click();
+  await expect(page.getByText("Produits a reapprovisionner")).toBeVisible();
+  await expect(page.getByText("Mouvements du stock")).toBeVisible();
   await expect(page.getByText("Stock: 5 vers 3")).toBeVisible();
   expect(patchBody).toMatchObject({ status: "ready" });
 
+  await page
+    .getByRole("button", { name: "Vente directe", exact: true })
+    .click();
   await page.getByLabel("Nom du client").fill("Client sans compte");
   await page.getByRole("button", { name: "Enregistrer la vente" }).click();
   await expect(page.getByText("Vente enregistree: 350.00 MAD.")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Historique et stock", exact: true })
+    .click();
   await expect(page.getByText("Stock: 3 vers 2")).toBeVisible();
   expect(directSaleBody).toMatchObject({
     product_id: productId,

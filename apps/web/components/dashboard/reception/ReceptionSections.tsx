@@ -20,7 +20,13 @@ import { StaffCoachingAssignmentRequests } from "../CoachingAssignmentRequests";
 import { StaffMemberManager } from "../StaffMemberManager";
 import { RecoveryManager } from "../RecoveryManager";
 import { StaffStoreManager } from "../StoreManager";
-import { type Application, type Plan, Panel, Stat } from "../dashboard-shared";
+import {
+  type Application,
+  type Plan,
+  DashboardTabs,
+  Panel,
+  Stat,
+} from "../dashboard-shared";
 import { ReceptionPage } from "./ReceptionPage";
 import { useReceptionSession } from "./ReceptionShell";
 
@@ -295,43 +301,25 @@ export function ReceptionCoachingSection() {
       title="Coaching"
       description="Consultez les demandes, confirmez les seances et aidez les clients a changer leur horaire."
     >
-      <div className="grid items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
-        <aside className="rounded-lg border border-white/10 bg-[#081119] p-3 shadow-xl lg:sticky lg:top-6">
-          <p className="px-3 pb-3 pt-2 text-[0.65rem] font-black uppercase tracking-[0.16em] text-gray-500">
-            Taches coaching
-          </p>
-          <nav
-            aria-label="Rubriques coaching reception"
-            className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1"
-          >
-            <button
-              type="button"
-              aria-current={activeView === "requests" ? "page" : undefined}
-              onClick={() => setActiveView("requests")}
-              className={`flex items-center gap-3 rounded-sm border px-3 py-3 text-left text-sm font-black transition ${
-                activeView === "requests"
-                  ? "border-primary/35 bg-primary/10 text-white"
-                  : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
-              }`}
-            >
-              <ClipboardCheck className="h-5 w-5 shrink-0 text-primary" />
-              Demandes de coach
-            </button>
-            <button
-              type="button"
-              aria-current={activeView === "schedule" ? "page" : undefined}
-              onClick={() => setActiveView("schedule")}
-              className={`flex items-center gap-3 rounded-sm border px-3 py-3 text-left text-sm font-black transition ${
-                activeView === "schedule"
-                  ? "border-primary/35 bg-primary/10 text-white"
-                  : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
-              }`}
-            >
-              <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
-              Reservations
-            </button>
-          </nav>
-        </aside>
+      <div className="space-y-6">
+        <DashboardTabs
+          eyebrow="Taches coaching"
+          ariaLabel="Rubriques coaching reception"
+          activeTab={activeView}
+          onChange={setActiveView}
+          tabs={[
+            {
+              id: "requests",
+              label: "Demandes de coach",
+              icon: ClipboardCheck,
+            },
+            {
+              id: "schedule",
+              label: "Reservations",
+              icon: CalendarDays,
+            },
+          ]}
+        />
 
         <div className="min-w-0">
           {activeView === "requests" ? (

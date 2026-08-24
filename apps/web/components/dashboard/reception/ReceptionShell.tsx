@@ -176,9 +176,9 @@ export function ReceptionShell({ children }: { children: React.ReactNode }) {
   return (
     <ReceptionSessionContext.Provider value={session}>
       <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(0,212,255,0.1),transparent_25%),#050a0f] lg:grid lg:grid-cols-[270px_minmax(0,1fr)]">
-        <aside className="hidden h-screen flex-col border-r border-white/10 bg-[#071018]/95 px-5 py-5 lg:sticky lg:top-0 lg:flex">
+        <aside className="hidden h-screen flex-col overflow-hidden border-r border-white/10 bg-[#071018]/95 px-4 py-4 lg:sticky lg:top-0 lg:flex">
           <BrandLogo compact />
-          <div className="mt-5 border-y border-white/10 py-5">
+          <div className="mt-4 shrink-0 border-y border-white/10 py-4">
             <Pill>Reception</Pill>
             <p className="mt-3 truncate font-bold text-white">
               {session.user.full_name}
@@ -187,13 +187,16 @@ export function ReceptionShell({ children }: { children: React.ReactNode }) {
               Accueil et caisse Masterz Gym
             </p>
           </div>
-          <ReceptionNavigation pathname={pathname} />
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <ReceptionNavigation pathname={pathname} />
+          </div>
           <button
             type="button"
             onClick={() => void logout()}
             className={buttonStyles({
               variant: "outline",
-              className: "mt-auto w-full",
+              className:
+                "mt-3 h-10 w-full shrink-0 px-3 text-xs tracking-[0.08em]",
             })}
           >
             <LogOut className="h-4 w-4" /> Se deconnecter
@@ -255,7 +258,7 @@ function ReceptionNavigation({
   onNavigate?: () => void;
 }) {
   return (
-    <nav className="mt-5 grid gap-1" aria-label="Navigation reception">
+    <nav className="mt-4 grid gap-0.5 pb-2" aria-label="Navigation reception">
       {navigation.map(({ label, href, icon: Icon }) => {
         const active =
           href === "/espace/reception"
@@ -267,7 +270,7 @@ function ReceptionNavigation({
             href={href}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
-            className={`flex items-center gap-3 rounded-sm border-l-2 px-3 py-3 text-sm font-bold transition ${
+            className={`flex items-center gap-3 rounded-sm border-l-2 px-3 py-2.5 text-sm font-bold transition ${
               active
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-transparent text-gray-400 hover:bg-white/[0.04] hover:text-white"
