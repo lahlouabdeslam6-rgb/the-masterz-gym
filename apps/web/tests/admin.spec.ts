@@ -611,6 +611,18 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
     page.getByRole("heading", { name: "Coach Karim", exact: true }),
   ).toBeVisible();
   await page
+    .getByRole("button", { name: "Planning des seances", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Planning coaching", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Coachs et clients", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Coach Karim", exact: true }),
+  ).toBeVisible();
+  await page
     .locator("button")
     .filter({ hasText: priorityMembers[1].member_number })
     .click();

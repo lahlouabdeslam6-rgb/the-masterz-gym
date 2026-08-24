@@ -107,6 +107,7 @@ test("coach enregistre l'objectif et les tests de son client", async ({
     localStorage.setItem("auth_user", JSON.stringify(user));
   }, coach);
   await page.goto("/espace/coach");
+  await page.getByRole("button", { name: "Mes clients", exact: true }).click();
 
   await expect(
     page.getByRole("heading", { name: "Sara Coaching", exact: true }),

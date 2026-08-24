@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { CalendarDays, UsersRound } from "lucide-react";
 import { Alert, Card, LoadingMessage } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders } from "@/lib/auth";
@@ -176,20 +177,66 @@ export function AdminMembersSection() {
 
 export function AdminCoachesSection() {
   const { session } = useAdminSession();
+  const [activeView, setActiveView] = useState<"management" | "schedule">(
+    "management",
+  );
   return (
     <AdminPage
       eyebrow="Suivi sportif"
       title="Coachs"
       description="Consultez les coachs, leurs clients et changez l'affectation d'un membre depuis un dossier simple."
     >
-      <div className="space-y-7">
-        <CoachingManager session={session} />
-        <Panel
-          title="Planning coaching"
-          subtitle="Consultez les horaires de tous les coachs, confirmez les demandes et gerez les conflits."
-        >
-          <CoachingScheduleManager session={session} mode="staff" />
-        </Panel>
+      <div className="grid items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
+        <aside className="rounded-lg border border-white/10 bg-[#081119] p-3 shadow-xl lg:sticky lg:top-6">
+          <p className="px-3 pb-3 pt-2 text-[0.65rem] font-black uppercase tracking-[0.16em] text-gray-500">
+            Rubriques coaching
+          </p>
+          <nav
+            aria-label="Rubriques administration coaching"
+            className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1"
+          >
+            <button
+              type="button"
+              aria-current={activeView === "management" ? "page" : undefined}
+              onClick={() => setActiveView("management")}
+              className={`flex items-center gap-3 rounded-sm border px-3 py-3 text-left text-sm font-black transition ${
+                activeView === "management"
+                  ? "border-primary/35 bg-primary/10 text-white"
+                  : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
+              }`}
+            >
+              <UsersRound className="h-5 w-5 shrink-0 text-primary" />
+              Coachs et clients
+            </button>
+            <button
+              type="button"
+              aria-current={activeView === "schedule" ? "page" : undefined}
+              onClick={() => setActiveView("schedule")}
+              className={`flex items-center gap-3 rounded-sm border px-3 py-3 text-left text-sm font-black transition ${
+                activeView === "schedule"
+                  ? "border-primary/35 bg-primary/10 text-white"
+                  : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
+              }`}
+            >
+              <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
+              Planning des seances
+            </button>
+          </nav>
+        </aside>
+
+        <div className="min-w-0">
+          {activeView === "management" ? (
+            <CoachingManager session={session} />
+          ) : null}
+          {activeView === "schedule" ? (
+            <Panel
+              title="Planning coaching"
+              subtitle="Consultez les horaires de tous les coachs, confirmez les demandes et gerez les conflits."
+            >
+              <CoachingScheduleManager session={session} mode="staff" />
+            </Panel>
+          ) : null}
+        </div>
       </div>
     </AdminPage>
   );

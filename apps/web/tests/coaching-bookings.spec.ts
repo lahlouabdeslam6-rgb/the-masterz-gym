@@ -171,9 +171,10 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
 
   await storeSession(page, coach);
   await page.goto("/espace/coach");
+  await page.getByRole("button", { name: "Mon planning", exact: true }).click();
 
   await expect(
-    page.getByRole("heading", { name: "Mon planning" }),
+    page.getByRole("heading", { name: "Mon planning" }).first(),
   ).toBeVisible();
   await page.getByLabel("Debut du creneau coaching").fill("2026-08-31T14:00");
   await page.getByLabel("Fin du creneau coaching").fill("2026-08-31T15:00");
