@@ -7,12 +7,17 @@ from sqlalchemy.orm import Session
 from app.modules.coaching.models import (
     CoachAvailability,
     CoachingAssessment,
+    CoachingAssignmentRequest,
     CoachingBooking,
     CoachingClientProfile,
     CoachMemberAssignment,
 )
 from app.modules.users.models import User
-from app.shared.enums import CoachingBookingStatus, UserRole
+from app.shared.enums import (
+    CoachingAssignmentRequestStatus,
+    CoachingBookingStatus,
+    UserRole,
+)
 
 
 class CoachingRepository:
@@ -72,6 +77,58 @@ class CoachingRepository:
         self.session.add(assignment)
         self.session.flush()
         return assignment
+
+    def add_assignment_request(
+        self, request: CoachingAssignmentRequest
+    ) -> CoachingAssignmentRequest:
+        self.session.add(request)
+        self.session.flush()
+        return request
+
+    def save_assignment_request(
+        self, request: CoachingAssignmentRequest
+    ) -> CoachingAssignmentRequest:
+        self.session.add(request)
+        self.session.flush()
+        return request
+
+    def get_assignment_request(
+        self, request_id: uuid.UUID, *, for_update: bool = False
+    ) -> CoachingAssignmentRequest | None:
+        statement = select(CoachingAssignmentRequest).where(
+            CoachingAssignmentRequest.id == request_id
+        )
+        if for_update:
+            statement = statement.with_for_update()
+        return self.session.scalar(statement)
+
+    def pending_assignment_request_for_member(
+        self, member_id: uuid.UUID
+    ) -> CoachingAssignmentRequest | None:
+        return self.session.scalar(
+            select(CoachingAssignmentRequest).where(
+                CoachingAssignmentRequest.member_id == member_id,
+                CoachingAssignmentRequest.status == CoachingAssignmentRequestStatus.PENDING,
+            )
+        )
+
+    def list_assignment_requests(
+        self,
+        *,
+        member_id: uuid.UUID | None = None,
+        request_status: CoachingAssignmentRequestStatus | None = None,
+        limit: int = 200,
+    ) -> list[CoachingAssignmentRequest]:
+        statement = select(CoachingAssignmentRequest)
+        if member_id:
+            statement = statement.where(CoachingAssignmentRequest.member_id == member_id)
+        if request_status:
+            statement = statement.where(CoachingAssignmentRequest.status == request_status)
+        return list(
+            self.session.scalars(
+                statement.order_by(CoachingAssignmentRequest.created_at.desc()).limit(limit)
+            )
+        )
 
     def active_assignment_for_coach_member(
         self, coach_id: uuid.UUID, member_id: uuid.UUID

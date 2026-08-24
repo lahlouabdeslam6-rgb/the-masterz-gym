@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   BadgeDollarSign,
+  CalendarDays,
   ClipboardCheck,
   CreditCard,
   ShieldCheck,
@@ -15,6 +16,7 @@ import { authorizationHeaders } from "@/lib/auth";
 import { ApplicationManager } from "../ApplicationManager";
 import { ComplaintCenter } from "../ComplaintCenter";
 import { CoachingScheduleManager } from "../CoachingScheduleManager";
+import { StaffCoachingAssignmentRequests } from "../CoachingAssignmentRequests";
 import { StaffMemberManager } from "../StaffMemberManager";
 import { RecoveryManager } from "../RecoveryManager";
 import { StaffStoreManager } from "../StoreManager";
@@ -284,18 +286,72 @@ export function ReceptionRecoverySection() {
 
 export function ReceptionCoachingSection() {
   const session = useReceptionSession();
+  const [activeView, setActiveView] = useState<"requests" | "schedule">(
+    "requests",
+  );
   return (
     <ReceptionPage
       eyebrow="Planning des coachs"
       title="Coaching"
       description="Consultez les demandes, confirmez les seances et aidez les clients a changer leur horaire."
     >
-      <Panel
-        title="Reservations coaching"
-        subtitle="En cas de double reservation, le systeme vous avertit avant toute confirmation."
-      >
-        <CoachingScheduleManager session={session} mode="staff" />
-      </Panel>
+      <div className="grid items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
+        <aside className="rounded-lg border border-white/10 bg-[#081119] p-3 shadow-xl lg:sticky lg:top-6">
+          <p className="px-3 pb-3 pt-2 text-[0.65rem] font-black uppercase tracking-[0.16em] text-gray-500">
+            Taches coaching
+          </p>
+          <nav
+            aria-label="Rubriques coaching reception"
+            className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1"
+          >
+            <button
+              type="button"
+              aria-current={activeView === "requests" ? "page" : undefined}
+              onClick={() => setActiveView("requests")}
+              className={`flex items-center gap-3 rounded-sm border px-3 py-3 text-left text-sm font-black transition ${
+                activeView === "requests"
+                  ? "border-primary/35 bg-primary/10 text-white"
+                  : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
+              }`}
+            >
+              <ClipboardCheck className="h-5 w-5 shrink-0 text-primary" />
+              Demandes de coach
+            </button>
+            <button
+              type="button"
+              aria-current={activeView === "schedule" ? "page" : undefined}
+              onClick={() => setActiveView("schedule")}
+              className={`flex items-center gap-3 rounded-sm border px-3 py-3 text-left text-sm font-black transition ${
+                activeView === "schedule"
+                  ? "border-primary/35 bg-primary/10 text-white"
+                  : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
+              }`}
+            >
+              <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
+              Reservations
+            </button>
+          </nav>
+        </aside>
+
+        <div className="min-w-0">
+          {activeView === "requests" ? (
+            <Panel
+              title="Demandes de coach"
+              subtitle="Confirmez le choix du membre ou selectionnez le coach adapte a son besoin."
+            >
+              <StaffCoachingAssignmentRequests session={session} />
+            </Panel>
+          ) : null}
+          {activeView === "schedule" ? (
+            <Panel
+              title="Reservations coaching"
+              subtitle="En cas de double reservation, le systeme vous avertit avant toute confirmation."
+            >
+              <CoachingScheduleManager session={session} mode="staff" />
+            </Panel>
+          ) : null}
+        </div>
+      </div>
     </ReceptionPage>
   );
 }

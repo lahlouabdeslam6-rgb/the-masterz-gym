@@ -7,6 +7,7 @@ from app.modules.auth.models import OTPChallenge, RefreshSession
 from app.modules.coaching.models import (
     CoachAvailability,
     CoachingAssessment,
+    CoachingAssignmentRequest,
     CoachingBooking,
     CoachingClientProfile,
     CoachMemberAssignment,
@@ -29,6 +30,7 @@ __all__ = [
     "AuditLog",
     "CoachAvailability",
     "CoachMemberAssignment",
+    "CoachingAssignmentRequest",
     "CoachingAssessment",
     "CoachingBooking",
     "CoachingClientProfile",

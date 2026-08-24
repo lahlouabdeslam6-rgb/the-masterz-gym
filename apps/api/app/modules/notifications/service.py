@@ -9,7 +9,11 @@ from app.modules.memberships.models import Subscription
 from app.modules.notifications.models import Notification
 from app.modules.notifications.repository import NotificationRepository
 from app.modules.users.models import User
-from app.shared.enums import CoachingBookingStatus, StoreReservationStatus
+from app.shared.enums import (
+    CoachingAssignmentRequestStatus,
+    CoachingBookingStatus,
+    StoreReservationStatus,
+)
 
 
 class NotificationService:
@@ -141,6 +145,66 @@ class NotificationService:
                 body=(
                     f"{member.full_name} a demande une seance le "
                     f"{starts_at.isoformat()}. Confirmez-la depuis votre planning."
+                ),
+                deduplication_key=deduplication_key,
+            )
+        )
+
+    def coaching_assignment_request_decision(
+        self,
+        member: User,
+        *,
+        request_id: uuid.UUID,
+        request_status: CoachingAssignmentRequestStatus,
+        coach_name: str | None,
+    ) -> Notification:
+        if request_status == CoachingAssignmentRequestStatus.APPROVED and coach_name:
+            title = "Votre coach est confirme"
+            body = (
+                f"{coach_name} est maintenant votre coach. "
+                "Vous pouvez consulter ses horaires et reserver une seance."
+            )
+        elif request_status == CoachingAssignmentRequestStatus.REJECTED:
+            title = "Demande de coach mise a jour"
+            body = (
+                "Votre demande n'a pas pu etre validee. "
+                "Consultez votre espace Coaching pour voir le motif et refaire un choix."
+            )
+        else:
+            raise ValueError("Statut de demande coaching sans notification.")
+        deduplication_key = f"coaching_assignment_request:{request_id}:{request_status.value}"
+        existing = self.repository.by_deduplication_key(deduplication_key)
+        if existing:
+            return existing
+        return self.repository.add(
+            Notification(
+                user_id=member.id,
+                kind="coaching_assignment_request_update",
+                title=title,
+                body=body,
+                deduplication_key=deduplication_key,
+            )
+        )
+
+    def coaching_member_assigned(
+        self,
+        coach: User,
+        *,
+        request_id: uuid.UUID,
+        member: User,
+    ) -> Notification:
+        deduplication_key = f"coaching_member_assigned:{request_id}:{coach.id}"
+        existing = self.repository.by_deduplication_key(deduplication_key)
+        if existing:
+            return existing
+        return self.repository.add(
+            Notification(
+                user_id=coach.id,
+                kind="coaching_member_assigned",
+                title="Nouveau client coaching",
+                body=(
+                    f"{member.full_name} vous a ete affecte. "
+                    "Son dossier est disponible dans Mes clients."
                 ),
                 deduplication_key=deduplication_key,
             )

@@ -608,6 +608,12 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
     page.getByRole("heading", { name: "Coachs", exact: true }),
   ).toBeVisible();
   await expect(
+    page.getByRole("heading", { name: "Demandes de coach", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Coachs et clients", exact: true })
+    .click();
+  await expect(
     page.getByRole("heading", { name: "Coach Karim", exact: true }),
   ).toBeVisible();
   await page

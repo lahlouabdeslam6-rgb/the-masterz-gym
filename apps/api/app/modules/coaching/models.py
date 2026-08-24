@@ -6,7 +6,11 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
-from app.shared.enums import CoachingBookingStatus, CoachingTestType
+from app.shared.enums import (
+    CoachingAssignmentRequestStatus,
+    CoachingBookingStatus,
+    CoachingTestType,
+)
 from app.shared.models import TimestampMixin, UUIDPrimaryKeyMixin
 
 
@@ -34,6 +38,51 @@ class CoachMemberAssignment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class CoachingAssignmentRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "coaching_assignment_requests"
+    __table_args__ = (
+        CheckConstraint(
+            "preferred_coach_id IS NULL OR preferred_coach_id <> member_id",
+            name="ck_coaching_assignment_request_preferred_distinct",
+        ),
+        CheckConstraint(
+            "assigned_coach_id IS NULL OR assigned_coach_id <> member_id",
+            name="ck_coaching_assignment_request_assigned_distinct",
+        ),
+        Index(
+            "uq_coaching_assignment_requests_pending_member",
+            "member_id",
+            unique=True,
+            postgresql_where=text("status = 'PENDING'"),
+        ),
+    )
+
+    member_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    )
+    preferred_coach_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
+    )
+    assigned_coach_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
+    )
+    status: Mapped[CoachingAssignmentRequestStatus] = mapped_column(
+        Enum(
+            CoachingAssignmentRequestStatus,
+            name="coaching_assignment_request_status",
+        ),
+        nullable=False,
+        default=CoachingAssignmentRequestStatus.PENDING,
+        index=True,
+    )
+    member_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    decision_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    decided_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class CoachingClientProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):

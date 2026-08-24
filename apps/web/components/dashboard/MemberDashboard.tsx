@@ -20,6 +20,7 @@ import type { AuthSession } from "@/lib/auth";
 import { ReceiptSummary } from "./ApplicationManager";
 import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 import { CoachingScheduleManager } from "./CoachingScheduleManager";
+import { MemberCoachingAssignmentRequest } from "./CoachingAssignmentRequests";
 import { MemberRecoveryPanel } from "./RecoveryManager";
 import { MemberNotifications } from "./MemberNotifications";
 import { ComplaintCenter } from "./ComplaintCenter";
@@ -134,6 +135,13 @@ export function MemberDashboard({
     memberSections.find((item) => item.id === activeSection) ??
     memberSections[0];
   const SectionIcon = section.icon;
+  const hasActiveCoaching = subscriptions.some(
+    (subscription) =>
+      subscription.service_type === "coaching" &&
+      ["active", "expiring_soon"].includes(
+        subscription.effective_status ?? subscription.status,
+      ),
+  );
 
   return (
     <div className="mt-8 grid items-start gap-6 lg:grid-cols-[17rem_minmax(0,1fr)]">
@@ -252,7 +260,10 @@ export function MemberDashboard({
             <AttendancePanel attendance={attendance} />
           ) : null}
           {activeSection === "coaching" ? (
-            <div className="space-y-6">
+            <MemberCoachingAssignmentRequest
+              session={session}
+              hasActiveCoaching={hasActiveCoaching}
+            >
               <Panel
                 title="Mes seances coaching"
                 subtitle="Choisissez un horaire propose par votre coach et suivez sa confirmation."
@@ -265,7 +276,7 @@ export function MemberDashboard({
               >
                 <CoachingTrackingPanel session={session} memberId={user.id} />
               </Panel>
-            </div>
+            </MemberCoachingAssignmentRequest>
           ) : null}
           {activeSection === "recovery" ? (
             <Panel

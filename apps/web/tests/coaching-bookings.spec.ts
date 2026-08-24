@@ -204,6 +204,28 @@ test("membre reserve un creneau propose par son coach", async ({ page }) => {
     let body: unknown = [];
 
     if (path === "/api/v1/users/me") body = member;
+    if (path === `/api/v1/members/${member.id}/subscriptions`) {
+      body = [
+        {
+          id: "00000000-0000-0000-0000-000000000508",
+          service_type: "coaching",
+          status: "active",
+          effective_status: "active",
+        },
+      ];
+    }
+    if (path === "/api/v1/coaching/my-assignment") body = assignment;
+    if (path === "/api/v1/coaching/assignment-requests") body = [];
+    if (path === "/api/v1/coaching/directory") {
+      body = [
+        {
+          id: coach.id,
+          full_name: coach.full_name,
+          status: "active",
+          active_member_count: 1,
+        },
+      ];
+    }
     if (path === "/api/v1/coaching/availability") body = [availability];
     if (path === "/api/v1/coaching/bookings") {
       if (request.method() === "POST") {

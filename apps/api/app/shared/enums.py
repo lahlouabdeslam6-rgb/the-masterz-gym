@@ -105,6 +105,12 @@ class CoachingBookingStatus(StrEnum):
     COMPLETED = "completed"
 
 
+class CoachingAssignmentRequestStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
 class PaymentMethod(StrEnum):
     CASH = "cash"
     BANK_CARD = "bank_card"

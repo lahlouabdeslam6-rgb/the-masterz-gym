@@ -552,6 +552,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/coaching/directory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Coach Directory */
+        get: operations["list_coach_directory_api_v1_coaching_directory_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coaching/my-assignment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get My Assignment */
+        get: operations["get_my_assignment_api_v1_coaching_my_assignment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coaching/assignment-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Assignment Requests */
+        get: operations["list_assignment_requests_api_v1_coaching_assignment_requests_get"];
+        put?: never;
+        /** Create Assignment Request */
+        post: operations["create_assignment_request_api_v1_coaching_assignment_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coaching/assignment-requests/{request_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Decide Assignment Request */
+        patch: operations["decide_assignment_request_api_v1_coaching_assignment_requests__request_id__decision_patch"];
+        trace?: never;
+    };
     "/api/v1/coaching/assignments": {
         parameters: {
             query?: never;
@@ -1295,6 +1364,19 @@ export interface components {
             /** Is Active */
             is_active: boolean;
         };
+        /** CoachDirectoryRead */
+        CoachDirectoryRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Full Name */
+            full_name: string;
+            status: components["schemas"]["AccountStatus"];
+            /** Active Member Count */
+            active_member_count: number;
+        };
         /** CoachMemberAssignmentCreate */
         CoachMemberAssignmentCreate: {
             /**
@@ -1437,6 +1519,72 @@ export interface components {
              */
             created_at: string;
         };
+        /** CoachingAssignmentRequestCreate */
+        CoachingAssignmentRequestCreate: {
+            /** Preferred Coach Id */
+            preferred_coach_id?: string | null;
+            /** Member Note */
+            member_note?: string | null;
+        };
+        /** CoachingAssignmentRequestDecision */
+        CoachingAssignmentRequestDecision: {
+            status: components["schemas"]["CoachingAssignmentRequestStatus"];
+            /** Coach Id */
+            coach_id?: string | null;
+            /** Decision Note */
+            decision_note?: string | null;
+        };
+        /** CoachingAssignmentRequestRead */
+        CoachingAssignmentRequestRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Member Name */
+            member_name: string;
+            /** Member Number */
+            member_number: string;
+            /** Preferred Coach Id */
+            preferred_coach_id: string | null;
+            /** Preferred Coach Name */
+            preferred_coach_name: string | null;
+            /** Assigned Coach Id */
+            assigned_coach_id: string | null;
+            /** Assigned Coach Name */
+            assigned_coach_name: string | null;
+            status: components["schemas"]["CoachingAssignmentRequestStatus"];
+            /** Member Note */
+            member_note: string | null;
+            /** Decision Note */
+            decision_note: string | null;
+            /** Decided By Id */
+            decided_by_id: string | null;
+            /** Decided By Name */
+            decided_by_name: string | null;
+            /** Decided At */
+            decided_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * CoachingAssignmentRequestStatus
+         * @enum {string}
+         */
+        CoachingAssignmentRequestStatus: "pending" | "approved" | "rejected";
         /** CoachingBookingCreate */
         CoachingBookingCreate: {
             /**
@@ -3830,6 +3978,146 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CoachSummary"][];
+                };
+            };
+        };
+    };
+    list_coach_directory_api_v1_coaching_directory_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachDirectoryRead"][];
+                };
+            };
+        };
+    };
+    get_my_assignment_api_v1_coaching_my_assignment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachMemberAssignmentRead"] | null;
+                };
+            };
+        };
+    };
+    list_assignment_requests_api_v1_coaching_assignment_requests_get: {
+        parameters: {
+            query?: {
+                request_status?: components["schemas"]["CoachingAssignmentRequestStatus"] | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingAssignmentRequestRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_assignment_request_api_v1_coaching_assignment_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachingAssignmentRequestCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingAssignmentRequestRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_assignment_request_api_v1_coaching_assignment_requests__request_id__decision_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachingAssignmentRequestDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingAssignmentRequestRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

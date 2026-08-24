@@ -10,6 +10,7 @@ from app.modules.audit.service import AuditService
 from app.modules.coaching.models import (
     CoachAvailability,
     CoachingAssessment,
+    CoachingAssignmentRequest,
     CoachingBooking,
     CoachingClientProfile,
     CoachMemberAssignment,
@@ -19,8 +20,12 @@ from app.modules.coaching.schemas import (
     CoachAvailabilityCreate,
     CoachAvailabilityRead,
     CoachAvailabilityUpdate,
+    CoachDirectoryRead,
     CoachingAssessmentCreate,
     CoachingAssessmentRead,
+    CoachingAssignmentRequestCreate,
+    CoachingAssignmentRequestDecision,
+    CoachingAssignmentRequestRead,
     CoachingBookingCreate,
     CoachingBookingRead,
     CoachingBookingReschedule,
@@ -40,6 +45,7 @@ from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 from app.shared.enums import (
     AccountStatus,
+    CoachingAssignmentRequestStatus,
     CoachingBookingStatus,
     ServiceType,
     SubscriptionStatus,
@@ -57,6 +63,206 @@ class CoachingService:
         self.membership_service = MembershipService(session)
         self.notifications = NotificationService(session)
         self.audit = AuditService(session)
+
+    def list_coach_directory(self, actor: User) -> list[CoachDirectoryRead]:
+        if actor.role == UserRole.MEMBER:
+            self._require_active_coaching_subscription(actor.id)
+        return [
+            CoachDirectoryRead(
+                id=coach.id,
+                full_name=coach.full_name,
+                status=coach.status,
+                active_member_count=self.coaching.active_member_count(coach.id),
+            )
+            for coach in self.coaching.list_coaches()
+            if coach.status == AccountStatus.ACTIVE
+        ]
+
+    def get_my_assignment(self, actor: User) -> CoachMemberAssignmentRead | None:
+        assignment = self.coaching.active_assignment_for_member(actor.id)
+        return self._assignment_read(assignment) if assignment else None
+
+    def list_assignment_requests(
+        self,
+        actor: User,
+        *,
+        request_status: CoachingAssignmentRequestStatus | None,
+        limit: int,
+    ) -> list[CoachingAssignmentRequestRead]:
+        member_id = actor.id if actor.role == UserRole.MEMBER else None
+        return [
+            self._assignment_request_read(item)
+            for item in self.coaching.list_assignment_requests(
+                member_id=member_id,
+                request_status=request_status,
+                limit=limit,
+            )
+        ]
+
+    def create_assignment_request(
+        self,
+        data: CoachingAssignmentRequestCreate,
+        actor: User,
+    ) -> CoachingAssignmentRequestRead:
+        self._require_active_coaching_subscription(actor.id)
+        if self.coaching.active_assignment_for_member(actor.id):
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "member_already_has_coach",
+                "Un coach est deja affecte a votre compte.",
+            )
+        if self.coaching.pending_assignment_request_for_member(actor.id):
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "coaching_assignment_request_pending",
+                "Une demande de coach est deja en attente.",
+            )
+        preferred_coach = None
+        if data.preferred_coach_id:
+            preferred_coach = self.users.get(data.preferred_coach_id)
+            if not preferred_coach or preferred_coach.role != UserRole.COACH:
+                raise api_error(
+                    status.HTTP_404_NOT_FOUND,
+                    "coach_not_found",
+                    "Coach introuvable.",
+                )
+            if preferred_coach.status != AccountStatus.ACTIVE:
+                raise api_error(
+                    status.HTTP_409_CONFLICT,
+                    "coach_inactive",
+                    "Ce coach ne peut pas recevoir de nouveaux clients.",
+                )
+
+        request = CoachingAssignmentRequest(
+            member_id=actor.id,
+            preferred_coach_id=preferred_coach.id if preferred_coach else None,
+            assigned_coach_id=None,
+            status=CoachingAssignmentRequestStatus.PENDING,
+            member_note=self._clean_note(data.member_note),
+            decision_note=None,
+            decided_by_id=None,
+            decided_at=None,
+        )
+        try:
+            with self.session.begin_nested():
+                self.coaching.add_assignment_request(request)
+        except IntegrityError as exc:
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "coaching_assignment_request_pending",
+                "Une demande de coach est deja en attente.",
+            ) from exc
+        self.audit.record(
+            actor=actor,
+            action="coaching.assignment_requested",
+            entity_type="coaching_assignment_request",
+            entity_id=request.id,
+            previous_value=None,
+            new_value={
+                "member_id": str(actor.id),
+                "preferred_coach_id": (str(preferred_coach.id) if preferred_coach else None),
+            },
+            reason=request.member_note or "Demande d'affectation a un coach",
+        )
+        return self._assignment_request_read(
+            request,
+            member=actor,
+            preferred_coach=preferred_coach,
+        )
+
+    def decide_assignment_request(
+        self,
+        request_id: uuid.UUID,
+        data: CoachingAssignmentRequestDecision,
+        actor: User,
+    ) -> CoachingAssignmentRequestRead:
+        with self.session.begin_nested():
+            request = self.coaching.get_assignment_request(request_id, for_update=True)
+            if not request:
+                raise api_error(
+                    status.HTTP_404_NOT_FOUND,
+                    "coaching_assignment_request_not_found",
+                    "Demande de coach introuvable.",
+                )
+            if request.status != CoachingAssignmentRequestStatus.PENDING:
+                raise api_error(
+                    status.HTTP_409_CONFLICT,
+                    "coaching_assignment_request_already_decided",
+                    "Cette demande a deja ete traitee.",
+                )
+            member = self.users.get(request.member_id)
+            if not member or member.role != UserRole.MEMBER:
+                raise RuntimeError("Membre de demande coaching incoherent.")
+
+            assigned_coach = None
+            if data.status == CoachingAssignmentRequestStatus.APPROVED:
+                if self.coaching.active_assignment_for_member(member.id, for_update=True):
+                    raise api_error(
+                        status.HTTP_409_CONFLICT,
+                        "member_already_has_coach",
+                        "Un coach est deja affecte a ce membre.",
+                    )
+                coach_id = data.coach_id or request.preferred_coach_id
+                if not coach_id:
+                    raise api_error(
+                        status.HTTP_422_UNPROCESSABLE_CONTENT,
+                        "coach_required",
+                        "Choisissez un coach avant de valider la demande.",
+                    )
+                assignment = self.assign_member(
+                    CoachMemberAssignmentCreate(
+                        coach_id=coach_id,
+                        member_id=member.id,
+                        reason=(
+                            self._clean_note(data.decision_note) or "Demande du membre validee"
+                        ),
+                    ),
+                    actor,
+                )
+                assigned_coach = self.users.get(assignment.coach_id)
+                if not assigned_coach:
+                    raise RuntimeError("Coach affecte incoherent.")
+                request.assigned_coach_id = assigned_coach.id
+
+            request.status = data.status
+            request.decision_note = self._clean_note(data.decision_note)
+            request.decided_by_id = actor.id
+            request.decided_at = datetime.now(UTC)
+            self.coaching.save_assignment_request(request)
+
+            self.notifications.coaching_assignment_request_decision(
+                member,
+                request_id=request.id,
+                request_status=request.status,
+                coach_name=assigned_coach.full_name if assigned_coach else None,
+            )
+            if assigned_coach:
+                self.notifications.coaching_member_assigned(
+                    assigned_coach,
+                    request_id=request.id,
+                    member=member,
+                )
+            self.audit.record(
+                actor=actor,
+                action="coaching.assignment_request_decided",
+                entity_type="coaching_assignment_request",
+                entity_id=request.id,
+                previous_value={"status": CoachingAssignmentRequestStatus.PENDING.value},
+                new_value={
+                    "status": request.status.value,
+                    "assigned_coach_id": (
+                        str(request.assigned_coach_id) if request.assigned_coach_id else None
+                    ),
+                },
+                reason=request.decision_note or "Validation de la demande de coach",
+            )
+
+        return self._assignment_request_read(
+            request,
+            member=member,
+            assigned_coach=assigned_coach,
+            decided_by=actor,
+        )
 
     def list_availability(
         self,
@@ -976,4 +1182,41 @@ class CoachingService:
             reason=assignment.reason,
             created_at=assignment.created_at,
             updated_at=assignment.updated_at,
+        )
+
+    def _assignment_request_read(
+        self,
+        request: CoachingAssignmentRequest,
+        *,
+        member: User | None = None,
+        preferred_coach: User | None = None,
+        assigned_coach: User | None = None,
+        decided_by: User | None = None,
+    ) -> CoachingAssignmentRequestRead:
+        member = member or self.users.get(request.member_id)
+        if request.preferred_coach_id and not preferred_coach:
+            preferred_coach = self.users.get(request.preferred_coach_id)
+        if request.assigned_coach_id and not assigned_coach:
+            assigned_coach = self.users.get(request.assigned_coach_id)
+        if request.decided_by_id and not decided_by:
+            decided_by = self.users.get(request.decided_by_id)
+        if not member:
+            raise RuntimeError("Demande d'affectation coaching incoherente.")
+        return CoachingAssignmentRequestRead(
+            id=request.id,
+            member_id=request.member_id,
+            member_name=member.full_name,
+            member_number=member.member_number or "",
+            preferred_coach_id=request.preferred_coach_id,
+            preferred_coach_name=(preferred_coach.full_name if preferred_coach else None),
+            assigned_coach_id=request.assigned_coach_id,
+            assigned_coach_name=(assigned_coach.full_name if assigned_coach else None),
+            status=request.status,
+            member_note=request.member_note,
+            decision_note=request.decision_note,
+            decided_by_id=request.decided_by_id,
+            decided_by_name=decided_by.full_name if decided_by else None,
+            decided_at=request.decided_at,
+            created_at=request.created_at,
+            updated_at=request.updated_at,
         )

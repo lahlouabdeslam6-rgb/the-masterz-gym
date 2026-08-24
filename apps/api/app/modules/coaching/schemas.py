@@ -3,7 +3,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
-from app.shared.enums import AccountStatus, CoachingBookingStatus, CoachingTestType
+from app.shared.enums import (
+    AccountStatus,
+    CoachingAssignmentRequestStatus,
+    CoachingBookingStatus,
+    CoachingTestType,
+)
 
 MetricValue = str | int | float | bool | None
 
@@ -15,6 +20,54 @@ class CoachSummary(BaseModel):
     email: EmailStr | None
     status: AccountStatus
     active_member_count: int
+
+
+class CoachDirectoryRead(BaseModel):
+    id: uuid.UUID
+    full_name: str
+    status: AccountStatus
+    active_member_count: int
+
+
+class CoachingAssignmentRequestCreate(BaseModel):
+    preferred_coach_id: uuid.UUID | None = None
+    member_note: str | None = Field(default=None, max_length=1000)
+
+
+class CoachingAssignmentRequestDecision(BaseModel):
+    status: CoachingAssignmentRequestStatus
+    coach_id: uuid.UUID | None = None
+    decision_note: str | None = Field(default=None, max_length=1000)
+
+    @model_validator(mode="after")
+    def decision_must_be_final(self):
+        if self.status == CoachingAssignmentRequestStatus.PENDING:
+            raise ValueError("La decision doit approuver ou refuser la demande")
+        if (
+            self.status == CoachingAssignmentRequestStatus.REJECTED
+            and len((self.decision_note or "").strip()) < 3
+        ):
+            raise ValueError("Un motif est requis pour refuser la demande")
+        return self
+
+
+class CoachingAssignmentRequestRead(BaseModel):
+    id: uuid.UUID
+    member_id: uuid.UUID
+    member_name: str
+    member_number: str
+    preferred_coach_id: uuid.UUID | None
+    preferred_coach_name: str | None
+    assigned_coach_id: uuid.UUID | None
+    assigned_coach_name: str | None
+    status: CoachingAssignmentRequestStatus
+    member_note: str | None
+    decision_note: str | None
+    decided_by_id: uuid.UUID | None
+    decided_by_name: str | None
+    decided_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
 
 
 class CoachMemberAssignmentCreate(BaseModel):

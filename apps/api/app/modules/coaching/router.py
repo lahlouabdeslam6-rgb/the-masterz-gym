@@ -9,8 +9,12 @@ from app.modules.coaching.schemas import (
     CoachAvailabilityCreate,
     CoachAvailabilityRead,
     CoachAvailabilityUpdate,
+    CoachDirectoryRead,
     CoachingAssessmentCreate,
     CoachingAssessmentRead,
+    CoachingAssignmentRequestCreate,
+    CoachingAssignmentRequestDecision,
+    CoachingAssignmentRequestRead,
     CoachingBookingCreate,
     CoachingBookingRead,
     CoachingBookingReschedule,
@@ -25,7 +29,11 @@ from app.modules.coaching.schemas import (
 )
 from app.modules.coaching.service import CoachingService
 from app.modules.users.models import User
-from app.shared.enums import CoachingBookingStatus, UserRole
+from app.shared.enums import (
+    CoachingAssignmentRequestStatus,
+    CoachingBookingStatus,
+    UserRole,
+)
 
 router = APIRouter(prefix="/coaching", tags=["Coaching"])
 Staff = Annotated[User, Depends(require_roles(UserRole.ADMIN, UserRole.RECEPTIONIST))]
@@ -45,11 +53,76 @@ ScheduleReader = Annotated[
         )
     ),
 ]
+AssignmentRequestReader = Annotated[
+    User,
+    Depends(require_roles(UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.MEMBER)),
+]
+Member = Annotated[User, Depends(require_roles(UserRole.MEMBER))]
 
 
 @router.get("/coaches", response_model=list[CoachSummary])
 def list_coaches(session: DbSession, actor: Staff):
     return CoachingService(session).list_coaches()
+
+
+@router.get("/directory", response_model=list[CoachDirectoryRead])
+def list_coach_directory(session: DbSession, actor: AssignmentRequestReader):
+    return CoachingService(session).list_coach_directory(actor)
+
+
+@router.get(
+    "/my-assignment",
+    response_model=CoachMemberAssignmentRead | None,
+)
+def get_my_assignment(session: DbSession, actor: Member):
+    return CoachingService(session).get_my_assignment(actor)
+
+
+@router.get(
+    "/assignment-requests",
+    response_model=list[CoachingAssignmentRequestRead],
+)
+def list_assignment_requests(
+    session: DbSession,
+    actor: AssignmentRequestReader,
+    request_status: Annotated[CoachingAssignmentRequestStatus | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=500)] = 200,
+):
+    return CoachingService(session).list_assignment_requests(
+        actor,
+        request_status=request_status,
+        limit=limit,
+    )
+
+
+@router.post(
+    "/assignment-requests",
+    response_model=CoachingAssignmentRequestRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_assignment_request(
+    data: CoachingAssignmentRequestCreate,
+    session: DbSession,
+    actor: Member,
+):
+    return CoachingService(session).create_assignment_request(data, actor)
+
+
+@router.patch(
+    "/assignment-requests/{request_id}/decision",
+    response_model=CoachingAssignmentRequestRead,
+)
+def decide_assignment_request(
+    request_id: uuid.UUID,
+    data: CoachingAssignmentRequestDecision,
+    session: DbSession,
+    actor: Staff,
+):
+    return CoachingService(session).decide_assignment_request(
+        request_id,
+        data,
+        actor,
+    )
 
 
 @router.get("/assignments", response_model=list[CoachMemberAssignmentRead])

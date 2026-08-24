@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, UsersRound } from "lucide-react";
+import { CalendarDays, ClipboardCheck, UsersRound } from "lucide-react";
 import { Alert, Card, LoadingMessage } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders } from "@/lib/auth";
@@ -12,6 +12,7 @@ import {
 } from "../AdminManagement";
 import { ApplicationManager } from "../ApplicationManager";
 import { CoachingManager } from "../CoachingManager";
+import { StaffCoachingAssignmentRequests } from "../CoachingAssignmentRequests";
 import { CoachingScheduleManager } from "../CoachingScheduleManager";
 import { ComplaintCenter } from "../ComplaintCenter";
 import { RecoveryManager } from "../RecoveryManager";
@@ -177,9 +178,9 @@ export function AdminMembersSection() {
 
 export function AdminCoachesSection() {
   const { session } = useAdminSession();
-  const [activeView, setActiveView] = useState<"management" | "schedule">(
-    "management",
-  );
+  const [activeView, setActiveView] = useState<
+    "requests" | "management" | "schedule"
+  >("requests");
   return (
     <AdminPage
       eyebrow="Suivi sportif"
@@ -193,8 +194,21 @@ export function AdminCoachesSection() {
           </p>
           <nav
             aria-label="Rubriques administration coaching"
-            className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1"
+            className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1"
           >
+            <button
+              type="button"
+              aria-current={activeView === "requests" ? "page" : undefined}
+              onClick={() => setActiveView("requests")}
+              className={`flex items-center gap-3 rounded-sm border px-3 py-3 text-left text-sm font-black transition ${
+                activeView === "requests"
+                  ? "border-primary/35 bg-primary/10 text-white"
+                  : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
+              }`}
+            >
+              <ClipboardCheck className="h-5 w-5 shrink-0 text-primary" />
+              Demandes clients
+            </button>
             <button
               type="button"
               aria-current={activeView === "management" ? "page" : undefined}
@@ -225,6 +239,14 @@ export function AdminCoachesSection() {
         </aside>
 
         <div className="min-w-0">
+          {activeView === "requests" ? (
+            <Panel
+              title="Demandes de coach"
+              subtitle="Validez le choix du membre ou affectez le coach le plus adapte."
+            >
+              <StaffCoachingAssignmentRequests session={session} />
+            </Panel>
+          ) : null}
           {activeView === "management" ? (
             <CoachingManager session={session} />
           ) : null}
