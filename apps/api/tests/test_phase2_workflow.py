@@ -972,6 +972,18 @@ def test_application_payment_attendance_and_audit_workflow(
     audit_logs = client.get("/api/v1/audit-logs", headers=admin_headers)
     assert audit_logs.status_code == 200
     actions = {entry["action"] for entry in audit_logs.json()}
+    assert "application.submitted" in actions
     assert "application.approved" in actions
     assert "payment.recorded" in actions
     assert "subscription.created" in actions
+
+    business_logs = client.get(
+        "/api/v1/audit-logs",
+        headers=admin_headers,
+        params={"business_only": True},
+    )
+    assert business_logs.status_code == 200
+    business_actions = {entry["action"] for entry in business_logs.json()}
+    assert "application.submitted" in business_actions
+    assert "application.approved" in business_actions
+    assert all(not action.startswith("auth.") for action in business_actions)

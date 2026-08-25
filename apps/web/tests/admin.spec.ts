@@ -224,6 +224,7 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   let userDeleteCalls = 0;
   let coachingAssignments: Array<Record<string, unknown>> = [];
   let coachingAssignmentCalls = 0;
+  let auditBusinessOnly = "";
   await page.route("**/api/v1/**", async (route) => {
     const url = new URL(route.request().url());
     if (route.request().method() === "OPTIONS") {
@@ -290,6 +291,51 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
           active_member_count: coachingAssignments.filter(
             (assignment) => assignment.coach_id === coachKarim.id,
           ).length,
+        },
+      ];
+    }
+    if (url.pathname === "/api/v1/audit-logs") {
+      auditBusinessOnly = url.searchParams.get("business_only") ?? "";
+      body = [
+        {
+          id: "00000000-0000-0000-0000-000000000091",
+          actor_id: adminUser.id,
+          actor_role: "receptionist",
+          action: "application.approved",
+          entity_type: "membership_application",
+          entity_id: "00000000-0000-0000-0000-000000000092",
+          previous_value: { status: "pending" },
+          new_value: { status: "approved" },
+          reason: null,
+          created_at: "2026-08-25T10:15:00Z",
+        },
+        {
+          id: "00000000-0000-0000-0000-000000000093",
+          actor_id: null,
+          actor_role: null,
+          action: "application.submitted",
+          entity_type: "membership_application",
+          entity_id: "00000000-0000-0000-0000-000000000094",
+          previous_value: null,
+          new_value: {
+            applicant_name: "Client Journal",
+            plan_name: "12 mois",
+            status: "pending",
+          },
+          reason: "Nouvelle demande d'inscription",
+          created_at: "2026-08-25T10:00:00Z",
+        },
+        {
+          id: "00000000-0000-0000-0000-000000000095",
+          actor_id: adminUser.id,
+          actor_role: "receptionist",
+          action: "payment.recorded",
+          entity_type: "payment",
+          entity_id: "00000000-0000-0000-0000-000000000096",
+          previous_value: null,
+          new_value: null,
+          reason: "Paiement abonnement",
+          created_at: "2026-08-25T09:45:00Z",
         },
       ];
     }
@@ -777,4 +823,19 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   await expect(
     page.getByText("Hna kaybano ghir les passages li tsajlo b date w sa3a."),
   ).toBeVisible();
+
+  await navigation.getByRole("link", { name: "Journal d'audit" }).click();
+  await expect(page).toHaveURL(/\/espace\/admin\/audit$/);
+  await expect(
+    page.getByRole("heading", { name: "Historique des mouvements" }),
+  ).toBeVisible();
+  await expect(page.getByText("Demande d'inscription envoyee")).toBeVisible();
+  await expect(page.getByText("Client Journal · 12 mois")).toBeVisible();
+  await expect(page.getByText("Demande d'inscription acceptee")).toBeVisible();
+  await expect(page.getByText("Paiement enregistre")).toBeVisible();
+  await expect(page.getByText("auth.login_succeeded")).toHaveCount(0);
+  expect(auditBusinessOnly).toBe("true");
+
+  await page.getByRole("button", { name: /Demandes 2/ }).click();
+  await expect(page.getByText("Paiement enregistre")).toHaveCount(0);
 });

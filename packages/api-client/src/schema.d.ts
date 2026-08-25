@@ -5253,6 +5253,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 actor_id?: string | null;
+                business_only?: boolean;
             };
             header?: never;
             path?: never;

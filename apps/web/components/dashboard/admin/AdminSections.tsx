@@ -2,12 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  Activity,
   CalendarDays,
+  CircleDollarSign,
   ClipboardCheck,
+  Dumbbell,
+  Footprints,
   Package,
+  Settings2,
   ShoppingCart,
   UsersRound,
+  Waves,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Alert, Card, LoadingMessage } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders } from "@/lib/auth";
@@ -426,13 +433,16 @@ export function AdminSettingsSection() {
 export function AdminAuditSection() {
   const { session } = useAdminSession();
   const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [activeCategory, setActiveCategory] = useState<AuditCategory | "all">(
+    "all",
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const result = await api.GET("/api/v1/audit-logs", {
       headers: authorizationHeaders(session.accessToken),
-      params: { query: { limit: 100 } },
+      params: { query: { limit: 100, business_only: true } },
     });
     setLogs(result.data ?? []);
     setError(result.error ? "Impossible de charger le journal d'audit." : null);
@@ -444,37 +454,321 @@ export function AdminAuditSection() {
     return () => window.clearTimeout(timeoutId);
   }, [load]);
 
+  const visibleLogs = logs.filter(
+    (log) =>
+      activeCategory === "all" || auditCategory(log.action) === activeCategory,
+  );
+
   return (
     <AdminPage
       eyebrow="Tracabilite"
       title="Journal d'audit"
-      description="Consultez les operations sensibles realisees dans l'application."
+      description="Suivez les demandes, validations, paiements, reservations et autres mouvements reels du club."
     >
       <PageState loading={loading} error={error}>
         <Panel
-          title="Dernieres actions"
-          subtitle={`${logs.length} action(s) chargee(s).`}
+          title="Historique des mouvements"
+          subtitle={`${logs.length} mouvement(s) metier charge(s). Les connexions et deconnexions ne sont pas affichees.`}
         >
           {logs.length ? (
-            <div className="grid gap-3 xl:grid-cols-2">
-              {logs.map((log) => (
-                <Card key={log.id} className="p-4">
-                  <p className="text-sm font-bold text-white">{log.action}</p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {log.entity_type} · {formatDate(log.created_at)}
-                  </p>
-                  {log.reason ? (
-                    <p className="mt-2 text-xs text-gray-400">{log.reason}</p>
-                  ) : null}
-                </Card>
-              ))}
+            <div className="space-y-5">
+              <div
+                className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(140px,1fr))]"
+                role="group"
+                aria-label="Filtrer les mouvements"
+              >
+                <AuditFilterButton
+                  active={activeCategory === "all"}
+                  label="Tous"
+                  count={logs.length}
+                  onClick={() => setActiveCategory("all")}
+                />
+                {auditCategories.map((category) => (
+                  <AuditFilterButton
+                    key={category.id}
+                    active={activeCategory === category.id}
+                    label={category.label}
+                    count={
+                      logs.filter(
+                        (log) => auditCategory(log.action) === category.id,
+                      ).length
+                    }
+                    onClick={() => setActiveCategory(category.id)}
+                  />
+                ))}
+              </div>
+
+              {visibleLogs.length ? (
+                <div className="grid gap-3 xl:grid-cols-2">
+                  {visibleLogs.map((log) => {
+                    const category = auditCategoryConfig(log.action);
+                    const Icon = category.icon;
+                    return (
+                      <Card
+                        key={log.id}
+                        className="grid grid-cols-[auto_minmax(0,1fr)] gap-4 p-4 sm:p-5"
+                      >
+                        <span className="flex h-11 w-11 items-center justify-center rounded-sm bg-primary/10 text-primary">
+                          <Icon className="h-5 w-5" />
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-primary">
+                                {category.label}
+                              </p>
+                              <h3 className="mt-1 font-black text-white">
+                                {auditTitle(log.action)}
+                              </h3>
+                            </div>
+                            <span className="rounded-full border border-white/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.12em] text-gray-400">
+                              {auditActor(log.actor_role)}
+                            </span>
+                          </div>
+                          <p className="mt-3 text-sm leading-6 text-gray-300">
+                            {auditDetail(log)}
+                          </p>
+                          <p className="mt-3 text-xs text-gray-500">
+                            {auditEntity(log.entity_type)} ·{" "}
+                            {formatDate(log.created_at)}
+                          </p>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <EmptyState text="Aucun mouvement dans cette rubrique." />
+              )}
             </div>
           ) : (
-            <EmptyState text="Aucune action d'audit." />
+            <EmptyState text="Aucun mouvement metier enregistre." />
           )}
         </Panel>
       </PageState>
     </AdminPage>
+  );
+}
+
+type AuditCategory =
+  | "applications"
+  | "payments"
+  | "coaching"
+  | "recovery"
+  | "store"
+  | "access"
+  | "administration";
+
+const auditCategories: Array<{
+  id: AuditCategory;
+  label: string;
+  icon: LucideIcon;
+}> = [
+  { id: "applications", label: "Demandes", icon: ClipboardCheck },
+  { id: "payments", label: "Paiements", icon: CircleDollarSign },
+  { id: "coaching", label: "Coaching", icon: Dumbbell },
+  { id: "recovery", label: "Recovery", icon: Waves },
+  { id: "store", label: "Store", icon: Package },
+  { id: "access", label: "Entrees", icon: Footprints },
+  { id: "administration", label: "Gestion", icon: Settings2 },
+];
+
+const auditTitles: Record<string, string> = {
+  "application.submitted": "Demande d'inscription envoyee",
+  "application.approved": "Demande d'inscription acceptee",
+  "application.rejected": "Demande d'inscription refusee",
+  "application.more_information_required":
+    "Informations supplementaires demandees",
+  "application.converted_to_member": "Demande transformee en membre",
+  "payment.recorded": "Paiement enregistre",
+  "subscription.created": "Abonnement cree",
+  "subscription.status_changed": "Statut d'abonnement modifie",
+  "subscription.lifecycle_status_changed":
+    "Abonnement mis a jour automatiquement",
+  "subscription.dates_changed": "Date d'abonnement modifiee",
+  "membership_plan.created": "Formule creee",
+  "membership_plan.updated": "Formule modifiee",
+  "coaching.assignment_requested": "Demande de coach envoyee",
+  "coaching.assignment_request_decided": "Demande de coach traitee",
+  "coaching.availability_created": "Creneau coaching ajoute",
+  "coaching.availability_updated": "Creneau coaching modifie",
+  "coaching.booking_requested": "Seance coaching reservee",
+  "coaching.booking_status_updated": "Reservation coaching mise a jour",
+  "coaching.booking_rescheduled": "Seance coaching reprogrammee",
+  "coaching.member_assigned": "Coach affecte au membre",
+  "coaching.member_reassigned": "Coach du membre change",
+  "coaching.assignment_ended": "Affectation coaching terminee",
+  "coaching.objective_created": "Objectif coaching ajoute",
+  "coaching.objective_updated": "Objectif coaching modifie",
+  "coaching.assessment_recorded": "Test coaching enregistre",
+  "recovery.visit_recorded": "Passage Recovery enregistre",
+  "store.product.created": "Produit Store ajoute",
+  "store.product.updated": "Produit Store modifie",
+  "store.reservation.created": "Produit reserve par un client",
+  "store.reservation.status_updated": "Reservation Store traitee",
+  "store.sale.recorded": "Vente Store enregistree",
+  "attendance.exceptional_access": "Entree exceptionnelle autorisee",
+  "user.created": "Compte cree",
+  "user.updated": "Compte modifie",
+  "user.deleted": "Compte supprime",
+  "user.role_status_changed": "Role ou statut du compte modifie",
+  "user.activated": "Compte membre active",
+  "member.profile_updated": "Dossier membre modifie",
+  "setting.updated": "Parametre d'abonnement modifie",
+};
+
+function AuditFilterButton({
+  active,
+  label,
+  count,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  count: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={`flex items-center justify-between gap-3 rounded-sm border px-4 py-3 text-left text-xs font-black uppercase tracking-[0.1em] transition ${
+        active
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-white/10 bg-black/20 text-gray-400 hover:border-primary/35 hover:text-white"
+      }`}
+    >
+      {label}
+      <span className="rounded-full bg-white/[0.06] px-2 py-1 text-[0.62rem]">
+        {count}
+      </span>
+    </button>
+  );
+}
+
+function auditCategory(action: string): AuditCategory {
+  if (action.startsWith("application.")) return "applications";
+  if (
+    action.startsWith("payment.") ||
+    action.startsWith("subscription.") ||
+    action.startsWith("membership_plan.")
+  )
+    return "payments";
+  if (action.startsWith("coaching.")) return "coaching";
+  if (action.startsWith("recovery.")) return "recovery";
+  if (action.startsWith("store.")) return "store";
+  if (action.startsWith("attendance.")) return "access";
+  return "administration";
+}
+
+function auditCategoryConfig(action: string) {
+  return (
+    auditCategories.find(
+      (category) => category.id === auditCategory(action),
+    ) ?? {
+      id: "administration" as const,
+      label: "Gestion",
+      icon: Activity,
+    }
+  );
+}
+
+function auditTitle(action: string) {
+  return auditTitles[action] ?? "Mouvement enregistre";
+}
+
+function auditActor(role: AuditLog["actor_role"]) {
+  if (!role) return "Client / visiteur";
+  return (
+    {
+      admin: "Admin",
+      receptionist: "Reception",
+      coach: "Coach",
+      member: "Membre",
+      recovery_client: "Client Recovery",
+      cafe_employee: "Healthy Cafe",
+    }[role] ?? role
+  );
+}
+
+function auditEntity(entityType: string) {
+  return (
+    {
+      membership_application: "Demande d'inscription",
+      payment: "Paiement",
+      receipt: "Recu",
+      subscription: "Abonnement",
+      membership_plan: "Formule",
+      coaching_assignment_request: "Demande de coach",
+      coaching_booking: "Reservation coaching",
+      coaching_availability: "Creneau coaching",
+      coaching_assignment: "Affectation coaching",
+      coaching_assessment: "Test coaching",
+      coaching_client_profile: "Suivi coaching",
+      recovery_visit: "Passage Recovery",
+      store_product: "Produit Store",
+      store_reservation: "Reservation Store",
+      store_sale: "Vente Store",
+      attendance: "Entree salle",
+      user: "Compte",
+      setting: "Parametre",
+    }[entityType] ?? "Operation"
+  );
+}
+
+function auditValue(
+  value: Record<string, unknown> | null | undefined,
+  key: string,
+) {
+  const entry = value?.[key];
+  return typeof entry === "string" || typeof entry === "number"
+    ? String(entry)
+    : null;
+}
+
+function auditStatus(value: string) {
+  return (
+    {
+      pending: "En attente",
+      approved: "Acceptee",
+      rejected: "Refusee",
+      more_information_required: "Informations demandees",
+      ready: "Disponible",
+      completed: "Terminee",
+      cancelled: "Annulee",
+      active: "Actif",
+      suspended: "Suspendu",
+      expired: "Expire",
+      requested: "Demandee",
+      confirmed: "Confirmee",
+    }[value] ?? value.replaceAll("_", " ")
+  );
+}
+
+function auditDetail(log: AuditLog) {
+  const applicant = auditValue(log.new_value, "applicant_name");
+  const plan = auditValue(log.new_value, "plan_name");
+  if (applicant) {
+    return plan ? `${applicant} · ${plan}` : applicant;
+  }
+
+  const previousStatus = auditValue(log.previous_value, "status");
+  const newStatus = auditValue(log.new_value, "status");
+  if (newStatus) {
+    return previousStatus
+      ? `${auditStatus(previousStatus)} → ${auditStatus(newStatus)}`
+      : `Statut : ${auditStatus(newStatus)}`;
+  }
+
+  const previousStock = auditValue(log.previous_value, "stock_quantity");
+  const newStock = auditValue(log.new_value, "stock_quantity");
+  if (previousStock && newStock) {
+    return `Stock : ${previousStock} → ${newStock}`;
+  }
+
+  return (
+    log.reason || `${auditEntity(log.entity_type)} enregistre dans le systeme.`
   );
 }
 

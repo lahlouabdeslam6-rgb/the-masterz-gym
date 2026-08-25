@@ -18,11 +18,19 @@ class AuditRepository:
         self.session.flush()
         return entry
 
-    def list(self, *, limit: int = 100, actor_id: uuid.UUID | None = None) -> list[AuditLog]:
-        statement = select(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit)
+    def list(
+        self,
+        *,
+        limit: int = 100,
+        actor_id: uuid.UUID | None = None,
+        business_only: bool = False,
+    ) -> list[AuditLog]:
+        statement = select(AuditLog).order_by(AuditLog.created_at.desc())
         if actor_id:
             statement = statement.where(AuditLog.actor_id == actor_id)
-        return list(self.session.scalars(statement))
+        if business_only:
+            statement = statement.where(~AuditLog.action.startswith("auth."))
+        return list(self.session.scalars(statement.limit(limit)))
 
     def list_actions(self, actions: Collection[str], *, limit: int = 100) -> list[AuditLog]:
         if not actions:

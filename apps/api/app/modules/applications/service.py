@@ -34,7 +34,20 @@ class ApplicationService:
                 "inactive_plan",
                 "La formule salle sélectionnée n'est pas disponible.",
             )
-        return self.applications.add(MembershipApplication(**data.model_dump()))
+        application = self.applications.add(MembershipApplication(**data.model_dump()))
+        self.audit.record(
+            actor=None,
+            action="application.submitted",
+            entity_type="membership_application",
+            entity_id=application.id,
+            new_value={
+                "applicant_name": application.full_name,
+                "plan_name": plan.name,
+                "status": application.status.value,
+            },
+            reason="Nouvelle demande d'inscription",
+        )
+        return application
 
     def review(
         self, application_id: uuid.UUID, data: ApplicationReview, actor: User

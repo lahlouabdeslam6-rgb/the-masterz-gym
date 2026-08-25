@@ -19,5 +19,10 @@ def list_audit_logs(
     actor: Admin,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
     actor_id: uuid.UUID | None = None,
+    business_only: bool = False,
 ):
-    return AuditRepository(session).list(limit=limit, actor_id=actor_id)
+    return AuditRepository(session).list(
+        limit=limit,
+        actor_id=actor_id,
+        business_only=business_only,
+    )
