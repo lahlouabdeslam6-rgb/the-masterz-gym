@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -14,6 +15,7 @@ class ApplicationCreate(BaseModel):
     date_of_birth: date | None = None
     gender: Gender | None = None
     selected_plan_id: uuid.UUID
+    promotion_id: uuid.UUID | None = None
     fitness_objective: str | None = Field(default=None, max_length=500)
     message: str | None = Field(default=None, max_length=2000)
 
@@ -38,6 +40,11 @@ class ApplicationRead(BaseModel):
     date_of_birth: date | None
     gender: Gender | None
     selected_plan_id: uuid.UUID
+    promotion_id: uuid.UUID | None
+    promotion_title: str | None
+    promotion_price: Decimal | None
+    promotion_currency: str | None
+    promotion_participant_count: int | None
     fitness_objective: str | None
     message: str | None
     status: ApplicationStatus

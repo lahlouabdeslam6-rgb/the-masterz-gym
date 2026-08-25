@@ -433,6 +433,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/promotions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Current Promotions */
+        get: operations["list_current_promotions_api_v1_promotions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promotions/featured": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Featured Promotion */
+        get: operations["featured_promotion_api_v1_promotions_featured_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promotions/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Current Promotion */
+        get: operations["get_current_promotion_api_v1_promotions__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/promotions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Promotions */
+        get: operations["list_admin_promotions_api_v1_admin_promotions_get"];
+        put?: never;
+        /** Create Promotion */
+        post: operations["create_promotion_api_v1_admin_promotions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/promotions/{promotion_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Promotion */
+        patch: operations["update_promotion_api_v1_admin_promotions__promotion_id__patch"];
+        trace?: never;
+    };
     "/api/v1/payments/memberships": {
         parameters: {
             query?: never;
@@ -1146,6 +1232,8 @@ export interface components {
              * Format: uuid
              */
             selected_plan_id: string;
+            /** Promotion Id */
+            promotion_id?: string | null;
             /** Fitness Objective */
             fitness_objective?: string | null;
             /** Message */
@@ -1172,6 +1260,16 @@ export interface components {
              * Format: uuid
              */
             selected_plan_id: string;
+            /** Promotion Id */
+            promotion_id: string | null;
+            /** Promotion Title */
+            promotion_title: string | null;
+            /** Promotion Price */
+            promotion_price: string | null;
+            /** Promotion Currency */
+            promotion_currency: string | null;
+            /** Promotion Participant Count */
+            promotion_participant_count: number | null;
             /** Fitness Objective */
             fitness_objective: string | null;
             /** Message */
@@ -2174,6 +2272,176 @@ export interface components {
              * Format: date-time
              */
             paid_at: string;
+        };
+        /** PromotionCreate */
+        PromotionCreate: {
+            /** Title */
+            title: string;
+            /** Short Description */
+            short_description: string;
+            /** Description */
+            description: string;
+            /**
+             * Base Plan Id
+             * Format: uuid
+             */
+            base_plan_id: string;
+            /** Price */
+            price: number | string;
+            /**
+             * Currency
+             * @default MAD
+             */
+            currency: string;
+            /**
+             * Participant Count
+             * @default 1
+             */
+            participant_count: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Terms */
+            terms?: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Is Featured
+             * @default false
+             */
+            is_featured: boolean;
+        };
+        /** PromotionRead */
+        PromotionRead: {
+            /** Title */
+            title: string;
+            /** Short Description */
+            short_description: string;
+            /** Description */
+            description: string;
+            /**
+             * Base Plan Id
+             * Format: uuid
+             */
+            base_plan_id: string;
+            /** Price */
+            price: string;
+            /**
+             * Currency
+             * @default MAD
+             */
+            currency: string;
+            /**
+             * Participant Count
+             * @default 1
+             */
+            participant_count: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Terms */
+            terms?: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Is Featured
+             * @default false
+             */
+            is_featured: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Base Plan Name
+             * @default
+             */
+            base_plan_name: string;
+            /** Created By Id */
+            created_by_id: string | null;
+            /** Updated By Id */
+            updated_by_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** PromotionUpdate */
+        PromotionUpdate: {
+            /** Title */
+            title: string;
+            /** Short Description */
+            short_description: string;
+            /** Description */
+            description: string;
+            /**
+             * Base Plan Id
+             * Format: uuid
+             */
+            base_plan_id: string;
+            /** Price */
+            price: number | string;
+            /**
+             * Currency
+             * @default MAD
+             */
+            currency: string;
+            /**
+             * Participant Count
+             * @default 1
+             */
+            participant_count: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Terms */
+            terms?: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Is Featured
+             * @default false
+             */
+            is_featured: boolean;
         };
         /** RecoveryClientSummary */
         RecoveryClientSummary: {
@@ -3765,6 +4033,165 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SettingRead"][];
+                };
+            };
+        };
+    };
+    list_current_promotions_api_v1_promotions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionRead"][];
+                };
+            };
+        };
+    };
+    featured_promotion_api_v1_promotions_featured_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionRead"] | null;
+                };
+            };
+        };
+    };
+    get_current_promotion_api_v1_promotions__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_promotions_api_v1_admin_promotions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionRead"][];
+                };
+            };
+        };
+    };
+    create_promotion_api_v1_admin_promotions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromotionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_promotion_api_v1_admin_promotions__promotion_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                promotion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromotionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

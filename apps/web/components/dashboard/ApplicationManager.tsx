@@ -125,6 +125,29 @@ export function ApplicationManager({
                 </Pill>
               </div>
 
+              {application.promotion_id ? (
+                <div className="mt-4 rounded-sm border border-primary/25 bg-primary/[0.07] p-4">
+                  <p className="text-[0.65rem] font-black uppercase tracking-[0.16em] text-primary">
+                    Offre promotionnelle choisie
+                  </p>
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <p className="font-black uppercase text-white">
+                        {application.promotion_title}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">
+                        Offre pour {application.promotion_participant_count}{" "}
+                        personne(s)
+                      </p>
+                    </div>
+                    <p className="text-xl font-black text-primary">
+                      {application.promotion_price}{" "}
+                      {application.promotion_currency}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
               {application.status === "pending" ||
               application.status === "more_information_required" ||
               application.status === "approved" ? (

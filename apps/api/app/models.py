@@ -21,6 +21,7 @@ from app.modules.memberships.models import (
 )
 from app.modules.notifications.models import Notification
 from app.modules.payments.models import Payment, Receipt
+from app.modules.promotions.models import Promotion
 from app.modules.recovery.models import RecoveryVisit
 from app.modules.store.models import StoreProduct, StoreReservation, StoreSale
 from app.modules.users.models import User
@@ -41,6 +42,7 @@ __all__ = [
     "Notification",
     "OTPChallenge",
     "Payment",
+    "Promotion",
     "Receipt",
     "RefreshSession",
     "RecoveryVisit",

@@ -9,6 +9,7 @@ from app.modules.applications.repository import ApplicationRepository
 from app.modules.applications.schemas import ApplicationCreate, ApplicationReview
 from app.modules.audit.service import AuditService
 from app.modules.memberships.repository import MembershipRepository
+from app.modules.promotions.service import PromotionService
 from app.modules.users.models import User
 from app.shared.enums import ApplicationStatus, ServiceType
 
@@ -34,7 +35,25 @@ class ApplicationService:
                 "inactive_plan",
                 "La formule salle sélectionnée n'est pas disponible.",
             )
-        application = self.applications.add(MembershipApplication(**data.model_dump()))
+        promotion = None
+        if data.promotion_id:
+            promotion = PromotionService(self.session).available_for_application(data.promotion_id)
+            if promotion.base_plan_id != plan.id:
+                raise api_error(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    "promotion_plan_mismatch",
+                    "Cette offre ne correspond pas a la formule choisie.",
+                )
+        application = self.applications.add(
+            MembershipApplication(
+                **data.model_dump(exclude={"promotion_id"}),
+                promotion_id=promotion.id if promotion else None,
+                promotion_title=promotion.title if promotion else None,
+                promotion_price=promotion.price if promotion else None,
+                promotion_currency=promotion.currency if promotion else None,
+                promotion_participant_count=(promotion.participant_count if promotion else None),
+            )
+        )
         self.audit.record(
             actor=None,
             action="application.submitted",
@@ -43,6 +62,7 @@ class ApplicationService:
             new_value={
                 "applicant_name": application.full_name,
                 "plan_name": plan.name,
+                "promotion_title": promotion.title if promotion else None,
                 "status": application.status.value,
             },
             reason="Nouvelle demande d'inscription",

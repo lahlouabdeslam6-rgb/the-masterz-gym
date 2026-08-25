@@ -84,6 +84,17 @@ class PaymentService:
                 "Le nombre de seances de cette offre recovery doit etre configure.",
             )
 
+        charged_price = (
+            application.promotion_price
+            if application and application.promotion_price is not None
+            else plan.price
+        )
+        charged_plan_name = (
+            f"{plan.name} · {application.promotion_title}"
+            if application and application.promotion_title
+            else plan.name
+        )
+
         starts_on = self._resolve_start_date(member, data.starts_on, plan.service_type)
         ends_on = add_months(starts_on, plan.duration_months) - timedelta(days=1)
         grace_days = self.membership_service.get_setting_int("subscription_grace_days")
@@ -95,9 +106,9 @@ class PaymentService:
                 starts_on=starts_on,
                 ends_on=ends_on,
                 grace_ends_on=ends_on + timedelta(days=grace_days),
-                plan_name=plan.name,
+                plan_name=charged_plan_name,
                 duration_months=plan.duration_months,
-                price=plan.price,
+                price=charged_price,
                 currency=plan.currency,
                 service_type=plan.service_type,
                 total_sessions=(
@@ -128,7 +139,7 @@ class PaymentService:
                 idempotency_key=data.idempotency_key,
                 member_id=member.id,
                 subscription_id=subscription.id,
-                amount=plan.price,
+                amount=charged_price,
                 currency=plan.currency,
                 method=data.method,
                 bank_transfer_reference=data.bank_transfer_reference,
@@ -158,6 +169,12 @@ class PaymentService:
                 "subscription_id": str(subscription.id),
                 "service_type": subscription.service_type.value,
                 "receipt_number": receipt.receipt_number,
+                "promotion_id": (
+                    str(application.promotion_id)
+                    if application and application.promotion_id
+                    else None
+                ),
+                "promotion_title": (application.promotion_title if application else None),
             },
         )
         self.audit.record(

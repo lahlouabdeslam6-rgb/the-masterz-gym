@@ -28,6 +28,7 @@ import { CoachingManager } from "../CoachingManager";
 import { StaffCoachingAssignmentRequests } from "../CoachingAssignmentRequests";
 import { CoachingScheduleManager } from "../CoachingScheduleManager";
 import { ComplaintCenter } from "../ComplaintCenter";
+import { PromotionManager } from "../PromotionManager";
 import { RecoveryManager } from "../RecoveryManager";
 import { StaffMemberManager } from "../StaffMemberManager";
 import { AdminStoreManager, StaffStoreManager } from "../StoreManager";
@@ -168,6 +169,24 @@ export function AdminPlansSection() {
           <AdminPlanManager session={session} plans={plans} onReload={load} />
         </Panel>
       </PageState>
+    </AdminPage>
+  );
+}
+
+export function AdminPromotionsSection() {
+  const { session } = useAdminSession();
+  return (
+    <AdminPage
+      eyebrow="Campagnes commerciales"
+      title="Promotions"
+      description="Creez des offres temporaires sans modifier les prix fixes des formules d'abonnement."
+    >
+      <Panel
+        title="Offres promotionnelles"
+        subtitle="Une seule offre active peut etre mise en avant dans le banner du site."
+      >
+        <PromotionManager session={session} />
+      </Panel>
     </AdminPage>
   );
 }
@@ -615,6 +634,8 @@ const auditTitles: Record<string, string> = {
   "user.activated": "Compte membre active",
   "member.profile_updated": "Dossier membre modifie",
   "setting.updated": "Parametre d'abonnement modifie",
+  "promotion.created": "Offre promotionnelle creee",
+  "promotion.updated": "Offre promotionnelle modifiee",
 };
 
 function AuditFilterButton({
@@ -713,6 +734,7 @@ function auditEntity(entityType: string) {
       attendance: "Entree salle",
       user: "Compte",
       setting: "Parametre",
+      promotion: "Offre promotionnelle",
     }[entityType] ?? "Operation"
   );
 }

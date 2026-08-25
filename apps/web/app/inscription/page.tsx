@@ -3,7 +3,8 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Megaphone, UsersRound } from "lucide-react";
+import type { components } from "@masterz/api-client";
 import {
   Alert,
   Button,
@@ -22,10 +23,14 @@ type PlanOption = {
   currency?: string;
 };
 
+type Promotion = components["schemas"]["PromotionRead"];
+
 function InscriptionContent() {
   const searchParams = useSearchParams();
   const preselectedPlanId = searchParams.get("plan");
+  const promotionId = searchParams.get("promotion");
   const [plans, setPlans] = useState<PlanOption[]>([]);
+  const [promotion, setPromotion] = useState<Promotion | null>(null);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [formData, setFormData] = useState({
     full_name: "",
@@ -43,15 +48,30 @@ function InscriptionContent() {
     let active = true;
     async function fetchPlans() {
       try {
-        const { data } = await api.GET("/api/v1/membership-plans", {
-          params: { query: { active_only: true, service_type: "gym" } },
-        });
+        const [plansResult, promotionsResult] = await Promise.all([
+          api.GET("/api/v1/membership-plans", {
+            params: { query: { active_only: true, service_type: "gym" } },
+          }),
+          promotionId
+            ? api.GET("/api/v1/promotions")
+            : Promise.resolve({ data: [] as Promotion[] }),
+        ]);
+        const data = plansResult.data;
         if (active && data) {
           const sortedPlans = [...data].sort(
             (a, b) => Number(a.price) - Number(b.price),
           );
+          const selectedPromotion =
+            promotionsResult.data?.find((item) => item.id === promotionId) ??
+            null;
           setPlans(sortedPlans);
-          if (!preselectedPlanId && sortedPlans.length > 0) {
+          setPromotion(selectedPromotion);
+          if (selectedPromotion) {
+            setFormData((current) => ({
+              ...current,
+              selected_plan_id: selectedPromotion.base_plan_id,
+            }));
+          } else if (!preselectedPlanId && sortedPlans.length > 0) {
             setFormData((current) => ({
               ...current,
               selected_plan_id: sortedPlans[0].id,
@@ -66,7 +86,7 @@ function InscriptionContent() {
     return () => {
       active = false;
     };
-  }, [preselectedPlanId]);
+  }, [preselectedPlanId, promotionId]);
 
   function handleChange(
     event: React.ChangeEvent<
@@ -94,6 +114,7 @@ function InscriptionContent() {
             date_of_birth: formData.date_of_birth || null,
             gender: formData.gender as "female" | "male",
             selected_plan_id: formData.selected_plan_id,
+            promotion_id: promotion?.id ?? null,
           },
         },
       );
@@ -134,6 +155,28 @@ function InscriptionContent() {
       description="Choisissez votre formule et partagez votre objectif. L’équipe finalisera l’adhésion avec vous à l’accueil."
     >
       {error ? <Alert type="error" message={error} className="mb-6" /> : null}
+      {promotion ? (
+        <div className="mb-6 rounded-lg border border-primary/30 bg-primary/[0.08] p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="flex items-center gap-2 text-[0.68rem] font-black uppercase tracking-[0.17em] text-primary">
+                <Megaphone className="h-4 w-4" /> Offre selectionnee
+              </p>
+              <p className="mt-2 text-xl font-black uppercase text-white">
+                {promotion.title}
+              </p>
+              <p className="mt-1 flex items-center gap-2 text-sm text-gray-400">
+                <UsersRound className="h-4 w-4" />
+                {promotion.participant_count} personne(s) ·{" "}
+                {promotion.base_plan_name}
+              </p>
+            </div>
+            <p className="text-2xl font-black text-primary">
+              {promotion.price} {promotion.currency}
+            </p>
+          </div>
+        </div>
+      ) : null}
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Nom complet *" id="full_name">
@@ -187,6 +230,7 @@ function InscriptionContent() {
                 id="selected_plan_id"
                 className="h-12 w-full rounded-sm border border-white/15 bg-[#071018] px-4 text-sm text-white outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 required
+                disabled={Boolean(promotion)}
                 value={formData.selected_plan_id}
                 onChange={handleChange}
               >

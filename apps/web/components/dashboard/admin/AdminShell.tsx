@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   MessageSquareWarning,
+  Megaphone,
   ShoppingBag,
   Settings2,
   ShieldCheck,
@@ -46,6 +47,7 @@ const navigation = [
   { label: "Coachs", href: "/espace/admin/coachs", icon: Dumbbell },
   { label: "Demandes", href: "/espace/admin/demandes", icon: ClipboardCheck },
   { label: "Formules", href: "/espace/admin/formules", icon: CreditCard },
+  { label: "Promotions", href: "/espace/admin/promotions", icon: Megaphone },
   {
     label: "Paiements",
     href: "/espace/admin/paiements",

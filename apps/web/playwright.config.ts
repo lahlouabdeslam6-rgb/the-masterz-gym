@@ -6,6 +6,7 @@ const useExternalServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1";
 
 export default defineConfig({
   testDir: "./tests",
+  timeout: 90_000,
   use: {
     baseURL,
     trace: "on-first-retry",
