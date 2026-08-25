@@ -13,6 +13,10 @@ import {
 import type { components } from "@masterz/api-client";
 import { Alert, LoadingMessage, buttonStyles } from "@masterz/ui";
 import { api } from "@/lib/api";
+import {
+  currentSubscriptionFor,
+  useMemberSubscriptions,
+} from "@/lib/member-subscriptions";
 
 type Promotion = components["schemas"]["PromotionRead"];
 
@@ -21,6 +25,8 @@ export default function PromotionPage() {
   const [promotion, setPromotion] = useState<Promotion | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const { subscriptions } = useMemberSubscriptions();
+  const currentGymSubscription = currentSubscriptionFor(subscriptions, "gym");
 
   useEffect(() => {
     let active = true;
@@ -125,12 +131,38 @@ export default function PromotionPage() {
               <p>{promotion.terms}</p>
             </div>
           ) : null}
-          <Link
-            href={registrationHref}
-            className={buttonStyles({ size: "lg", className: "mt-8 w-full" })}
-          >
-            Choisir cette offre <ArrowRight className="h-4 w-4" />
-          </Link>
+          {currentGymSubscription ? (
+            <div className="mt-8 rounded-lg border border-emerald-300/30 bg-emerald-300/[0.07] p-5">
+              <p className="font-black uppercase text-emerald-200">
+                Votre abonnement salle est deja paye
+              </p>
+              <p className="mt-2 text-sm leading-6 text-gray-400">
+                {currentGymSubscription.plan_name} reste valide jusqu&apos;au{" "}
+                {currentGymSubscription.ends_on}. Cette offre ne peut pas etre
+                ajoutee une deuxieme fois maintenant.
+              </p>
+              <Link
+                href="/espace/membre"
+                className={buttonStyles({
+                  variant: "outline",
+                  size: "lg",
+                  className: "mt-5 w-full",
+                })}
+              >
+                Voir mon abonnement <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          ) : (
+            <Link
+              href={registrationHref}
+              className={buttonStyles({
+                size: "lg",
+                className: "mt-8 w-full",
+              })}
+            >
+              Choisir cette offre <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
           <p className="mt-4 text-center text-xs leading-5 text-gray-500">
             La Reception confirme le paiement et finalise l’adhesion.
           </p>

@@ -9,9 +9,17 @@ from app.modules.applications.repository import ApplicationRepository
 from app.modules.applications.schemas import ApplicationCreate, ApplicationReview
 from app.modules.audit.service import AuditService
 from app.modules.memberships.repository import MembershipRepository
+from app.modules.memberships.service import MembershipService
 from app.modules.promotions.service import PromotionService
 from app.modules.users.models import User
-from app.shared.enums import ApplicationStatus, ServiceType
+from app.modules.users.repository import UserRepository
+from app.shared.enums import (
+    ApplicationStatus,
+    ServiceType,
+    SubscriptionStatus,
+    UserRole,
+)
+from app.shared.time import local_today
 
 REVIEWABLE_STATUSES = {
     ApplicationStatus.PENDING,
@@ -25,6 +33,8 @@ class ApplicationService:
         self.session = session
         self.applications = ApplicationRepository(session)
         self.plans = MembershipRepository(session)
+        self.membership_service = MembershipService(session)
+        self.users = UserRepository(session)
         self.audit = AuditService(session)
 
     def submit(self, data: ApplicationCreate) -> MembershipApplication:
@@ -35,6 +45,23 @@ class ApplicationService:
                 "inactive_plan",
                 "La formule salle sélectionnée n'est pas disponible.",
             )
+        existing_member = self.users.by_phone(data.phone)
+        if existing_member and existing_member.role == UserRole.MEMBER:
+            current = self.plans.current_subscription(
+                existing_member.id,
+                local_today(),
+                ServiceType.GYM,
+            )
+            if current and self.membership_service.effective_status(current) not in {
+                SubscriptionStatus.SUSPENDED,
+                SubscriptionStatus.EXPIRED,
+                SubscriptionStatus.CANCELLED,
+            }:
+                raise api_error(
+                    status.HTTP_409_CONFLICT,
+                    "active_subscription",
+                    "Ce membre a deja paye un abonnement salle encore valide.",
+                )
         promotion = None
         if data.promotion_id:
             promotion = PromotionService(self.session).available_for_application(data.promotion_id)

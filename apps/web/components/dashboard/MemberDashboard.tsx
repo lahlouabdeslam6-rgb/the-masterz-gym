@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
   Bell,
+  ArrowUpRight,
   CalendarCheck,
   CalendarDays,
   CreditCard,
@@ -16,8 +18,12 @@ import {
   UserRound,
   Waves,
 } from "lucide-react";
-import { Card, Pill } from "@masterz/ui";
+import { Card, Pill, buttonStyles } from "@masterz/ui";
 import type { AuthSession } from "@/lib/auth";
+import {
+  isCurrentSubscription,
+  latestSubscriptionFor,
+} from "@/lib/member-subscriptions";
 import { ReceiptSummary } from "./ApplicationManager";
 import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 import { CoachingScheduleManager } from "./CoachingScheduleManager";
@@ -482,10 +488,90 @@ function SubscriptionsPanel({
 }: {
   subscriptions: Subscription[];
 }) {
+  const services = [
+    {
+      id: "gym" as const,
+      label: "Salle musculation",
+      href: "/abonnements",
+    },
+    { id: "coaching" as const, label: "Coaching", href: "/coaching" },
+    { id: "recovery" as const, label: "Recovery", href: "/recovery" },
+  ];
+
   return (
-    <Panel title="Mes abonnements" subtitle="Formules, dates et statut actuel.">
+    <Panel
+      title="Mes abonnements"
+      subtitle="Voyez directement ce qui est actif, termine ou disponible au renouvellement."
+    >
+      <div className="grid gap-4 xl:grid-cols-3">
+        {services.map((service) => {
+          const latest = latestSubscriptionFor(subscriptions, service.id);
+          const current = latest ? isCurrentSubscription(latest) : false;
+          const recoveryFinished =
+            latest?.service_type === "recovery" &&
+            latest.remaining_sessions === 0;
+          const displayStatus = current
+            ? "Deja paye et actif"
+            : latest
+              ? recoveryFinished
+                ? "Seances terminees"
+                : "Abonnement termine"
+              : "Pas encore souscrit";
+
+          return (
+            <Card
+              key={service.id}
+              data-testid={`member-service-${service.id}`}
+              className={`flex flex-col p-5 ${
+                current
+                  ? "border-emerald-300/25 bg-emerald-300/[0.05]"
+                  : "border-white/10"
+              }`}
+            >
+              <p className="text-[0.65rem] font-black uppercase tracking-[0.16em] text-primary">
+                {service.label}
+              </p>
+              <p className="mt-3 text-xl font-black text-white">
+                {displayStatus}
+              </p>
+              <p className="mt-2 min-h-12 text-sm leading-6 text-gray-500">
+                {latest ? (
+                  <>
+                    {latest.plan_name}
+                    {current
+                      ? ` · valide jusqu'au ${latest.ends_on}`
+                      : " · vous pouvez choisir une nouvelle formule"}
+                  </>
+                ) : (
+                  "Consultez les formules disponibles sur le site."
+                )}
+              </p>
+              {latest?.service_type === "recovery" ? (
+                <p className="mt-3 text-sm font-black text-emerald-200">
+                  {latest.remaining_sessions ?? "-"} /{" "}
+                  {latest.total_sessions ?? "-"} seance(s) restante(s)
+                </p>
+              ) : null}
+              <Link
+                href={current ? "/espace/membre" : service.href}
+                className={buttonStyles({
+                  variant: "outline",
+                  className: "mt-5 w-full",
+                })}
+              >
+                {current ? "Abonnement deja actif" : "Voir les offres"}
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </Card>
+          );
+        })}
+      </div>
+
+      <h3 className="mt-8 text-sm font-black uppercase tracking-[0.14em] text-white">
+        Historique detaille
+      </h3>
       {subscriptions.length ? (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
           {subscriptions.map((subscription) => (
             <Card key={subscription.id} className="p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -519,7 +605,9 @@ function SubscriptionsPanel({
           ))}
         </div>
       ) : (
-        <EmptyState text="Aucun abonnement enregistre sur ce compte." />
+        <div className="mt-4">
+          <EmptyState text="Aucun abonnement enregistre sur ce compte." />
+        </div>
       )}
     </Panel>
   );

@@ -15,6 +15,10 @@ import {
 } from "@masterz/ui";
 import { AuthShell } from "@/components/AuthShell";
 import { api } from "@/lib/api";
+import {
+  currentSubscriptionFor,
+  useMemberSubscriptions,
+} from "@/lib/member-subscriptions";
 
 type PlanOption = {
   id: string;
@@ -43,6 +47,8 @@ function InscriptionContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const { subscriptions } = useMemberSubscriptions();
+  const currentGymSubscription = currentSubscriptionFor(subscriptions, "gym");
 
   useEffect(() => {
     let active = true;
@@ -143,6 +149,44 @@ function InscriptionContent() {
         </div>
         <Link href="/" className={buttonStyles({ className: "mt-6 w-full" })}>
           Retour à l’accueil
+        </Link>
+      </AuthShell>
+    );
+  }
+
+  if (currentGymSubscription) {
+    return (
+      <AuthShell
+        eyebrow="Abonnement deja actif"
+        title="Votre abonnement salle est deja paye."
+        description="Vous ne devez pas envoyer une deuxieme demande tant que cette formule est encore valide."
+      >
+        <div className="rounded-lg border border-emerald-400/25 bg-emerald-400/[0.07] p-6">
+          <p className="text-sm font-black uppercase tracking-[0.12em] text-emerald-300">
+            {currentGymSubscription.plan_name}
+          </p>
+          <p className="mt-3 text-sm leading-6 text-gray-300">
+            Votre abonnement reste valable jusqu&apos;au{" "}
+            <strong className="text-white">
+              {currentGymSubscription.ends_on}
+            </strong>
+            .
+          </p>
+        </div>
+        <Link
+          href="/espace/membre"
+          className={buttonStyles({ className: "mt-6 w-full" })}
+        >
+          Voir mon abonnement
+        </Link>
+        <Link
+          href="/abonnements"
+          className={buttonStyles({
+            variant: "outline",
+            className: "mt-3 w-full",
+          })}
+        >
+          Retour aux formules
         </Link>
       </AuthShell>
     );

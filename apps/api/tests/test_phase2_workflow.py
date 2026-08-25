@@ -941,6 +941,18 @@ def test_application_payment_attendance_and_audit_workflow(
     assert subscriptions.status_code == 200
     assert len(subscriptions.json()) == 1
 
+    duplicate_application = client.post(
+        "/api/v1/membership-applications",
+        json={
+            "full_name": "Membre Test Phase Deux",
+            "phone": phone,
+            "email": "phase2@example.com",
+            "selected_plan_id": plan["id"],
+        },
+    )
+    assert duplicate_application.status_code == 409
+    assert duplicate_application.json()["detail"]["code"] == "active_subscription"
+
     check_in = client.post(
         "/api/v1/attendance/check-ins",
         headers=reception_headers,

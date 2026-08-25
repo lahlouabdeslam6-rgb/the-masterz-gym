@@ -158,7 +158,9 @@ test("le membre reserve un produit depuis son espace", async ({ page }) => {
     let body: unknown = [];
     let status = 200;
     if (url.pathname === "/api/v1/users/me") body = member;
-    if (url.pathname === "/api/v1/store/products") body = [product()];
+    if (url.pathname === "/api/v1/store/catalog") {
+      body = [{ ...product(), is_available: true }];
+    }
     if (url.pathname === "/api/v1/store/reservations") {
       if (route.request().method() === "POST") {
         reservationBody = route.request().postDataJSON();
@@ -219,8 +221,18 @@ test("le membre reserve un produit depuis son espace", async ({ page }) => {
     page.getByRole("heading", { name: "Masterz Store" }),
   ).toBeVisible();
   await expect(page.getByText("Whey Protein Masterz").first()).toBeVisible();
-  await page.getByLabel("Quantite Whey Protein Masterz").fill("2");
-  await page.getByRole("button", { name: "Reserver" }).click();
+  await expect(
+    page.getByText("Proteine disponible au Masterz Store.", { exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Voir le produit" }).click();
+  const productDialog = page.getByRole("dialog");
+  await expect(
+    productDialog.getByText("Proteine disponible au Masterz Store."),
+  ).toBeVisible();
+  await productDialog.getByLabel("Quantite Whey Protein Masterz").fill("2");
+  await productDialog
+    .getByRole("button", { name: "Reserver ce produit" })
+    .click();
   await expect(
     page.getByText("Reservation envoyee a la Reception."),
   ).toBeVisible();

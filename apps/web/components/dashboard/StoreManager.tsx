@@ -24,6 +24,7 @@ import type { components } from "@masterz/api-client";
 import { Alert, Button, Card, Input, Pill } from "@masterz/ui";
 import { api, apiBaseUrl, authenticatedFetch } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import { PublicStoreCatalog } from "@/components/PublicStoreCatalog";
 import {
   DashboardTabs,
   EmptyState,
@@ -381,29 +382,19 @@ function ProductEditor({
 
 export function MemberStoreManager({ session }: { session: AuthSession }) {
   const headers = useStoreHeaders(session);
-  const [products, setProducts] = useState<Product[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const load = useCallback(
     async (preserveFeedback = false) => {
-      const [productsResult, reservationsResult] = await Promise.all([
-        api.GET("/api/v1/store/products", {
-          headers,
-          params: { query: { active_only: true } },
-        }),
-        api.GET("/api/v1/store/reservations", {
-          headers,
-          params: { query: { limit: 100 } },
-        }),
-      ]);
-      setProducts(productsResult.data ?? []);
+      const reservationsResult = await api.GET("/api/v1/store/reservations", {
+        headers,
+        params: { query: { limit: 100 } },
+      });
       setReservations(reservationsResult.data ?? []);
-      if (productsResult.error || reservationsResult.error) {
-        setFeedback("Le Store n'a pas pu etre charge completement.");
+      if (reservationsResult.error) {
+        setFeedback("Les reservations n'ont pas pu etre chargees.");
       } else if (!preserveFeedback) {
         setFeedback(null);
       }
@@ -417,23 +408,6 @@ export function MemberStoreManager({ session }: { session: AuthSession }) {
     return () => window.clearTimeout(timeoutId);
   }, [load]);
 
-  async function reserve(product: Product) {
-    const quantity = quantities[product.id] ?? 1;
-    setBusyId(product.id);
-    setFeedback(null);
-    const result = await api.POST("/api/v1/store/reservations", {
-      headers,
-      body: { product_id: product.id, quantity },
-    });
-    setBusyId(null);
-    if (!result.data) {
-      setFeedback("La reservation n'a pas pu etre envoyee. Verifiez le stock.");
-      return;
-    }
-    setFeedback("Reservation envoyee a la Reception.");
-    await load(true);
-  }
-
   if (loading) {
     return (
       <p className="py-8 text-center text-sm text-gray-500">Chargement...</p>
@@ -442,64 +416,10 @@ export function MemberStoreManager({ session }: { session: AuthSession }) {
   return (
     <div className="space-y-8">
       {feedback ? <Alert type="info" message={feedback} /> : null}
-      {products.length ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {products.map((product) => {
-            const quantity = quantities[product.id] ?? 1;
-            return (
-              <Card key={product.id} className="overflow-hidden">
-                <ProductVisual product={product} large />
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-lg font-black text-white">
-                        {product.name}
-                      </h3>
-                      <p className="mt-1 text-sm font-black text-primary">
-                        {product.price} {product.currency}
-                      </p>
-                    </div>
-                    <Pill>{product.stock_quantity} en stock</Pill>
-                  </div>
-                  {product.description ? (
-                    <p className="mt-4 text-sm leading-6 text-gray-500">
-                      {product.description}
-                    </p>
-                  ) : null}
-                  <div className="mt-5 grid grid-cols-[100px_1fr] gap-3">
-                    <Input
-                      aria-label={`Quantite ${product.name}`}
-                      type="number"
-                      min="1"
-                      max={product.stock_quantity}
-                      value={quantity}
-                      onChange={(event) =>
-                        setQuantities((current) => ({
-                          ...current,
-                          [product.id]: Number(event.target.value),
-                        }))
-                      }
-                    />
-                    <Button
-                      disabled={
-                        product.stock_quantity === 0 ||
-                        quantity < 1 ||
-                        quantity > product.stock_quantity ||
-                        busyId === product.id
-                      }
-                      onClick={() => void reserve(product)}
-                    >
-                      <ShoppingBag className="h-4 w-4" /> Reserver
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      ) : (
-        <EmptyState text="Aucun produit disponible pour le moment." />
-      )}
+      <PublicStoreCatalog
+        memberSession={session}
+        onReservationCreated={() => load(true)}
+      />
 
       <div>
         <h3 className="text-xl font-black text-white">Mes reservations</h3>

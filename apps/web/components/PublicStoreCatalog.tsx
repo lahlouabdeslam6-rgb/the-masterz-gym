@@ -16,15 +16,21 @@ import {
   X,
 } from "lucide-react";
 import type { components } from "@masterz/api-client";
-import { buttonStyles } from "@masterz/ui";
+import { Alert, Button, Input, buttonStyles } from "@masterz/ui";
 import { api, apiBaseUrl } from "@/lib/api";
-import { getSession, type AuthSession } from "@/lib/auth";
+import { authorizationHeaders, getSession, type AuthSession } from "@/lib/auth";
 
 type CatalogProduct = components["schemas"]["StoreCatalogProductRead"];
 type AvailabilityFilter = "all" | "available" | "unavailable";
 type PriceSort = "default" | "price-asc" | "price-desc";
 
-export function PublicStoreCatalog() {
+export function PublicStoreCatalog({
+  memberSession,
+  onReservationCreated,
+}: {
+  memberSession?: AuthSession;
+  onReservationCreated?: () => Promise<void> | void;
+} = {}) {
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,6 +40,11 @@ export function PublicStoreCatalog() {
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
   const [priceSort, setPriceSort] = useState<PriceSort>("default");
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(
+    null,
+  );
+  const [quantity, setQuantity] = useState(1);
+  const [reserving, setReserving] = useState(false);
+  const [reservationFeedback, setReservationFeedback] = useState<string | null>(
     null,
   );
 
@@ -95,6 +106,32 @@ export function PublicStoreCatalog() {
     };
   }, [selectedProduct]);
 
+  const resolvedSession = memberSession ?? session;
+  const isMember = resolvedSession?.user.role === "member";
+
+  async function reserveSelectedProduct() {
+    if (!selectedProduct || !resolvedSession || !isMember || quantity < 1)
+      return;
+
+    setReserving(true);
+    setReservationFeedback(null);
+    const result = await api.POST("/api/v1/store/reservations", {
+      headers: authorizationHeaders(resolvedSession.accessToken),
+      body: { product_id: selectedProduct.id, quantity },
+    });
+    setReserving(false);
+
+    if (!result.data) {
+      setReservationFeedback(
+        "La reservation n'a pas pu etre envoyee. Verifiez la quantite disponible.",
+      );
+      return;
+    }
+
+    setReservationFeedback("Reservation envoyee a la Reception.");
+    await onReservationCreated?.();
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-64 items-center justify-center text-sm font-bold uppercase tracking-[0.12em] text-gray-500">
@@ -133,13 +170,6 @@ export function PublicStoreCatalog() {
     );
   }
 
-  const reservationHref =
-    session?.user.role === "member" ? "/espace/membre" : "/connexion";
-  const reservationLabel =
-    session?.user.role === "member"
-      ? "Reserver dans mon espace"
-      : "Se connecter pour reserver";
-
   const filtersAreActive =
     query !== "" || availability !== "all" || priceSort !== "default";
 
@@ -147,6 +177,12 @@ export function PublicStoreCatalog() {
     setQuery("");
     setAvailability("all");
     setPriceSort("default");
+  }
+
+  function openProduct(product: CatalogProduct) {
+    setQuantity(1);
+    setReservationFeedback(null);
+    setSelectedProduct(product);
   }
 
   return (
@@ -246,7 +282,7 @@ export function PublicStoreCatalog() {
                   type="button"
                   className="block w-full overflow-hidden text-left"
                   aria-label={`Voir ${product.name}`}
-                  onClick={() => setSelectedProduct(product)}
+                  onClick={() => openProduct(product)}
                 >
                   <CatalogMedia product={product} size="card" />
                 </button>
@@ -274,7 +310,7 @@ export function PublicStoreCatalog() {
                       variant: "outline",
                       className: "mt-6 w-full",
                     })}
-                    onClick={() => setSelectedProduct(product)}
+                    onClick={() => openProduct(product)}
                   >
                     <Eye className="h-4 w-4" />
                     Voir le produit
@@ -307,9 +343,12 @@ export function PublicStoreCatalog() {
       {selectedProduct ? (
         <ProductDetails
           product={selectedProduct}
-          reservationHref={reservationHref}
-          reservationLabel={reservationLabel}
-          isMember={session?.user.role === "member"}
+          isMember={isMember}
+          quantity={quantity}
+          reserving={reserving}
+          reservationFeedback={reservationFeedback}
+          onQuantityChange={setQuantity}
+          onReserve={() => void reserveSelectedProduct()}
           onClose={() => setSelectedProduct(null)}
         />
       ) : null}
@@ -319,15 +358,21 @@ export function PublicStoreCatalog() {
 
 function ProductDetails({
   product,
-  reservationHref,
-  reservationLabel,
   isMember,
+  quantity,
+  reserving,
+  reservationFeedback,
+  onQuantityChange,
+  onReserve,
   onClose,
 }: {
   product: CatalogProduct;
-  reservationHref: string;
-  reservationLabel: string;
   isMember: boolean;
+  quantity: number;
+  reserving: boolean;
+  reservationFeedback: string | null;
+  onQuantityChange: (quantity: number) => void;
+  onReserve: () => void;
   onClose: () => void;
 }) {
   return (
@@ -386,18 +431,52 @@ function ProductDetails({
                 {product.description || "Produit disponible au Masterz Store."}
               </p>
             </div>
+            {reservationFeedback ? (
+              <Alert
+                type={
+                  reservationFeedback.startsWith("Reservation envoyee")
+                    ? "success"
+                    : "error"
+                }
+                message={reservationFeedback}
+                className="mt-7"
+              />
+            ) : null}
             {product.is_available ? (
-              <Link
-                href={reservationHref}
-                className={buttonStyles({ className: "mt-9 w-full" })}
-              >
-                {isMember ? (
-                  <ShoppingBag className="h-4 w-4" />
-                ) : (
+              isMember ? (
+                <div className="mt-9 grid gap-3 sm:grid-cols-[8rem_minmax(0,1fr)]">
+                  <label>
+                    <span className="mb-2 block text-[0.65rem] font-black uppercase tracking-[0.16em] text-gray-500">
+                      Quantite
+                    </span>
+                    <Input
+                      aria-label={`Quantite ${product.name}`}
+                      type="number"
+                      min="1"
+                      value={quantity}
+                      onChange={(event) =>
+                        onQuantityChange(Number(event.target.value))
+                      }
+                    />
+                  </label>
+                  <Button
+                    className="self-end"
+                    disabled={reserving || quantity < 1}
+                    onClick={onReserve}
+                  >
+                    <ShoppingBag className="h-4 w-4" />
+                    {reserving ? "Envoi..." : "Reserver ce produit"}
+                  </Button>
+                </div>
+              ) : (
+                <Link
+                  href="/connexion"
+                  className={buttonStyles({ className: "mt-9 w-full" })}
+                >
                   <LogIn className="h-4 w-4" />
-                )}
-                {reservationLabel}
-              </Link>
+                  Se connecter pour reserver
+                </Link>
+              )
             ) : (
               <span className="mt-9 flex h-12 w-full items-center justify-center rounded-sm border border-red-400/20 bg-red-400/5 text-xs font-black uppercase tracking-[0.08em] text-red-300">
                 Rupture de stock

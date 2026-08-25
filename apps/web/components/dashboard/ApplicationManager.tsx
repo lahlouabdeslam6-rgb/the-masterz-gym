@@ -15,6 +15,16 @@ import {
   statusLabels,
 } from "./dashboard-shared";
 
+function apiErrorMessage(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object") return fallback;
+  const detail = "detail" in error ? error.detail : null;
+  if (detail && typeof detail === "object" && "message" in detail) {
+    const message = detail.message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+  return fallback;
+}
+
 function todayInputValue() {
   const today = new Date();
   const year = today.getFullYear();
@@ -65,8 +75,13 @@ export function ApplicationManager({
     );
     setFeedback(
       result.data
-        ? "Demande mise à jour."
-        : "La demande ne peut pas être mise à jour.",
+        ? status === "approved"
+          ? "Demande acceptee. Enregistrez maintenant le paiement et la date de debut."
+          : "Demande mise a jour."
+        : apiErrorMessage(
+            result.error,
+            "La demande ne peut pas etre mise a jour.",
+          ),
     );
     setBusyId(null);
     if (result.data) await onReload();
@@ -92,7 +107,12 @@ export function ApplicationManager({
       setFeedback("Paiement enregistré et reçu généré.");
       await onReload();
     } else {
-      setFeedback("Le paiement n’a pas pu être enregistré.");
+      setFeedback(
+        apiErrorMessage(
+          result.error,
+          "Le paiement n'a pas pu etre enregistre.",
+        ),
+      );
     }
   }
 
@@ -149,8 +169,7 @@ export function ApplicationManager({
               ) : null}
 
               {application.status === "pending" ||
-              application.status === "more_information_required" ||
-              application.status === "approved" ? (
+              application.status === "more_information_required" ? (
                 <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
                   <Input
                     placeholder="Motif si refus ou informations requises"
@@ -168,7 +187,7 @@ export function ApplicationManager({
                       onClick={() => review(application.id, "approved")}
                       disabled={busyId === application.id}
                     >
-                      <Check className="h-4 w-4" /> Approuver
+                      <Check className="h-4 w-4" /> Accepter la demande
                     </Button>
                     <Button
                       size="sm"
@@ -193,42 +212,54 @@ export function ApplicationManager({
               ) : null}
 
               {application.status === "approved" ? (
-                <div className="mt-4 grid gap-3 border-t border-primary/20 pt-4 sm:grid-cols-2">
-                  <Field label="Mode de paiement">
-                    <select
-                      className={selectClass}
-                      value={method}
-                      onChange={(event) =>
-                        setMethods((current) => ({
-                          ...current,
-                          [application.id]: event.target.value as typeof method,
-                        }))
-                      }
+                <div className="mt-4 space-y-4 border-t border-primary/20 pt-4">
+                  <div className="rounded-sm border border-emerald-300/30 bg-emerald-300/[0.07] p-4">
+                    <p className="font-black uppercase text-emerald-200">
+                      Demande acceptee
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-gray-400">
+                      L&apos;etape suivante est l&apos;encaissement. Le compte
+                      membre sera cree apres le paiement.
+                    </p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Mode de paiement">
+                      <select
+                        className={selectClass}
+                        value={method}
+                        onChange={(event) =>
+                          setMethods((current) => ({
+                            ...current,
+                            [application.id]: event.target
+                              .value as typeof method,
+                          }))
+                        }
+                      >
+                        <option value="cash">Espèces</option>
+                        <option value="bank_card">Carte bancaire</option>
+                      </select>
+                    </Field>
+                    <Field label="Date de debut de l'abonnement">
+                      <Input
+                        type="date"
+                        value={startDates[application.id] ?? todayInputValue()}
+                        onChange={(event) =>
+                          setStartDates((current) => ({
+                            ...current,
+                            [application.id]: event.target.value,
+                          }))
+                        }
+                      />
+                    </Field>
+                    <Button
+                      className="sm:col-span-2"
+                      onClick={() => collectPayment(application.id)}
+                      disabled={busyId === application.id}
                     >
-                      <option value="cash">Espèces</option>
-                      <option value="bank_card">Carte bancaire</option>
-                    </select>
-                  </Field>
-                  <Field label="Date de debut de l'abonnement">
-                    <Input
-                      type="date"
-                      value={startDates[application.id] ?? todayInputValue()}
-                      onChange={(event) =>
-                        setStartDates((current) => ({
-                          ...current,
-                          [application.id]: event.target.value,
-                        }))
-                      }
-                    />
-                  </Field>
-                  <Button
-                    className="sm:col-span-2"
-                    onClick={() => collectPayment(application.id)}
-                    disabled={busyId === application.id}
-                  >
-                    <CreditCard className="h-4 w-4" /> Encaisser et générer le
-                    reçu
-                  </Button>
+                      <CreditCard className="h-4 w-4" /> Encaisser et générer le
+                      reçu
+                    </Button>
+                  </div>
                 </div>
               ) : null}
             </article>
