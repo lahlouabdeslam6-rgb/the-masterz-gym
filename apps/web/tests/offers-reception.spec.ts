@@ -374,10 +374,15 @@ test("la reception accepte clairement une nouvelle demande", async ({
     window.localStorage.setItem("refresh_token", "reception-refresh-token");
     window.localStorage.setItem("auth_user", JSON.stringify(user));
   }, receptionist);
-  await page.goto("/espace/reception/demandes");
+  await page.goto("/espace/reception");
 
   await expect(page.getByTestId("navigation-badge-applications")).toHaveText(
     "1",
+  );
+  await page.getByRole("link", { name: /^Demandes/ }).click();
+  await expect(page).toHaveURL(/\/espace\/reception\/demandes$/);
+  await expect(page.getByTestId("navigation-badge-applications")).toHaveCount(
+    0,
   );
 
   await page.getByRole("button", { name: "Accepter la demande" }).click();

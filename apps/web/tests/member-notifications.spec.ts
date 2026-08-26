@@ -91,6 +91,10 @@ test("affiche et marque comme lue la fin du pack recovery", async ({
   await page
     .getByRole("button", { name: "Notifications", exact: true })
     .click();
+  await expect(page.getByTestId("navigation-badge-notifications")).toHaveCount(
+    0,
+  );
+  await expect(page.getByTestId("navigation-badge-recovery")).toHaveText("1");
   await expect(
     page.getByRole("heading", { name: "Mes notifications" }),
   ).toBeVisible();

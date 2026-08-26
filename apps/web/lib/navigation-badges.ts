@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { components } from "@masterz/api-client";
 import { api } from "./api";
 import { authorizationHeaders, type AuthSession } from "./auth";
@@ -31,6 +31,13 @@ export function useNavigationBadges(
   refreshKey = "",
 ) {
   const [badges, setBadges] = useState<NavigationBadges>({});
+  const dismissedBadges = useRef(new Set<NavigationBadgeKey>());
+
+  const showBadges = useCallback((nextBadges: NavigationBadges) => {
+    const visibleBadges = { ...nextBadges };
+    dismissedBadges.current.forEach((key) => delete visibleBadges[key]);
+    setBadges(visibleBadges);
+  }, []);
 
   const load = useCallback(async () => {
     if (!session) {
@@ -46,7 +53,7 @@ export function useNavigationBadges(
         params: { query: { unread_only: true, limit: 100 } },
       });
       const notifications = (result.data ?? []) as Notification[];
-      setBadges(notificationBadges(notifications, session.user.role));
+      showBadges(notificationBadges(notifications, session.user.role));
       return;
     }
 
@@ -72,7 +79,7 @@ export function useNavigationBadges(
           }),
         ]);
 
-      setBadges({
+      showBadges({
         applications: (applications.data ?? []).filter((application) =>
           ["pending", "more_information_required"].includes(application.status),
         ).length,
@@ -89,21 +96,37 @@ export function useNavigationBadges(
     }
 
     setBadges({});
-  }, [session]);
+  }, [session, showBadges]);
+
+  const clearBadge = useCallback((key: NavigationBadgeKey) => {
+    dismissedBadges.current.add(key);
+    setBadges((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => void load(), 0);
     const reload = () => void load();
-    window.addEventListener(NAVIGATION_BADGES_CHANGED_EVENT, reload);
+    const reloadAfterChange = () => {
+      dismissedBadges.current.clear();
+      void load();
+    };
+    window.addEventListener(NAVIGATION_BADGES_CHANGED_EVENT, reloadAfterChange);
     window.addEventListener("focus", reload);
     return () => {
       window.clearTimeout(timeoutId);
-      window.removeEventListener(NAVIGATION_BADGES_CHANGED_EVENT, reload);
+      window.removeEventListener(
+        NAVIGATION_BADGES_CHANGED_EVENT,
+        reloadAfterChange,
+      );
       window.removeEventListener("focus", reload);
     };
   }, [load, refreshKey]);
 
-  return { badges, reload: load };
+  return { badges, clearBadge, reload: load };
 }
 
 function notificationBadges(

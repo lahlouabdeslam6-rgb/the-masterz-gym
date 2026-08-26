@@ -106,7 +106,7 @@ export function ReceptionShell({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { badges } = useNavigationBadges(session, pathname);
+  const { badges, clearBadge } = useNavigationBadges(session, pathname);
 
   useEffect(() => {
     let active = true;
@@ -206,7 +206,11 @@ export function ReceptionShell({ children }: { children: React.ReactNode }) {
             </p>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <ReceptionNavigation pathname={pathname} badges={badges} />
+            <ReceptionNavigation
+              pathname={pathname}
+              badges={badges}
+              onBadgeOpen={clearBadge}
+            />
           </div>
           <button
             type="button"
@@ -245,6 +249,7 @@ export function ReceptionShell({ children }: { children: React.ReactNode }) {
               <ReceptionNavigation
                 pathname={pathname}
                 badges={badges}
+                onBadgeOpen={clearBadge}
                 onNavigate={() => setMobileOpen(false)}
               />
               <button
@@ -272,10 +277,12 @@ export function ReceptionShell({ children }: { children: React.ReactNode }) {
 function ReceptionNavigation({
   pathname,
   badges,
+  onBadgeOpen,
   onNavigate,
 }: {
   pathname: string;
   badges: NavigationBadges;
+  onBadgeOpen: (key: NavigationBadgeKey) => void;
   onNavigate?: () => void;
 }) {
   return (
@@ -289,7 +296,10 @@ function ReceptionNavigation({
           <Link
             key={href}
             href={href}
-            onClick={onNavigate}
+            onClick={() => {
+              if (badgeKey) onBadgeOpen(badgeKey);
+              onNavigate?.();
+            }}
             aria-current={active ? "page" : undefined}
             className={`flex items-center gap-3 rounded-sm border-l-2 px-3 py-2.5 text-sm font-bold transition ${
               active

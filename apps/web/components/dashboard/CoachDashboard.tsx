@@ -75,7 +75,12 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { badges } = useNavigationBadges(session, activeSection);
+  const { badges, clearBadge } = useNavigationBadges(session, activeSection);
+  const openSection = (nextSection: CoachSection) => {
+    const badgeKey = coachBadgeKeys[nextSection];
+    if (badgeKey) clearBadge(badgeKey);
+    setActiveSection(nextSection);
+  };
 
   const load = useCallback(async () => {
     const result = await api.GET("/api/v1/coaching/my-members", {
@@ -147,7 +152,7 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
                     ? "border-primary/35 bg-primary/[0.1] text-white"
                     : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
                 }`}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => openSection(item.id)}
               >
                 <Icon
                   className={`h-5 w-5 shrink-0 ${
@@ -183,7 +188,7 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
             aria-label="Rubrique espace coach"
             value={activeSection}
             onChange={(event) =>
-              setActiveSection(event.target.value as CoachSection)
+              openSection(event.target.value as CoachSection)
             }
             className="h-12 w-full rounded-sm border border-white/15 bg-[#050a0f] px-3 text-sm font-bold text-white outline-none focus:border-primary"
           >
@@ -237,7 +242,7 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
               <div className="grid gap-4 md:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => setActiveSection("schedule")}
+                  onClick={() => openSection("schedule")}
                   className="group rounded-lg border border-white/10 bg-[#081119] p-6 text-left transition hover:border-primary/40 hover:bg-primary/[0.04]"
                 >
                   <CalendarDays className="h-7 w-7 text-primary" />
@@ -251,7 +256,7 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveSection("clients")}
+                  onClick={() => openSection("clients")}
                   className="group rounded-lg border border-white/10 bg-[#081119] p-6 text-left transition hover:border-primary/40 hover:bg-primary/[0.04]"
                 >
                   <UsersRound className="h-7 w-7 text-primary" />

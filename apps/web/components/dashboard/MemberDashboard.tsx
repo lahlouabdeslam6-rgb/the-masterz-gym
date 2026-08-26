@@ -152,7 +152,12 @@ export function MemberDashboard({
   attendance: Attendance[];
 }) {
   const [activeSection, setActiveSection] = useState<MemberSection>("overview");
-  const { badges } = useNavigationBadges(session, activeSection);
+  const { badges, clearBadge } = useNavigationBadges(session, activeSection);
+  const openSection = (nextSection: MemberSection) => {
+    const badgeKey = memberBadgeKeys[nextSection];
+    if (badgeKey) clearBadge(badgeKey);
+    setActiveSection(nextSection);
+  };
   const section =
     memberSections.find((item) => item.id === activeSection) ??
     memberSections[0];
@@ -200,7 +205,7 @@ export function MemberDashboard({
                     ? "border-primary/35 bg-primary/[0.1] text-white"
                     : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
                 }`}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => openSection(item.id)}
               >
                 <Icon
                   className={`h-5 w-5 shrink-0 ${
@@ -231,7 +236,7 @@ export function MemberDashboard({
             aria-label="Rubrique espace membre"
             value={activeSection}
             onChange={(event) =>
-              setActiveSection(event.target.value as MemberSection)
+              openSection(event.target.value as MemberSection)
             }
             className="h-12 w-full rounded-sm border border-white/15 bg-[#050a0f] px-3 text-sm font-bold text-white outline-none focus:border-primary"
           >
@@ -273,7 +278,7 @@ export function MemberDashboard({
               subscriptions={subscriptions}
               receipts={receipts}
               attendance={attendance}
-              onNavigate={setActiveSection}
+              onNavigate={openSection}
             />
           ) : null}
           {activeSection === "notifications" ? (
