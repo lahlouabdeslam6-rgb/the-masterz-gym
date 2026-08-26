@@ -777,6 +777,13 @@ export function StaffMemberManager({
                   <p className="mt-1 text-xs text-gray-500">
                     {member.member_number}
                   </p>
+                  <p
+                    className={`mt-1 text-[0.65rem] font-bold uppercase tracking-[0.06em] ${member.profile_photo_verified_at ? "text-emerald-300" : "text-amber-200"}`}
+                  >
+                    {member.profile_photo_verified_at
+                      ? "Photo validee"
+                      : "Photo a ajouter"}
+                  </p>
                 </div>
                 <span
                   className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.06em] ${
@@ -848,6 +855,17 @@ export function StaffMemberManager({
               <Pill>Dossier membre</Pill>
             </div>
           </div>
+
+          {profileMode || mode === "payments" ? (
+            <div data-testid={`member-photo-panel-${mode}`}>
+              <MemberPhotoCapture
+                session={session}
+                member={selected}
+                onUploaded={handlePhotoUploaded}
+                compact
+              />
+            </div>
+          ) : null}
 
           {showPayments ? (
             <Card
@@ -1002,11 +1020,6 @@ export function StaffMemberManager({
 
           {profileMode && profileTab === "informations" && memberProfile ? (
             <div className="space-y-5">
-              <MemberPhotoCapture
-                session={session}
-                member={selected}
-                onUploaded={handlePhotoUploaded}
-              />
               <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
                 <Card className="p-5">
                   <h3 className="font-black uppercase text-white">

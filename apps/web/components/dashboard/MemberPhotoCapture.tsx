@@ -57,6 +57,7 @@ export function MemberPhotoCapture({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState<Blob | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -66,6 +67,7 @@ export function MemberPhotoCapture({
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
+    setCameraReady(false);
     setCameraOpen(false);
   }
 
@@ -82,6 +84,25 @@ export function MemberPhotoCapture({
       streamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);
+
+  useEffect(() => {
+    if (!cameraOpen || !videoRef.current || !streamRef.current) return;
+    const video = videoRef.current;
+    video.srcObject = streamRef.current;
+    const timeoutId = window.setTimeout(() => {
+      if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        setFeedback(
+          "La camera est ouverte mais l'image ne demarre pas. Fermez-la puis reessayez ou importez une photo.",
+        );
+      }
+    }, 5000);
+    void video.play().catch(() => {
+      setFeedback(
+        "L'image de la camera n'a pas pu demarrer. Fermez-la puis reessayez.",
+      );
+    });
+    return () => window.clearTimeout(timeoutId);
+  }, [cameraOpen]);
 
   async function openCamera() {
     setFeedback(null);
@@ -102,10 +123,8 @@ export function MemberPhotoCapture({
         audio: false,
       });
       streamRef.current = stream;
+      setCameraReady(false);
       setCameraOpen(true);
-      window.setTimeout(() => {
-        if (videoRef.current) videoRef.current.srcObject = stream;
-      }, 0);
     } catch {
       setFeedback(
         "La camera n'a pas pu etre ouverte. Autorisez-la ou importez une photo.",
@@ -116,7 +135,13 @@ export function MemberPhotoCapture({
   function capturePhoto() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas || !video.videoWidth || !video.videoHeight) {
+    if (
+      !video ||
+      !canvas ||
+      !cameraReady ||
+      !video.videoWidth ||
+      !video.videoHeight
+    ) {
       setFeedback("Attendez que la camera affiche le visage avant la photo.");
       return;
     }
@@ -254,8 +279,17 @@ export function MemberPhotoCapture({
               autoPlay
               muted
               playsInline
+              onPlaying={() => {
+                setCameraReady(true);
+                setFeedback(null);
+              }}
               className="h-full w-full -scale-x-100 object-cover"
             />
+            {!cameraReady ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-xs font-black uppercase tracking-[0.1em] text-gray-300">
+                Demarrage de la camera...
+              </div>
+            ) : null}
             <div className="pointer-events-none absolute inset-[12%_25%] rounded-[50%] border-2 border-primary/70" />
           </div>
           <div className="mt-3 flex flex-wrap justify-center gap-2">

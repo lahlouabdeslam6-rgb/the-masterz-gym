@@ -105,6 +105,8 @@ const priorityMembers = [
     days_remaining: 366,
     has_active_coaching: true,
     has_active_recovery: false,
+    profile_photo_url: "/media/member-photos/stable.jpg",
+    profile_photo_verified_at: "2026-08-15T12:00:00Z",
   },
 ];
 
@@ -600,6 +602,12 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   await page.getByLabel("Filtrer les membres").selectOption("all");
 
   await page.getByText("Membre Urgent", { exact: true }).click();
+  await expect(page.getByTestId("member-photo-panel-profile")).toBeVisible();
+  await expect(
+    page
+      .getByTestId("member-photo-panel-profile")
+      .getByText("Photo visage obligatoire"),
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Informations personnelles" }),
   ).toBeVisible();
@@ -701,6 +709,12 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   const memberCards = page.locator("button").filter({ hasText: "TMG-" });
   await expect(memberCards.first()).toContainText("Membre Urgent");
   await page.getByText("Membre Urgent", { exact: true }).click();
+  await expect(page.getByTestId("member-photo-panel-payments")).toBeVisible();
+  await expect(
+    page
+      .getByTestId("member-photo-panel-payments")
+      .getByText("Photo visage obligatoire"),
+  ).toBeVisible();
 
   await expect(
     page.getByRole("heading", {
