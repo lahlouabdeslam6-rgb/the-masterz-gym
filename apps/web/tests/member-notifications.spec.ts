@@ -36,7 +36,10 @@ test("affiche et marque comme lue la fin du pack recovery", async ({
     const url = new URL(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = member;
-    if (url.pathname === "/api/v1/notifications") body = [notification()];
+    if (url.pathname === "/api/v1/notifications") {
+      const unreadOnly = url.searchParams.get("unread_only") === "true";
+      body = unreadOnly && readAt ? [] : [notification()];
+    }
     if (
       url.pathname === `/api/v1/notifications/${notificationId}/read` &&
       route.request().method() === "PATCH"
@@ -81,6 +84,10 @@ test("affiche et marque comme lue la fin du pack recovery", async ({
   }, member);
 
   await page.goto("/espace/membre");
+  await expect(page.getByTestId("navigation-badge-notifications")).toHaveText(
+    "1",
+  );
+  await expect(page.getByTestId("navigation-badge-recovery")).toHaveText("1");
   await page
     .getByRole("button", { name: "Notifications", exact: true })
     .click();
@@ -97,5 +104,9 @@ test("affiche et marque comme lue la fin du pack recovery", async ({
   await expect(
     page.getByRole("button", { name: "Marquer comme lue" }),
   ).toHaveCount(0);
+  await expect(page.getByTestId("navigation-badge-notifications")).toHaveCount(
+    0,
+  );
+  await expect(page.getByTestId("navigation-badge-recovery")).toHaveCount(0);
   expect(markReadCalls).toBe(1);
 });

@@ -6,6 +6,7 @@ import type { components } from "@masterz/api-client";
 import { Button, Card, Pill } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import { notifyNavigationBadgesChanged } from "@/lib/navigation-badges";
 import { EmptyState, formatDate } from "./dashboard-shared";
 
 type Notification = components["schemas"]["NotificationRead"];
@@ -53,6 +54,7 @@ export function MemberNotifications({ session }: { session: AuthSession }) {
         notification.id === result.data?.id ? result.data : notification,
       ),
     );
+    notifyNavigationBadgesChanged();
   }
 
   if (loading) {

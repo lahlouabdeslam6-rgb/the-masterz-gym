@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 import {
   BadgeDollarSign,
   ClipboardCheck,
@@ -27,6 +28,11 @@ import { Alert, LoadingMessage, Pill, buttonStyles } from "@masterz/ui";
 import { BrandLogo } from "@/components/BrandLogo";
 import { api } from "@/lib/api";
 import {
+  type NavigationBadgeKey,
+  type NavigationBadges,
+  useNavigationBadges,
+} from "@/lib/navigation-badges";
+import {
   AUTH_CHANGED_EVENT,
   authorizationHeaders,
   clearSession,
@@ -36,7 +42,14 @@ import {
   type AuthSession,
 } from "@/lib/auth";
 
-const navigation = [
+type AdminNavigationItem = {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  badgeKey?: NavigationBadgeKey;
+};
+
+const navigation: AdminNavigationItem[] = [
   { label: "Vue d'ensemble", href: "/espace/admin", icon: Gauge },
   {
     label: "Utilisateurs",
@@ -44,8 +57,18 @@ const navigation = [
     icon: UserRoundCog,
   },
   { label: "Membres", href: "/espace/admin/membres", icon: UsersRound },
-  { label: "Coachs", href: "/espace/admin/coachs", icon: Dumbbell },
-  { label: "Demandes", href: "/espace/admin/demandes", icon: ClipboardCheck },
+  {
+    label: "Coachs",
+    href: "/espace/admin/coachs",
+    icon: Dumbbell,
+    badgeKey: "coaching",
+  },
+  {
+    label: "Demandes",
+    href: "/espace/admin/demandes",
+    icon: ClipboardCheck,
+    badgeKey: "applications",
+  },
   { label: "Formules", href: "/espace/admin/formules", icon: CreditCard },
   { label: "Promotions", href: "/espace/admin/promotions", icon: Megaphone },
   {
@@ -59,8 +82,14 @@ const navigation = [
     label: "Reclamations",
     href: "/espace/admin/reclamations",
     icon: MessageSquareWarning,
+    badgeKey: "complaints",
   },
-  { label: "Store", href: "/espace/admin/store", icon: ShoppingBag },
+  {
+    label: "Store",
+    href: "/espace/admin/store",
+    icon: ShoppingBag,
+    badgeKey: "store",
+  },
   { label: "Parametres", href: "/espace/admin/parametres", icon: Settings2 },
   { label: "Journal d'audit", href: "/espace/admin/audit", icon: FileClock },
 ];
@@ -87,6 +116,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { badges } = useNavigationBadges(session, pathname);
 
   useEffect(() => {
     let active = true;
@@ -188,7 +218,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </p>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <AdminNavigation pathname={pathname} />
+            <AdminNavigation pathname={pathname} badges={badges} />
           </div>
           <button
             type="button"
@@ -228,6 +258,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <div className="fixed inset-x-0 bottom-0 top-16 z-30 overflow-y-auto border-t border-white/10 bg-[#071018] p-5 lg:hidden">
               <AdminNavigation
                 pathname={pathname}
+                badges={badges}
                 onNavigate={() => setMobileOpen(false)}
               />
               <button
@@ -254,9 +285,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
 function AdminNavigation({
   pathname,
+  badges,
   onNavigate,
 }: {
   pathname: string;
+  badges: NavigationBadges;
   onNavigate?: () => void;
 }) {
   return (
@@ -264,7 +297,7 @@ function AdminNavigation({
       className="mt-4 grid gap-0.5 pb-2"
       aria-label="Navigation administration"
     >
-      {navigation.map(({ label, href, icon: Icon }) => {
+      {navigation.map(({ label, href, icon: Icon, badgeKey }) => {
         const active =
           href === "/espace/admin"
             ? pathname === href
@@ -282,7 +315,15 @@ function AdminNavigation({
             }`}
           >
             <Icon className="h-4 w-4 shrink-0" />
-            {label}
+            <span className="min-w-0 flex-1 truncate">{label}</span>
+            {badgeKey && badges[badgeKey] ? (
+              <span
+                data-testid={`navigation-badge-${badgeKey}`}
+                className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[0.62rem] font-black text-black"
+              >
+                {badges[badgeKey]! > 99 ? "99+" : badges[badgeKey]}
+              </span>
+            ) : null}
           </Link>
         );
       })}

@@ -15,6 +15,7 @@ import type { components } from "@masterz/api-client";
 import { Alert, Button, Card, Input, LoadingMessage, Pill } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import { notifyNavigationBadgesChanged } from "@/lib/navigation-badges";
 import { EmptyState, formatDate } from "./dashboard-shared";
 
 type Coach = components["schemas"]["CoachDirectoryRead"];
@@ -116,6 +117,7 @@ export function MemberCoachingAssignmentRequest({
     }
     setMemberNote("");
     await load();
+    notifyNavigationBadgesChanged();
     setFeedback("Votre demande a ete envoyee a l'equipe Masterz.");
   }
 

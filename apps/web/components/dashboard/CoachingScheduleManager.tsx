@@ -15,6 +15,7 @@ import type { components } from "@masterz/api-client";
 import { Alert, Button, Card, Input, LoadingMessage, Pill } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import { notifyNavigationBadgesChanged } from "@/lib/navigation-badges";
 import {
   EmptyState,
   Field,
@@ -172,6 +173,7 @@ export function CoachingScheduleManager({
       message: "Disponibilite ajoutee au planning.",
     });
     await load();
+    notifyNavigationBadgesChanged();
   }
 
   async function disableAvailability(availability: Availability) {
@@ -230,6 +232,7 @@ export function CoachingScheduleManager({
       message: "Reservation envoyee. Votre coach doit maintenant la confirmer.",
     });
     await load();
+    notifyNavigationBadgesChanged();
   }
 
   async function updateStatus(
@@ -274,6 +277,7 @@ export function CoachingScheduleManager({
       message: `Reservation: ${statusLabels[result.data.status]}.`,
     });
     await load();
+    notifyNavigationBadgesChanged();
   }
 
   async function reschedule(
@@ -314,6 +318,7 @@ export function CoachingScheduleManager({
     setScheduleChoices((current) => ({ ...current, [booking.id]: "" }));
     setFeedback({ type: "success", message: "Horaire de la seance modifie." });
     await load();
+    notifyNavigationBadgesChanged();
   }
 
   async function confirmConflict() {

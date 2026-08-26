@@ -286,19 +286,19 @@ export function PublicStoreCatalog({
                 >
                   <CatalogMedia product={product} size="card" />
                 </button>
-                <div className="flex flex-1 flex-col p-6">
+                <div className="flex flex-1 flex-col p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-primary">
                         Masterz Store
                       </p>
-                      <h2 className="mt-2 text-2xl font-black text-white">
+                      <h2 className="mt-2 text-xl font-black leading-tight text-white">
                         {product.name}
                       </h2>
                     </div>
                     <AvailabilityBadge available={product.is_available} />
                   </div>
-                  <p className="mt-6 text-3xl font-black text-white">
+                  <p className="mt-5 text-2xl font-black text-white">
                     {product.price}{" "}
                     <span className="text-sm uppercase tracking-[0.1em] text-primary">
                       {product.currency}
@@ -308,7 +308,7 @@ export function PublicStoreCatalog({
                     type="button"
                     className={buttonStyles({
                       variant: "outline",
-                      className: "mt-6 w-full",
+                      className: "mt-5 w-full",
                     })}
                     onClick={() => openProduct(product)}
                   >
@@ -609,7 +609,7 @@ function CatalogMedia({
   const sizeClasses =
     size === "detail"
       ? "h-[62vh] min-h-[28rem] lg:h-full lg:min-h-0 lg:max-h-none"
-      : "h-80 sm:h-96";
+      : "h-60 sm:h-72";
 
   if (resolvedMediaUrl && isMediaVideo(resolvedMediaUrl)) {
     return (

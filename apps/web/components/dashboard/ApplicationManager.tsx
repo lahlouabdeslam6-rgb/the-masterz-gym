@@ -5,6 +5,7 @@ import { Check, CreditCard, Info, X } from "lucide-react";
 import { Alert, Button, Input, Pill } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import { notifyNavigationBadgesChanged } from "@/lib/navigation-badges";
 import {
   type Application,
   type Receipt,
@@ -84,7 +85,10 @@ export function ApplicationManager({
           ),
     );
     setBusyId(null);
-    if (result.data) await onReload();
+    if (result.data) {
+      await onReload();
+      notifyNavigationBadgesChanged();
+    }
   }
 
   async function collectPayment(applicationId: string) {
@@ -106,6 +110,7 @@ export function ApplicationManager({
       setReceipt(result.data);
       setFeedback("Paiement enregistré et reçu généré.");
       await onReload();
+      notifyNavigationBadgesChanged();
     } else {
       setFeedback(
         apiErrorMessage(

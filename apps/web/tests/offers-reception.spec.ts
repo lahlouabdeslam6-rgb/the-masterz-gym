@@ -263,7 +263,7 @@ test("informe le membre de ses abonnements avant une nouvelle inscription", asyn
   await expect(
     page.getByText("Vous avez deja paye cette categorie"),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Deja abonne" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Deja paye" })).toBeVisible();
 
   await page.goto(`/inscription?plan=${plans[0].id}`);
   await expect(
@@ -282,9 +282,21 @@ test("informe le membre de ses abonnements avant une nouvelle inscription", asyn
 
   await page.goto("/espace/membre");
   await page.getByRole("button", { name: "Abonnements", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Offres disponibles" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Historique des abonnements" }),
+  ).toBeVisible();
+  await expect(page.getByText("Salle 1 mois", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Deja paye" })).toBeVisible();
   await expect(page.getByTestId("member-service-recovery")).toContainText(
     "Seances terminees",
   );
+  await page
+    .getByRole("button", { name: "Historique des abonnements" })
+    .click();
+  await expect(page.getByText("Pack Recovery", { exact: true })).toBeVisible();
 });
 
 test("la reception accepte clairement une nouvelle demande", async ({
@@ -364,6 +376,10 @@ test("la reception accepte clairement une nouvelle demande", async ({
   }, receptionist);
   await page.goto("/espace/reception/demandes");
 
+  await expect(page.getByTestId("navigation-badge-applications")).toHaveText(
+    "1",
+  );
+
   await page.getByRole("button", { name: "Accepter la demande" }).click();
   await expect(
     page.getByText(/Demande acceptee. Enregistrez maintenant le paiement/),
@@ -374,5 +390,8 @@ test("la reception accepte clairement une nouvelle demande", async ({
   await expect(
     page.getByRole("button", { name: /Encaisser et générer le reçu/ }),
   ).toBeVisible();
+  await expect(page.getByTestId("navigation-badge-applications")).toHaveCount(
+    0,
+  );
   expect(reviewBody).toMatchObject({ status: "approved", reason: null });
 });

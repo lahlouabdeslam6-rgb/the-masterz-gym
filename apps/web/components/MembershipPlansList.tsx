@@ -206,14 +206,27 @@ export function MembershipPlansList({
         className={`grid gap-5 ${plans.length >= 4 ? "md:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-2 xl:grid-cols-3"}`}
       >
         {plans.map((plan, index) => {
+          const planIsCurrent = currentSubscription?.plan_id === plan.id;
           const highlighted =
-            plans.length > 2 && index === Math.floor(plans.length / 2);
+            !planIsCurrent &&
+            plans.length > 2 &&
+            index === Math.floor(plans.length / 2);
           return (
             <Card
               key={plan.id}
-              className={`relative flex min-h-[410px] flex-col overflow-hidden transition duration-300 hover:-translate-y-1 ${highlighted ? "border-primary/55 bg-[linear-gradient(180deg,rgba(0,212,255,.11),#0a0f14_38%)]" : "hover:border-primary/35"}`}
+              className={`relative flex min-h-[410px] flex-col overflow-hidden transition duration-300 hover:-translate-y-1 ${
+                planIsCurrent
+                  ? "border-emerald-300/45 bg-emerald-300/[0.06]"
+                  : highlighted
+                    ? "border-primary/55 bg-[linear-gradient(180deg,rgba(0,212,255,.11),#0a0f14_38%)]"
+                    : "hover:border-primary/35"
+              }`}
             >
-              {highlighted ? (
+              {planIsCurrent ? (
+                <span className="absolute right-0 top-0 bg-emerald-300 px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-black">
+                  Deja paye
+                </span>
+              ) : highlighted ? (
                 <span className="absolute right-0 top-0 bg-primary px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-black">
                   Le choix Masterz
                 </span>
@@ -257,22 +270,26 @@ export function MembershipPlansList({
                 </ul>
                 <Link
                   href={
-                    currentSubscription
+                    planIsCurrent
                       ? "/espace/membre"
-                      : serviceType === "gym"
-                        ? `/inscription?plan=${plan.id}`
-                        : `/contact?service=${serviceType}&plan=${plan.id}`
+                      : currentSubscription
+                        ? `/contact?service=${serviceType}&plan=${plan.id}&change=1`
+                        : serviceType === "gym"
+                          ? `/inscription?plan=${plan.id}`
+                          : `/contact?service=${serviceType}&plan=${plan.id}`
                   }
                   className={buttonStyles({
-                    variant: currentSubscription ? "outline" : "primary",
+                    variant: planIsCurrent ? "outline" : "primary",
                     className: "mt-8 w-full",
                   })}
                 >
-                  {currentSubscription
-                    ? "Deja abonne"
-                    : memberIsRenewing
-                      ? "Renouveler"
-                      : content.buttonLabel}{" "}
+                  {planIsCurrent
+                    ? "Deja paye"
+                    : currentSubscription
+                      ? "Changer de formule"
+                      : memberIsRenewing
+                        ? "Renouveler"
+                        : content.buttonLabel}{" "}
                   <ArrowUpRight className="h-4 w-4" />
                 </Link>
               </CardContent>

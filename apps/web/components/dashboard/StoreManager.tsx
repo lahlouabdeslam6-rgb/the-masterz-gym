@@ -24,6 +24,7 @@ import type { components } from "@masterz/api-client";
 import { Alert, Button, Card, Input, Pill } from "@masterz/ui";
 import { api, apiBaseUrl, authenticatedFetch } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import { notifyNavigationBadgesChanged } from "@/lib/navigation-badges";
 import { PublicStoreCatalog } from "@/components/PublicStoreCatalog";
 import {
   DashboardTabs,
@@ -559,6 +560,7 @@ export function StaffStoreManager({ session }: { session: AuthSession }) {
     }
     setFeedback(`Reservation: ${reservationLabels[status]}.`);
     await load();
+    notifyNavigationBadgesChanged();
   }
 
   async function recordDirectSale() {

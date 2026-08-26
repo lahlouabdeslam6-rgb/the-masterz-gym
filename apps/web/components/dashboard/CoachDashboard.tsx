@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
+  Bell,
   CalendarDays,
   LayoutDashboard,
   Search,
@@ -12,8 +13,13 @@ import {
 import { Alert, Card, Input, LoadingMessage, Pill } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import {
+  type NavigationBadgeKey,
+  useNavigationBadges,
+} from "@/lib/navigation-badges";
 import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 import { CoachingScheduleManager } from "./CoachingScheduleManager";
+import { MemberNotifications } from "./MemberNotifications";
 import {
   type CoachingAssignment,
   EmptyState,
@@ -22,7 +28,7 @@ import {
   formatDate,
 } from "./dashboard-shared";
 
-type CoachSection = "overview" | "schedule" | "clients";
+type CoachSection = "overview" | "notifications" | "schedule" | "clients";
 
 const coachSections: Array<{
   id: CoachSection;
@@ -35,6 +41,12 @@ const coachSections: Array<{
     label: "Vue d'ensemble",
     description: "Resume de votre activite",
     icon: LayoutDashboard,
+  },
+  {
+    id: "notifications",
+    label: "Notifications",
+    description: "Nouveaux clients et reservations",
+    icon: Bell,
   },
   {
     id: "schedule",
@@ -50,6 +62,12 @@ const coachSections: Array<{
   },
 ];
 
+const coachBadgeKeys: Partial<Record<CoachSection, NavigationBadgeKey>> = {
+  notifications: "notifications",
+  schedule: "schedule",
+  clients: "clients",
+};
+
 export function CoachDashboard({ session }: { session: AuthSession }) {
   const [activeSection, setActiveSection] = useState<CoachSection>("overview");
   const [assignments, setAssignments] = useState<CoachingAssignment[]>([]);
@@ -57,6 +75,7 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { badges } = useNavigationBadges(session, activeSection);
 
   const load = useCallback(async () => {
     const result = await api.GET("/api/v1/coaching/my-members", {
@@ -115,6 +134,8 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
           {coachSections.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
+            const badgeKey = coachBadgeKeys[item.id];
+            const badgeCount = badgeKey ? badges[badgeKey] : undefined;
             return (
               <button
                 key={item.id}
@@ -133,7 +154,7 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
                     isActive ? "text-primary" : "text-gray-600"
                   }`}
                 />
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-black">
                     {item.label}
                   </span>
@@ -141,6 +162,14 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
                     {item.description}
                   </span>
                 </span>
+                {badgeCount ? (
+                  <span
+                    data-testid={`navigation-badge-${item.id}`}
+                    className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[0.65rem] font-black text-black"
+                  >
+                    {badgeCount > 99 ? "99+" : badgeCount}
+                  </span>
+                ) : null}
               </button>
             );
           })}
@@ -161,6 +190,9 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
             {coachSections.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.label}
+                {coachBadgeKeys[item.id] && badges[coachBadgeKeys[item.id]!]
+                  ? ` (${badges[coachBadgeKeys[item.id]!]})`
+                  : ""}
               </option>
             ))}
           </select>
@@ -233,6 +265,15 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
                 </button>
               </div>
             </div>
+          ) : null}
+
+          {activeSection === "notifications" ? (
+            <Panel
+              title="Mes notifications"
+              subtitle="Retrouvez les nouveaux clients et les reservations qui demandent votre attention."
+            >
+              <MemberNotifications session={session} />
+            </Panel>
           ) : null}
 
           {activeSection === "schedule" ? (

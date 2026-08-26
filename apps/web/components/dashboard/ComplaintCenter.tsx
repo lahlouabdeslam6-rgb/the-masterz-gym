@@ -14,6 +14,7 @@ import type { components } from "@masterz/api-client";
 import { Alert, Button, Card, Input, Pill } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import { notifyNavigationBadgesChanged } from "@/lib/navigation-badges";
 import {
   EmptyState,
   Field,
@@ -145,6 +146,7 @@ export function ComplaintCenter({
     setFeedback(
       `Reclamation envoyee a ${selectedCategory?.target ?? "l'equipe"}.`,
     );
+    notifyNavigationBadgesChanged();
   }
 
   async function sendReply() {
@@ -167,6 +169,7 @@ export function ComplaintCenter({
     replaceComplaint(result.data);
     setReply("");
     setFeedback("Reponse envoyee.");
+    notifyNavigationBadgesChanged();
   }
 
   async function updateStatus(status: ComplaintStatus) {
@@ -185,6 +188,7 @@ export function ComplaintCenter({
     }
     replaceComplaint(result.data);
     setFeedback(`Statut modifie: ${statusLabels[status]}.`);
+    notifyNavigationBadgesChanged();
   }
 
   function replaceComplaint(updated: Complaint) {

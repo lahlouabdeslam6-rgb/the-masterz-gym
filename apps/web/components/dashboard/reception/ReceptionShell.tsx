@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 import {
   BadgeDollarSign,
   ClipboardCheck,
@@ -21,6 +22,11 @@ import { Alert, LoadingMessage, Pill, buttonStyles } from "@masterz/ui";
 import { BrandLogo } from "@/components/BrandLogo";
 import { api } from "@/lib/api";
 import {
+  type NavigationBadgeKey,
+  type NavigationBadges,
+  useNavigationBadges,
+} from "@/lib/navigation-badges";
+import {
   AUTH_CHANGED_EVENT,
   authorizationHeaders,
   clearSession,
@@ -30,12 +36,20 @@ import {
   type AuthSession,
 } from "@/lib/auth";
 
-const navigation = [
+type ReceptionNavigationItem = {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  badgeKey?: NavigationBadgeKey;
+};
+
+const navigation: ReceptionNavigationItem[] = [
   { label: "Vue d'ensemble", href: "/espace/reception", icon: Gauge },
   {
     label: "Demandes",
     href: "/espace/reception/demandes",
     icon: ClipboardCheck,
+    badgeKey: "applications",
   },
   { label: "Membres", href: "/espace/reception/membres", icon: UsersRound },
   {
@@ -52,6 +66,7 @@ const navigation = [
     label: "Coaching",
     href: "/espace/reception/coaching",
     icon: Dumbbell,
+    badgeKey: "coaching",
   },
   {
     label: "Recovery",
@@ -62,11 +77,13 @@ const navigation = [
     label: "Reclamations",
     href: "/espace/reception/reclamations",
     icon: MessageSquareWarning,
+    badgeKey: "complaints",
   },
   {
     label: "Store",
     href: "/espace/reception/store",
     icon: ShoppingBag,
+    badgeKey: "store",
   },
 ];
 
@@ -89,6 +106,7 @@ export function ReceptionShell({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { badges } = useNavigationBadges(session, pathname);
 
   useEffect(() => {
     let active = true;
@@ -188,7 +206,7 @@ export function ReceptionShell({ children }: { children: React.ReactNode }) {
             </p>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <ReceptionNavigation pathname={pathname} />
+            <ReceptionNavigation pathname={pathname} badges={badges} />
           </div>
           <button
             type="button"
@@ -226,6 +244,7 @@ export function ReceptionShell({ children }: { children: React.ReactNode }) {
             <div className="fixed inset-x-0 bottom-0 top-16 z-30 overflow-y-auto bg-[#071018] p-5 lg:hidden">
               <ReceptionNavigation
                 pathname={pathname}
+                badges={badges}
                 onNavigate={() => setMobileOpen(false)}
               />
               <button
@@ -252,14 +271,16 @@ export function ReceptionShell({ children }: { children: React.ReactNode }) {
 
 function ReceptionNavigation({
   pathname,
+  badges,
   onNavigate,
 }: {
   pathname: string;
+  badges: NavigationBadges;
   onNavigate?: () => void;
 }) {
   return (
     <nav className="mt-4 grid gap-0.5 pb-2" aria-label="Navigation reception">
-      {navigation.map(({ label, href, icon: Icon }) => {
+      {navigation.map(({ label, href, icon: Icon, badgeKey }) => {
         const active =
           href === "/espace/reception"
             ? pathname === href
@@ -276,7 +297,16 @@ function ReceptionNavigation({
                 : "border-transparent text-gray-400 hover:bg-white/[0.04] hover:text-white"
             }`}
           >
-            <Icon className="h-4 w-4" /> {label}
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 flex-1 truncate">{label}</span>
+            {badgeKey && badges[badgeKey] ? (
+              <span
+                data-testid={`navigation-badge-${badgeKey}`}
+                className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[0.62rem] font-black text-black"
+              >
+                {badges[badgeKey]! > 99 ? "99+" : badges[badgeKey]}
+              </span>
+            ) : null}
           </Link>
         );
       })}

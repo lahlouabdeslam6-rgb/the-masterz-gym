@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
   Bell,
-  ArrowUpRight,
   CalendarCheck,
   CalendarDays,
   CreditCard,
   Dumbbell,
+  History,
   LayoutDashboard,
+  ListChecks,
   MessageSquareText,
   ReceiptText,
   ShoppingBag,
@@ -18,12 +18,17 @@ import {
   UserRound,
   Waves,
 } from "lucide-react";
-import { Card, Pill, buttonStyles } from "@masterz/ui";
+import { Card, Pill } from "@masterz/ui";
 import type { AuthSession } from "@/lib/auth";
+import {
+  type NavigationBadgeKey,
+  useNavigationBadges,
+} from "@/lib/navigation-badges";
 import {
   isCurrentSubscription,
   latestSubscriptionFor,
 } from "@/lib/member-subscriptions";
+import { MembershipPlansList } from "@/components/MembershipPlansList";
 import { ReceiptSummary } from "./ApplicationManager";
 import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 import { CoachingScheduleManager } from "./CoachingScheduleManager";
@@ -125,6 +130,14 @@ const memberSections: Array<{
   },
 ];
 
+const memberBadgeKeys: Partial<Record<MemberSection, NavigationBadgeKey>> = {
+  notifications: "notifications",
+  coaching: "coaching",
+  recovery: "recovery",
+  store: "store",
+  complaints: "complaints",
+};
+
 export function MemberDashboard({
   session,
   user,
@@ -139,6 +152,7 @@ export function MemberDashboard({
   attendance: Attendance[];
 }) {
   const [activeSection, setActiveSection] = useState<MemberSection>("overview");
+  const { badges } = useNavigationBadges(session, activeSection);
   const section =
     memberSections.find((item) => item.id === activeSection) ??
     memberSections[0];
@@ -152,13 +166,13 @@ export function MemberDashboard({
   );
 
   return (
-    <div className="mt-8 grid items-start gap-6 lg:grid-cols-[17rem_minmax(0,1fr)]">
+    <div className="mt-8 grid items-start gap-5 lg:grid-cols-[15.5rem_minmax(0,1fr)]">
       <aside className="overflow-hidden rounded-lg border border-white/10 bg-[#081119]/95 shadow-2xl lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
-        <div className="border-b border-white/10 bg-primary/[0.07] p-5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-black">
+        <div className="border-b border-white/10 bg-primary/[0.07] p-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-black">
             <UserRound className="h-5 w-5" />
           </div>
-          <p className="mt-4 font-black uppercase text-white">
+          <p className="mt-3 truncate text-sm font-black uppercase text-white">
             {user.full_name}
           </p>
           <p className="mt-1 text-xs text-gray-500">
@@ -168,18 +182,20 @@ export function MemberDashboard({
 
         <nav
           aria-label="Navigation espace membre"
-          className="hidden space-y-1 p-3 lg:block"
+          className="hidden space-y-0.5 p-2.5 lg:block"
         >
           {memberSections.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
+            const badgeKey = memberBadgeKeys[item.id];
+            const badgeCount = badgeKey ? badges[badgeKey] : undefined;
             return (
               <button
                 key={item.id}
                 type="button"
                 aria-label={item.label}
                 aria-current={isActive ? "page" : undefined}
-                className={`flex w-full items-center gap-3 rounded-sm border px-3 py-2.5 text-left transition ${
+                className={`flex w-full items-center gap-3 rounded-sm border px-3 py-2 text-left transition ${
                   isActive
                     ? "border-primary/35 bg-primary/[0.1] text-white"
                     : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
@@ -191,9 +207,17 @@ export function MemberDashboard({
                     isActive ? "text-primary" : "text-gray-600"
                   }`}
                 />
-                <span className="block min-w-0 truncate text-sm font-black">
+                <span className="block min-w-0 flex-1 truncate text-sm font-black">
                   {item.label}
                 </span>
+                {badgeCount ? (
+                  <span
+                    data-testid={`navigation-badge-${item.id}`}
+                    className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[0.65rem] font-black text-black"
+                  >
+                    {badgeCount > 99 ? "99+" : badgeCount}
+                  </span>
+                ) : null}
               </button>
             );
           })}
@@ -214,6 +238,9 @@ export function MemberDashboard({
             {memberSections.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.label}
+                {memberBadgeKeys[item.id] && badges[memberBadgeKeys[item.id]!]
+                  ? ` (${badges[memberBadgeKeys[item.id]!]})`
+                  : ""}
               </option>
             ))}
           </select>
@@ -488,127 +515,136 @@ function SubscriptionsPanel({
 }: {
   subscriptions: Subscription[];
 }) {
+  const [activeView, setActiveView] = useState<"offers" | "history">("offers");
+  const [activeService, setActiveService] = useState<
+    "gym" | "coaching" | "recovery"
+  >("gym");
   const services = [
     {
       id: "gym" as const,
       label: "Salle musculation",
-      href: "/abonnements",
     },
-    { id: "coaching" as const, label: "Coaching", href: "/coaching" },
-    { id: "recovery" as const, label: "Recovery", href: "/recovery" },
+    { id: "coaching" as const, label: "Coaching" },
+    { id: "recovery" as const, label: "Recovery" },
   ];
 
   return (
     <Panel
       title="Mes abonnements"
-      subtitle="Voyez directement ce qui est actif, termine ou disponible au renouvellement."
+      subtitle="Consultez les offres disponibles sans melanger vos anciens abonnements."
     >
-      <div className="grid gap-4 xl:grid-cols-3">
-        {services.map((service) => {
-          const latest = latestSubscriptionFor(subscriptions, service.id);
-          const current = latest ? isCurrentSubscription(latest) : false;
-          const recoveryFinished =
-            latest?.service_type === "recovery" &&
-            latest.remaining_sessions === 0;
-          const displayStatus = current
-            ? "Deja paye et actif"
-            : latest
-              ? recoveryFinished
-                ? "Seances terminees"
-                : "Abonnement termine"
-              : "Pas encore souscrit";
+      <DashboardTabs
+        eyebrow="Abonnements membre"
+        ariaLabel="Offres et historique des abonnements"
+        activeTab={activeView}
+        onChange={setActiveView}
+        tabs={[
+          { id: "offers", label: "Offres disponibles", icon: ListChecks },
+          {
+            id: "history",
+            label: "Historique des abonnements",
+            icon: History,
+            badge: subscriptions.length,
+          },
+        ]}
+      />
 
-          return (
-            <Card
-              key={service.id}
-              data-testid={`member-service-${service.id}`}
-              className={`flex flex-col p-5 ${
-                current
-                  ? "border-emerald-300/25 bg-emerald-300/[0.05]"
-                  : "border-white/10"
-              }`}
-            >
-              <p className="text-[0.65rem] font-black uppercase tracking-[0.16em] text-primary">
-                {service.label}
-              </p>
-              <p className="mt-3 text-xl font-black text-white">
-                {displayStatus}
-              </p>
-              <p className="mt-2 min-h-12 text-sm leading-6 text-gray-500">
-                {latest ? (
-                  <>
-                    {latest.plan_name}
-                    {current
-                      ? ` · valide jusqu'au ${latest.ends_on}`
-                      : " · vous pouvez choisir une nouvelle formule"}
-                  </>
-                ) : (
-                  "Consultez les formules disponibles sur le site."
-                )}
-              </p>
-              {latest?.service_type === "recovery" ? (
-                <p className="mt-3 text-sm font-black text-emerald-200">
-                  {latest.remaining_sessions ?? "-"} /{" "}
-                  {latest.total_sessions ?? "-"} seance(s) restante(s)
-                </p>
-              ) : null}
-              <Link
-                href={current ? "/espace/membre" : service.href}
-                className={buttonStyles({
-                  variant: "outline",
-                  className: "mt-5 w-full",
-                })}
-              >
-                {current ? "Abonnement deja actif" : "Voir les offres"}
-                <ArrowUpRight className="h-4 w-4" />
-              </Link>
-            </Card>
-          );
-        })}
-      </div>
+      {activeView === "offers" ? (
+        <div className="mt-6">
+          <div className="grid gap-3 md:grid-cols-3">
+            {services.map((service) => {
+              const latest = latestSubscriptionFor(subscriptions, service.id);
+              const current = latest ? isCurrentSubscription(latest) : false;
+              const recoveryFinished =
+                latest?.service_type === "recovery" &&
+                latest.remaining_sessions === 0;
+              const serviceStatus = current
+                ? "Deja paye"
+                : latest
+                  ? recoveryFinished
+                    ? "Seances terminees"
+                    : "A renouveler"
+                  : "Disponible";
 
-      <h3 className="mt-8 text-sm font-black uppercase tracking-[0.14em] text-white">
-        Historique detaille
-      </h3>
-      {subscriptions.length ? (
-        <div className="mt-4 grid gap-4 xl:grid-cols-2">
-          {subscriptions.map((subscription) => (
-            <Card key={subscription.id} className="p-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-primary">
-                    {subscription.service_type.replaceAll("_", " ")}
-                  </p>
-                  <p className="mt-2 text-lg font-black text-white">
-                    {subscription.plan_name}
-                  </p>
-                  <p className="mt-1 text-sm text-gray-400">
-                    Du {subscription.starts_on} au {subscription.ends_on}
-                  </p>
-                  <p className="mt-2 text-sm font-bold text-primary">
-                    {subscription.price} {subscription.currency}
-                  </p>
-                  {subscription.service_type === "recovery" ? (
-                    <p className="mt-2 text-sm font-bold text-emerald-200">
-                      {subscription.remaining_sessions ?? "-"} /{" "}
-                      {subscription.total_sessions ?? "-"} seance(s)
-                    </p>
+              return (
+                <button
+                  type="button"
+                  key={service.id}
+                  data-testid={`member-service-${service.id}`}
+                  aria-pressed={activeService === service.id}
+                  onClick={() => setActiveService(service.id)}
+                  className={`rounded-sm border p-4 text-left transition ${
+                    activeService === service.id
+                      ? "border-primary bg-primary/[0.1]"
+                      : "border-white/10 bg-black/20 hover:border-primary/40"
+                  }`}
+                >
+                  <span className="block text-[0.65rem] font-black uppercase tracking-[0.14em] text-primary">
+                    {service.label}
+                  </span>
+                  <span
+                    className={`mt-2 block text-sm font-black ${
+                      current ? "text-emerald-200" : "text-white"
+                    }`}
+                  >
+                    {serviceStatus}
+                  </span>
+                  {current && latest ? (
+                    <span className="mt-1 block text-xs text-gray-500">
+                      {latest.plan_name} · jusqu&apos;au {latest.ends_on}
+                    </span>
                   ) : null}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-6 border-t border-white/10 pt-6">
+            <MembershipPlansList serviceType={activeService} />
+          </div>
+        </div>
+      ) : null}
+
+      {activeView === "history" ? (
+        subscriptions.length ? (
+          <div className="mt-6 grid gap-4 xl:grid-cols-2">
+            {subscriptions.map((subscription) => (
+              <Card key={subscription.id} className="p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-primary">
+                      {subscription.service_type.replaceAll("_", " ")}
+                    </p>
+                    <p className="mt-2 text-lg font-black text-white">
+                      {subscription.plan_name}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-400">
+                      Du {subscription.starts_on} au {subscription.ends_on}
+                    </p>
+                    <p className="mt-2 text-sm font-bold text-primary">
+                      {subscription.price} {subscription.currency}
+                    </p>
+                    {subscription.service_type === "recovery" ? (
+                      <p className="mt-2 text-sm font-bold text-emerald-200">
+                        {subscription.remaining_sessions ?? "-"} /{" "}
+                        {subscription.total_sessions ?? "-"} seance(s)
+                      </p>
+                    ) : null}
+                  </div>
+                  <Pill>
+                    {statusLabels[
+                      subscription.effective_status ?? subscription.status
+                    ] ?? subscription.status}
+                  </Pill>
                 </div>
-                <Pill>
-                  {statusLabels[
-                    subscription.effective_status ?? subscription.status
-                  ] ?? subscription.status}
-                </Pill>
-              </div>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="mt-4">
-          <EmptyState text="Aucun abonnement enregistre sur ce compte." />
-        </div>
-      )}
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6">
+            <EmptyState text="Aucun abonnement enregistre sur ce compte." />
+          </div>
+        )
+      ) : null}
     </Panel>
   );
 }
