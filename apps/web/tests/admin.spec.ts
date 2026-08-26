@@ -595,6 +595,19 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByText("Membre Urgent", { exact: true })).toBeVisible();
   await expect(page.getByText("Membre Stable", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", {
+      name: "Agrandir la photo de Membre Stable",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "Photo de Membre Stable" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Fermer la photo" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Photo de Membre Stable" }),
+  ).toHaveCount(0);
 
   await page.getByLabel("Filtrer les membres").selectOption("expiring");
   await expect(page.getByText("Membre Urgent", { exact: true })).toBeVisible();

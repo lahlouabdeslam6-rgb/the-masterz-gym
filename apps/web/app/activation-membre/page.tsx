@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Alert, Button, Input, Label, LoadingMessage } from "@masterz/ui";
 import { AuthShell } from "@/components/AuthShell";
-import { api } from "@/lib/api";
+import {
+  MemberPhotoCapture,
+  type MemberPhotoUploadResult,
+} from "@/components/dashboard/MemberPhotoCapture";
+import { api, apiBaseUrl } from "@/lib/api";
 
 export default function ActivationMembrePage() {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [challengeId, setChallengeId] = useState("");
@@ -70,6 +74,26 @@ export default function ActivationMembrePage() {
     }
   }
 
+  async function uploadActivationPhoto(
+    photo: Blob,
+  ): Promise<MemberPhotoUploadResult> {
+    const body = new FormData();
+    body.append("challenge_id", challengeId);
+    body.append("photo", photo, "photo-activation.jpg");
+    const response = await fetch(
+      `${apiBaseUrl}/api/v1/auth/member-activation/photo`,
+      { method: "POST", body },
+    );
+    const payload = (await response.json()) as {
+      message?: string;
+      detail?: { message?: string };
+    };
+    return {
+      ok: response.ok,
+      message: response.ok ? payload.message : payload.detail?.message,
+    };
+  }
+
   return (
     <AuthShell
       backHref="/connexion"
@@ -79,14 +103,18 @@ export default function ActivationMembrePage() {
           ? "Activez votre accès en ligne."
           : step === 2
             ? "Sécurisez votre compte."
-            : "Votre compte est activé."
+            : step === 3
+              ? "Ajoutez votre photo membre."
+              : "Votre compte est activé."
       }
       description={
         step === 1
           ? "Déjà membre du club ? Vérifiez votre identité pour créer votre accès en ligne."
           : step === 2
             ? "Saisissez le code de vérification et choisissez votre mot de passe."
-            : "Vous pouvez maintenant vous connecter à votre espace membre."
+            : step === 3
+              ? "Prenez ou importez une photo claire. Le compte sera activé après sa validation."
+              : "Vous pouvez maintenant vous connecter à votre espace membre."
       }
     >
       <StepIndicator current={step} />
@@ -173,16 +201,34 @@ export default function ActivationMembrePage() {
           <Button type="submit" size="lg" className="w-full" disabled={loading}>
             {loading ? (
               <LoadingMessage
-                message="Activation…"
+                message="Vérification…"
                 className="p-0 text-black"
               />
             ) : (
-              "Activer mon compte"
+              "Continuer vers la photo"
             )}
           </Button>
         </form>
       ) : null}
       {step === 3 ? (
+        <div className="space-y-4">
+          <Alert
+            type="info"
+            message="Votre mot de passe est pret, mais le compte reste bloque jusqu'a la validation de votre photo."
+          />
+          <MemberPhotoCapture
+            member={{
+              id: challengeId,
+              full_name: fullName,
+              profile_photo_url: null,
+              profile_photo_verified_at: null,
+            }}
+            uploadOverride={uploadActivationPhoto}
+            onValidated={() => setStep(4)}
+          />
+        </div>
+      ) : null}
+      {step === 4 ? (
         <div className="rounded-lg border border-emerald-400/25 bg-emerald-400/[0.06] p-6 text-center">
           <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-300" />
           <p className="mt-4 text-sm text-gray-300">Votre accès est prêt.</p>
@@ -199,10 +245,10 @@ export default function ActivationMembrePage() {
   );
 }
 
-function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
+function StepIndicator({ current }: { current: 1 | 2 | 3 | 4 }) {
   return (
-    <div className="mb-8 grid grid-cols-3 gap-2">
-      {["Identité", "Sécurité", "Terminé"].map((label, index) => (
+    <div className="mb-8 grid grid-cols-4 gap-2">
+      {["Identité", "Sécurité", "Photo", "Terminé"].map((label, index) => (
         <div key={label}>
           <div
             className={`h-1 ${current >= index + 1 ? "bg-primary" : "bg-white/10"}`}

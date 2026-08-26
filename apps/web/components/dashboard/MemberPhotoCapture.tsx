@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Camera, Check, RefreshCw, Upload, UserRound, X } from "lucide-react";
 import { Alert, Button } from "@masterz/ui";
 import type { AuthSession } from "@/lib/auth";
@@ -15,6 +16,12 @@ type PhotoMember = {
   profile_photo_verified_at?: string | null;
 };
 
+export type MemberPhotoUploadResult = {
+  ok: boolean;
+  message?: string;
+  user?: User;
+};
+
 export function MemberAvatar({
   member,
   className = "h-16 w-16",
@@ -23,21 +30,94 @@ export function MemberAvatar({
   className?: string;
 }) {
   const photoUrl = resolveApiMediaUrl(member.profile_photo_url);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setExpanded(false);
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [expanded]);
+
+  const frameClass = `relative flex shrink-0 items-center justify-center overflow-hidden rounded-md border bg-black/30 ${member.profile_photo_verified_at ? "border-emerald-300/35" : "border-white/15"} ${className}`;
+
+  if (!photoUrl) {
+    return (
+      <span className={frameClass}>
+        <UserRound className="h-1/2 w-1/2 text-gray-600" />
+      </span>
+    );
+  }
+
   return (
-    <span
-      className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-md border bg-black/30 ${member.profile_photo_verified_at ? "border-emerald-300/35" : "border-white/15"} ${className}`}
-    >
-      {photoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
+    <>
+      <span
+        role="button"
+        tabIndex={0}
+        aria-label={`Agrandir la photo de ${member.full_name}`}
+        className={`${frameClass} cursor-zoom-in outline-none transition hover:border-primary focus-visible:ring-2 focus-visible:ring-primary`}
+        onClick={(event) => {
+          event.stopPropagation();
+          setExpanded(true);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            event.stopPropagation();
+            setExpanded(true);
+          }
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={photoUrl}
           alt={`Photo de ${member.full_name}`}
           className="h-full w-full object-cover"
         />
-      ) : (
-        <UserRound className="h-1/2 w-1/2 text-gray-600" />
-      )}
-    </span>
+      </span>
+      {expanded
+        ? createPortal(
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Photo de ${member.full_name}`}
+              className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 p-4 sm:p-8"
+              onClick={() => setExpanded(false)}
+            >
+              <div
+                className="relative flex h-full max-h-[90vh] w-full max-w-5xl items-center justify-center overflow-hidden rounded-lg border border-white/15 bg-[#071018] p-3 shadow-2xl sm:p-6"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  aria-label="Fermer la photo"
+                  className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/80 text-white transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  onClick={() => setExpanded(false)}
+                >
+                  <X className="h-6 w-6" />
+                </button>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={photoUrl}
+                  alt={`Photo agrandie de ${member.full_name}`}
+                  className="max-h-full max-w-full rounded-md object-contain"
+                />
+                <p className="absolute bottom-4 left-1/2 max-w-[75%] -translate-x-1/2 rounded-full border border-white/10 bg-black/75 px-4 py-2 text-center text-xs font-black uppercase tracking-[0.08em] text-white">
+                  {member.full_name}
+                </p>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
   );
 }
 
@@ -45,11 +125,15 @@ export function MemberPhotoCapture({
   session,
   member,
   onUploaded,
+  uploadOverride,
+  onValidated,
   compact = false,
 }: {
-  session: AuthSession;
+  session?: AuthSession;
   member: PhotoMember;
-  onUploaded: (user: User) => void;
+  onUploaded?: (user: User) => void;
+  uploadOverride?: (photo: Blob) => Promise<MemberPhotoUploadResult>;
+  onValidated?: () => void;
   compact?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -176,6 +260,33 @@ export function MemberPhotoCapture({
     if (!pendingPhoto) return;
     setBusy(true);
     setFeedback(null);
+    if (uploadOverride) {
+      try {
+        const result = await uploadOverride(pendingPhoto);
+        if (!result.ok) {
+          setFeedback(result.message ?? "La photo n'a pas pu etre validee.");
+          return;
+        }
+        clearPendingPhoto();
+        if (result.user) onUploaded?.(result.user);
+        setFeedback(
+          result.message ?? "Photo de visage validee et enregistree.",
+        );
+        onValidated?.();
+      } catch {
+        setFeedback("Le serveur est indisponible. Reessayez dans un instant.");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    if (!session) {
+      setFeedback(
+        "La verification de votre identite a expire. Recommencez l'activation.",
+      );
+      setBusy(false);
+      return;
+    }
     const body = new FormData();
     body.append("photo", pendingPhoto, "photo-membre.jpg");
     try {
@@ -198,8 +309,9 @@ export function MemberPhotoCapture({
         return;
       }
       clearPendingPhoto();
-      onUploaded(payload as User);
+      onUploaded?.(payload as User);
       setFeedback("Photo de visage validee et enregistree.");
+      onValidated?.();
     } catch {
       setFeedback("Le serveur est indisponible. Reessayez dans un instant.");
     } finally {
@@ -263,6 +375,7 @@ export function MemberPhotoCapture({
               ref={fileInputRef}
               className="hidden"
               type="file"
+              aria-label="Importer une photo visage"
               accept="image/jpeg,image/png,image/webp"
               capture="user"
               onChange={(event) => importPhoto(event.target.files?.[0])}

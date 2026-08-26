@@ -140,6 +140,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/member-activation/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Member Activation */
+        post: operations["complete_member_activation_api_v1_auth_member_activation_photo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me": {
         parameters: {
             query?: never;
@@ -1398,6 +1415,16 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** Body_complete_member_activation_api_v1_auth_member_activation_photo_post */
+        Body_complete_member_activation_api_v1_auth_member_activation_photo_post: {
+            /**
+             * Challenge Id
+             * Format: uuid
+             */
+            challenge_id: string;
+            /** Photo */
+            photo: string;
         };
         /** Body_upload_member_photo_api_v1_users__user_id__profile_photo_post */
         Body_upload_member_photo_api_v1_users__user_id__profile_photo_post: {
@@ -3381,6 +3408,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ExistingMemberActivationConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_member_activation_api_v1_auth_member_activation_photo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_complete_member_activation_api_v1_auth_member_activation_photo_post"];
             };
         };
         responses: {

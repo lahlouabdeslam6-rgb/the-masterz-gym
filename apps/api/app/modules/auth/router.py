@@ -1,6 +1,7 @@
+import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 
 from app.core.config import settings
 from app.core.dependencies import CurrentUser, DbSession
@@ -102,4 +103,14 @@ def confirm_member_activation(
         data.new_password,
         OTPPurpose.EXISTING_MEMBER_ACTIVATION,
     )
-    return MessageResponse(message="Compte activé. Vous pouvez maintenant vous connecter.")
+    return MessageResponse(message="Identite verifiee. Ajoutez maintenant votre photo de visage.")
+
+
+@router.post("/member-activation/photo", response_model=MessageResponse)
+async def complete_member_activation(
+    challenge_id: Annotated[uuid.UUID, Form()],
+    photo: Annotated[UploadFile, File()],
+    auth: Annotated[AuthService, Depends(service)],
+) -> MessageResponse:
+    await auth.complete_member_activation(challenge_id, photo)
+    return MessageResponse(message="Compte active. Vous pouvez maintenant vous connecter.")

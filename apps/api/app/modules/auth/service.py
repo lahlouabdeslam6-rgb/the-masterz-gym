@@ -3,7 +3,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 import jwt
-from fastapi import status
+from fastapi import UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -23,6 +23,7 @@ from app.modules.auth.otp import OTPProvider
 from app.modules.auth.repository import AuthRepository
 from app.modules.auth.schemas import ExistingMemberActivationRequest, TokenPair
 from app.modules.users.models import User
+from app.modules.users.photo import MemberPhotoService
 from app.modules.users.repository import UserRepository
 from app.shared.enums import AccountStatus, OTPPurpose, UserRole
 
@@ -205,8 +206,7 @@ class AuthService:
         user.password_hash = hash_password(password)
         action = "auth.password_reset"
         if purpose == OTPPurpose.EXISTING_MEMBER_ACTIVATION:
-            user.status = AccountStatus.ACTIVE
-            action = "user.activated"
+            action = "auth.member_activation_verified"
         self.session.flush()
         self.audit.record(
             actor=user,
@@ -215,4 +215,65 @@ class AuthService:
             entity_id=user.id,
             new_value={"status": user.status.value},
         )
+        return user
+
+    async def complete_member_activation(self, challenge_id: uuid.UUID, photo: UploadFile) -> User:
+        challenge = self.auth.get_challenge(challenge_id)
+        now = datetime.now(UTC)
+        valid = bool(
+            challenge
+            and challenge.purpose == OTPPurpose.EXISTING_MEMBER_ACTIVATION
+            and challenge.user_id is not None
+            and challenge.consumed_at is not None
+            and challenge.expires_at > now
+        )
+        if not valid or not challenge:
+            raise api_error(
+                status.HTTP_400_BAD_REQUEST,
+                "activation_photo_not_authorized",
+                "Verifiez de nouveau votre identite avant d'ajouter la photo.",
+            )
+
+        user = self.users.get(challenge.user_id)
+        if (
+            not user
+            or user.role != UserRole.MEMBER
+            or user.status != AccountStatus.PENDING_ACTIVATION
+            or not user.password_hash
+        ):
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "member_activation_not_pending",
+                "Ce compte ne peut pas etre active avec cette demande.",
+            )
+
+        media = MemberPhotoService()
+        verified = await media.validate_and_save(photo)
+        previous_url = user.profile_photo_url
+        try:
+            user.profile_photo_url = verified.media_url
+            user.profile_photo_verified_at = now
+            user.status = AccountStatus.ACTIVE
+            self.session.flush()
+            self.audit.record(
+                actor=user,
+                action="member.profile_photo_verified",
+                entity_type="user",
+                entity_id=user.id,
+                previous_value={"profile_photo_url": previous_url},
+                new_value={"profile_photo_url": user.profile_photo_url},
+            )
+            self.audit.record(
+                actor=user,
+                action="user.activated",
+                entity_type="user",
+                entity_id=user.id,
+                new_value={
+                    "status": user.status.value,
+                    "profile_photo_verified": True,
+                },
+            )
+        except Exception:
+            verified.path.unlink(missing_ok=True)
+            raise
         return user

@@ -35,10 +35,12 @@ def test_unknown_password_reset_is_generic(client: TestClient) -> None:
     assert response.json()["challenge_id"]
 
 
-def test_existing_member_activation_uses_otp_and_enables_login(
+def test_existing_member_activation_requires_a_verified_photo_before_login(
     client: TestClient,
     db_session: Session,
     otp_provider: OTPProvider,
+    tmp_path,
+    monkeypatch,
 ) -> None:
     phone = f"+21266{uuid.uuid4().int % 100_000_000:08d}"
     member = User(
@@ -51,7 +53,6 @@ def test_existing_member_activation_uses_otp_and_enables_login(
     )
     db_session.add(member)
     db_session.flush()
-    mark_member_photo_verified(member)
 
     requested = client.post(
         "/api/v1/auth/member-activation/request",
@@ -64,6 +65,14 @@ def test_existing_member_activation_uses_otp_and_enables_login(
     assert requested.status_code == 202
     code = otp_provider.codes[phone]  # type: ignore[attr-defined]
 
+    premature_photo = client.post(
+        "/api/v1/auth/member-activation/photo",
+        data={"challenge_id": requested.json()["challenge_id"]},
+        files={"photo": ("visage.jpg", b"photo", "image/jpeg")},
+    )
+    assert premature_photo.status_code == 400
+    assert premature_photo.json()["detail"]["code"] == ("activation_photo_not_authorized")
+
     confirmed = client.post(
         "/api/v1/auth/member-activation/confirm",
         json={
@@ -74,12 +83,41 @@ def test_existing_member_activation_uses_otp_and_enables_login(
     )
     assert confirmed.status_code == 200
 
+    db_session.refresh(member)
+    assert member.status == AccountStatus.PENDING_ACTIVATION
+
+    blocked_login = client.post(
+        "/api/v1/auth/login",
+        json={"phone": phone, "password": "ActivatedLocal123!"},
+    )
+    assert blocked_login.status_code == 401
+
+    async def fake_validation(_service, photo):
+        await photo.close()
+        saved_path = tmp_path / "activation-member.jpg"
+        saved_path.write_bytes(b"verified-photo")
+        return VerifiedMemberPhoto(
+            media_url="/media/member-photos/activation-member.jpg",
+            path=saved_path,
+        )
+
+    monkeypatch.setattr(MemberPhotoService, "validate_and_save", fake_validation)
+    completed = client.post(
+        "/api/v1/auth/member-activation/photo",
+        data={"challenge_id": requested.json()["challenge_id"]},
+        files={"photo": ("visage.jpg", b"photo", "image/jpeg")},
+    )
+    assert completed.status_code == 200, completed.text
+
     logged_in = client.post(
         "/api/v1/auth/login",
         json={"phone": phone, "password": "ActivatedLocal123!"},
     )
     assert logged_in.status_code == 200
     assert logged_in.json()["user"]["status"] == "active"
+    assert logged_in.json()["user"]["profile_photo_url"] == (
+        "/media/member-photos/activation-member.jpg"
+    )
 
 
 def test_reception_can_add_a_verified_photo_to_a_member_dossier(

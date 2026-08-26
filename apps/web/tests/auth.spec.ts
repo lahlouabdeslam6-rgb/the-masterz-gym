@@ -12,8 +12,12 @@ test("la connexion guide le membre vers sa premiere activation", async ({
   await expect(activationLink).toHaveAttribute("href", "/activation-membre");
 });
 
-test("lactivation envoie le numero membre avec lidentite", async ({ page }) => {
+test("lactivation exige la photo avant de terminer le compte", async ({
+  page,
+}) => {
   let activationBody: Record<string, unknown> | null = null;
+  let confirmationBody: Record<string, unknown> | null = null;
+  let photoUploadCalls = 0;
 
   await page.route(
     "**/api/v1/auth/member-activation/request",
@@ -31,6 +35,31 @@ test("lactivation envoie le numero membre avec lidentite", async ({ page }) => {
       });
     },
   );
+  await page.route(
+    "**/api/v1/auth/member-activation/confirm",
+    async (route) => {
+      confirmationBody = route.request().postDataJSON();
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify({
+          message: "Identite verifiee. Ajoutez maintenant votre photo.",
+        }),
+      });
+    },
+  );
+  await page.route("**/api/v1/auth/member-activation/photo", async (route) => {
+    photoUploadCalls += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify({
+        message: "Compte active. Vous pouvez maintenant vous connecter.",
+      }),
+    });
+  });
 
   await page.goto("/activation-membre");
   await expect(page.getByRole("link", { name: "Retour" })).toHaveAttribute(
@@ -48,4 +77,33 @@ test("lactivation envoie le numero membre avec lidentite", async ({ page }) => {
     full_name: "LAHLOU",
     member_number: "TMG-2026-E2D9869E",
   });
+
+  await page.getByLabel("Code de vérification").fill("123456");
+  await page.getByLabel("Créer un mot de passe").fill("LahlouLocal123!");
+  await page.getByRole("button", { name: "Continuer vers la photo" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Ajoutez votre photo membre." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Aller à la connexion" }),
+  ).toHaveCount(0);
+  expect(confirmationBody).toEqual({
+    challenge_id: "00000000-0000-0000-0000-000000000701",
+    otp: "123456",
+    new_password: "LahlouLocal123!",
+  });
+
+  await page.getByLabel("Importer une photo visage").setInputFiles({
+    name: "visage.jpg",
+    mimeType: "image/jpeg",
+    buffer: Buffer.from("photo-visage-test"),
+  });
+  await page.getByRole("button", { name: "Valider cette photo" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Votre compte est activé." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Aller à la connexion" }),
+  ).toBeVisible();
+  expect(photoUploadCalls).toBe(1);
 });
