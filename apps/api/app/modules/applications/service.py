@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime, timedelta
 
 from fastapi import status
 from sqlalchemy.orm import Session
@@ -36,6 +37,41 @@ class ApplicationService:
         self.membership_service = MembershipService(session)
         self.users = UserRepository(session)
         self.audit = AuditService(session)
+
+    def list(
+        self, application_status: ApplicationStatus | None = None
+    ) -> list[MembershipApplication]:
+        self.purge_stale_pending()
+        return self.applications.list(application_status)
+
+    def get(self, application_id: uuid.UUID) -> MembershipApplication | None:
+        self.purge_stale_pending()
+        return self.applications.get(application_id)
+
+    def purge_stale_pending(self) -> int:
+        retention_days = self.membership_service.get_setting_int(
+            "application_pending_retention_days"
+        )
+        cutoff = datetime.now(UTC) - timedelta(days=retention_days)
+        stale_applications = self.applications.stale_pending(cutoff)
+        for application in stale_applications:
+            self.audit.record(
+                actor=None,
+                action="application.auto_deleted",
+                entity_type="membership_application",
+                entity_id=application.id,
+                previous_value={
+                    "status": application.status.value,
+                    "applicant_name": application.full_name,
+                    "phone": application.phone,
+                    "created_at": application.created_at.isoformat(),
+                },
+                reason=(f"Demande pending sans traitement depuis {retention_days} jour(s)"),
+            )
+            self.applications.delete(application)
+        if stale_applications:
+            self.session.flush()
+        return len(stale_applications)
 
     def submit(self, data: ApplicationCreate) -> MembershipApplication:
         plan = self.plans.get_plan(data.selected_plan_id)
@@ -99,7 +135,7 @@ class ApplicationService:
     def review(
         self, application_id: uuid.UUID, data: ApplicationReview, actor: User
     ) -> MembershipApplication:
-        application = self.applications.get(application_id)
+        application = self.get(application_id)
         if not application:
             raise api_error(
                 status.HTTP_404_NOT_FOUND, "application_not_found", "Demande introuvable."

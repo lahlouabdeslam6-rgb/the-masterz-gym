@@ -30,6 +30,7 @@ SETTING_KEYS = {
     "subscription_expiring_soon_days",
     "attendance_duplicate_window_minutes",
     "store_low_stock_threshold",
+    "application_pending_retention_days",
 }
 
 

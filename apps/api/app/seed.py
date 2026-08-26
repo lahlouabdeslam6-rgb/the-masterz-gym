@@ -65,6 +65,7 @@ DEFAULT_SETTINGS = {
     "subscription_expiring_soon_days": 7,
     "attendance_duplicate_window_minutes": 30,
     "store_low_stock_threshold": 5,
+    "application_pending_retention_days": 7,
 }
 
 

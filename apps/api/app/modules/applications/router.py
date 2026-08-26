@@ -4,7 +4,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, status
 
 from app.core.dependencies import DbSession, require_roles
-from app.modules.applications.repository import ApplicationRepository
 from app.modules.applications.schemas import ApplicationCreate, ApplicationRead, ApplicationReview
 from app.modules.applications.service import ApplicationService
 from app.modules.users.models import User
@@ -25,7 +24,7 @@ def list_applications(
     actor: Reception,
     application_status: Annotated[ApplicationStatus | None, Query(alias="status")] = None,
 ):
-    return ApplicationRepository(session).list(application_status)
+    return ApplicationService(session).list(application_status)
 
 
 @router.get("/{application_id}", response_model=ApplicationRead)
@@ -34,7 +33,7 @@ def get_application(application_id: uuid.UUID, session: DbSession, actor: Recept
 
     from app.core.errors import api_error
 
-    application = ApplicationRepository(session).get(application_id)
+    application = ApplicationService(session).get(application_id)
     if not application:
         raise api_error(
             http_status.HTTP_404_NOT_FOUND, "application_not_found", "Demande introuvable."

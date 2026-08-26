@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
+from app.modules.applications.models import MembershipApplication
 from app.modules.auth.otp import OTPProvider
 from app.modules.memberships.models import MembershipPlan, Subscription
 from app.modules.users.models import User
@@ -162,11 +163,56 @@ def test_admin_can_list_membership_settings(
         "attendance_duplicate_window_minutes",
         "store_low_stock_threshold",
         "subscription_expiring_soon_days",
+        "application_pending_retention_days",
         "subscription_grace_days",
     }
 
     forbidden = client.get("/api/v1/membership-settings", headers=reception_headers)
     assert forbidden.status_code == 403
+
+
+def test_pending_applications_are_deleted_after_configured_retention(
+    client: TestClient,
+    db_session: Session,
+    admin_headers: dict[str, str],
+) -> None:
+    plan = next(
+        item
+        for item in client.get("/api/v1/membership-plans").json()
+        if item["service_type"] == "gym"
+    )
+
+    stale_response = client.post(
+        "/api/v1/membership-applications",
+        json={
+            "full_name": "Demande Ancienne",
+            "phone": f"+21261{uuid.uuid4().int % 100_000_000:08d}",
+            "selected_plan_id": plan["id"],
+        },
+    )
+    recent_response = client.post(
+        "/api/v1/membership-applications",
+        json={
+            "full_name": "Demande Recente",
+            "phone": f"+21262{uuid.uuid4().int % 100_000_000:08d}",
+            "selected_plan_id": plan["id"],
+        },
+    )
+    assert stale_response.status_code == 201, stale_response.text
+    assert recent_response.status_code == 201, recent_response.text
+
+    stale_id = uuid.UUID(stale_response.json()["id"])
+    stale = db_session.get(MembershipApplication, stale_id)
+    assert stale is not None
+    stale.updated_at = datetime.now(UTC) - timedelta(days=8)
+    db_session.flush()
+
+    listed = client.get("/api/v1/membership-applications", headers=admin_headers)
+    assert listed.status_code == 200, listed.text
+    listed_ids = {item["id"] for item in listed.json()}
+    assert str(stale_id) not in listed_ids
+    assert recent_response.json()["id"] in listed_ids
+    assert db_session.get(MembershipApplication, stale_id) is None
 
 
 def test_admin_can_update_member_profile_with_audit(

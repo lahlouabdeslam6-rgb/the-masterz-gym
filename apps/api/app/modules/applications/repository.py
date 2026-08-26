@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import uuid
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -26,3 +29,13 @@ class ApplicationRepository:
         if application_status:
             statement = statement.where(MembershipApplication.status == application_status)
         return list(self.session.scalars(statement))
+
+    def stale_pending(self, cutoff: datetime) -> list[MembershipApplication]:
+        statement = select(MembershipApplication).where(
+            MembershipApplication.status == ApplicationStatus.PENDING,
+            MembershipApplication.updated_at < cutoff,
+        )
+        return list(self.session.scalars(statement))
+
+    def delete(self, application: MembershipApplication) -> None:
+        self.session.delete(application)

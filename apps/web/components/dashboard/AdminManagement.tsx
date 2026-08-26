@@ -92,6 +92,10 @@ const settingPresentation: Record<
     label: "Alerte stock Store",
     description: "Alerte quand un produit atteint ce nombre d'unites.",
   },
+  application_pending_retention_days: {
+    label: "Nettoyage des demandes",
+    description: "Jours avant de supprimer une demande encore en attente.",
+  },
 };
 
 export function AdminUserManager({
