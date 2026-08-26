@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 
 from app.core.dependencies import CurrentUser, DbSession, require_roles
 from app.modules.users.models import User
@@ -23,6 +23,16 @@ Admin = Annotated[User, Depends(require_roles(UserRole.ADMIN))]
 @router.get("/me", response_model=UserRead)
 def me(actor: CurrentUser) -> CurrentUser:
     return actor
+
+
+@router.post("/{user_id}/profile-photo", response_model=UserRead)
+async def upload_member_photo(
+    user_id: uuid.UUID,
+    session: DbSession,
+    actor: CurrentUser,
+    photo: Annotated[UploadFile, File()],
+):
+    return await UserService(session).upload_member_photo(user_id, photo, actor)
 
 
 @router.get("", response_model=list[UserRead])

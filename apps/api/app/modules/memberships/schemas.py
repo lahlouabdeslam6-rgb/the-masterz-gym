@@ -81,6 +81,8 @@ class MemberSubscriptionSummary(BaseModel):
     gender: Gender | None = None
     account_status: AccountStatus
     member_number: str
+    profile_photo_url: str | None = None
+    profile_photo_verified_at: datetime | None = None
     created_at: datetime
     subscription_id: uuid.UUID | None = None
     plan_name: str | None = None

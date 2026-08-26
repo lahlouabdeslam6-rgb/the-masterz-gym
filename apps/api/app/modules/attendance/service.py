@@ -29,6 +29,12 @@ class AttendanceService:
         member = self.users.get(data.member_id)
         if not member or member.role != UserRole.MEMBER:
             raise api_error(status.HTTP_404_NOT_FOUND, "member_not_found", "Membre introuvable.")
+        if not member.profile_photo_url or not member.profile_photo_verified_at:
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "member_photo_required",
+                "Une photo de visage valide est requise avant la premiere entree.",
+            )
 
         duplicate_minutes = self.membership_service.get_setting_int(
             "attendance_duplicate_window_minutes"

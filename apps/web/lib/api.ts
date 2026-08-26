@@ -9,6 +9,12 @@ import {
 
 export const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+export function resolveApiMediaUrl(mediaUrl: string | null | undefined) {
+  if (!mediaUrl) return null;
+  if (/^(https?:|data:|blob:)/i.test(mediaUrl)) return mediaUrl;
+  return `${apiBaseUrl.replace(/\/$/, "")}/${mediaUrl.replace(/^\//, "")}`;
+}
 type TokenPair = components["schemas"]["TokenPair"];
 
 let refreshInFlight: Promise<AuthSession | null> | null = null;

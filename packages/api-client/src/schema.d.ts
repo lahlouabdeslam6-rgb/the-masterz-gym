@@ -157,6 +157,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/{user_id}/profile-photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Member Photo */
+        post: operations["upload_member_photo_api_v1_users__user_id__profile_photo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -1382,6 +1399,11 @@ export interface components {
              */
             created_at: string;
         };
+        /** Body_upload_member_photo_api_v1_users__user_id__profile_photo_post */
+        Body_upload_member_photo_api_v1_users__user_id__profile_photo_post: {
+            /** Photo */
+            photo: string;
+        };
         /** Body_upload_product_media_api_v1_store_product_media_post */
         Body_upload_product_media_api_v1_store_product_media_post: {
             /** Media */
@@ -2014,6 +2036,10 @@ export interface components {
             phone: string;
             /** Member Number */
             member_number: string;
+            /** Profile Photo Url */
+            profile_photo_url: string | null;
+            /** Profile Photo Verified At */
+            profile_photo_verified_at: string | null;
         };
         /** MemberSubscriptionSummary */
         MemberSubscriptionSummary: {
@@ -2034,6 +2060,10 @@ export interface components {
             account_status: components["schemas"]["AccountStatus"];
             /** Member Number */
             member_number: string;
+            /** Profile Photo Url */
+            profile_photo_url?: string | null;
+            /** Profile Photo Verified At */
+            profile_photo_verified_at?: string | null;
             /**
              * Created At
              * Format: date-time
@@ -3074,6 +3104,10 @@ export interface components {
             status: components["schemas"]["AccountStatus"];
             /** Member Number */
             member_number: string | null;
+            /** Profile Photo Url */
+            profile_photo_url: string | null;
+            /** Profile Photo Verified At */
+            profile_photo_verified_at: string | null;
             /**
              * Created At
              * Format: date-time
@@ -3386,6 +3420,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserRead"];
+                };
+            };
+        };
+    };
+    upload_member_photo_api_v1_users__user_id__profile_photo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_member_photo_api_v1_users__user_id__profile_photo_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

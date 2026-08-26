@@ -1,6 +1,6 @@
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import CheckConstraint, Date, Enum, String
+from sqlalchemy import CheckConstraint, Date, DateTime, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -29,6 +29,10 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     member_number: Mapped[str | None] = mapped_column(
         String(40), nullable=True, unique=True, index=True
+    )
+    profile_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    profile_photo_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
     @property

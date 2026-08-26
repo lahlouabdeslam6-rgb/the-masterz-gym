@@ -13,6 +13,8 @@ class MemberSearchResult(BaseModel):
     full_name: str
     phone: str
     member_number: str
+    profile_photo_url: str | None
+    profile_photo_verified_at: datetime | None
 
 
 class AttendanceCreate(BaseModel):

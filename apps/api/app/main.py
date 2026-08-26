@@ -8,6 +8,7 @@ from app.core.config import settings
 
 def create_app() -> FastAPI:
     settings.store_media_root.mkdir(parents=True, exist_ok=True)
+    settings.member_photo_root.mkdir(parents=True, exist_ok=True)
     application = FastAPI(
         title=settings.app_name,
         version="0.2.0",
@@ -20,6 +21,11 @@ def create_app() -> FastAPI:
         "/media/store-products",
         StaticFiles(directory=settings.store_media_root),
         name="store-product-images",
+    )
+    application.mount(
+        "/media/member-photos",
+        StaticFiles(directory=settings.member_photo_root),
+        name="member-photos",
     )
     application.add_middleware(
         CORSMiddleware,

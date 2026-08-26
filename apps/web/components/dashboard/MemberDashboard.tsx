@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Bell,
+  Camera,
   CalendarCheck,
   CalendarDays,
   CreditCard,
@@ -18,8 +19,8 @@ import {
   UserRound,
   Waves,
 } from "lucide-react";
-import { Card, Pill } from "@masterz/ui";
-import type { AuthSession } from "@/lib/auth";
+import { Button, Card, Pill } from "@masterz/ui";
+import { updateSessionUser, type AuthSession } from "@/lib/auth";
 import {
   type NavigationBadgeKey,
   useNavigationBadges,
@@ -35,6 +36,7 @@ import { CoachingScheduleManager } from "./CoachingScheduleManager";
 import { MemberCoachingAssignmentRequest } from "./CoachingAssignmentRequests";
 import { MemberRecoveryPanel } from "./RecoveryManager";
 import { MemberNotifications } from "./MemberNotifications";
+import { MemberAvatar, MemberPhotoCapture } from "./MemberPhotoCapture";
 import { ComplaintCenter } from "./ComplaintCenter";
 import { MemberStoreManager } from "./StoreManager";
 import {
@@ -152,6 +154,7 @@ export function MemberDashboard({
   attendance: Attendance[];
 }) {
   const [activeSection, setActiveSection] = useState<MemberSection>("overview");
+  const [currentUser, setCurrentUser] = useState(user);
   const { badges, clearBadge } = useNavigationBadges(session, activeSection);
   const openSection = (nextSection: MemberSection) => {
     const badgeKey = memberBadgeKeys[nextSection];
@@ -174,14 +177,12 @@ export function MemberDashboard({
     <div className="mt-8 grid items-start gap-5 lg:grid-cols-[15.5rem_minmax(0,1fr)]">
       <aside className="overflow-hidden rounded-lg border border-white/10 bg-[#081119]/95 shadow-2xl lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
         <div className="border-b border-white/10 bg-primary/[0.07] p-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-black">
-            <UserRound className="h-5 w-5" />
-          </div>
+          <MemberAvatar member={currentUser} className="h-12 w-12" />
           <p className="mt-3 truncate text-sm font-black uppercase text-white">
-            {user.full_name}
+            {currentUser.full_name}
           </p>
           <p className="mt-1 text-xs text-gray-500">
-            {user.member_number ?? "Numero membre non attribue"}
+            {currentUser.member_number ?? "Numero membre non attribue"}
           </p>
         </div>
 
@@ -275,6 +276,10 @@ export function MemberDashboard({
         <div className="mt-6">
           {activeSection === "overview" ? (
             <MemberOverview
+              photoReady={Boolean(
+                currentUser.profile_photo_url &&
+                currentUser.profile_photo_verified_at,
+              )}
               subscriptions={subscriptions}
               receipts={receipts}
               attendance={attendance}
@@ -289,7 +294,16 @@ export function MemberDashboard({
               <MemberNotifications session={session} />
             </Panel>
           ) : null}
-          {activeSection === "profile" ? <ProfilePanel user={user} /> : null}
+          {activeSection === "profile" ? (
+            <ProfilePanel
+              session={session}
+              user={currentUser}
+              onUpdated={(updated) => {
+                setCurrentUser(updated);
+                updateSessionUser(updated);
+              }}
+            />
+          ) : null}
           {activeSection === "subscriptions" ? (
             <SubscriptionsPanel subscriptions={subscriptions} />
           ) : null}
@@ -302,7 +316,7 @@ export function MemberDashboard({
           {activeSection === "coaching" ? (
             <MemberCoachingWorkspace
               session={session}
-              memberId={user.id}
+              memberId={currentUser.id}
               hasActiveCoaching={hasActiveCoaching}
             />
           ) : null}
@@ -311,7 +325,10 @@ export function MemberDashboard({
               title="Mon pack recovery"
               subtitle="Vos seances sauna, bain froid et compression, avec le solde et l'historique des passages."
             >
-              <MemberRecoveryPanel session={session} memberId={user.id} />
+              <MemberRecoveryPanel
+                session={session}
+                memberId={currentUser.id}
+              />
             </Panel>
           ) : null}
           {activeSection === "store" ? (
@@ -395,11 +412,13 @@ function MemberCoachingWorkspace({
 }
 
 function MemberOverview({
+  photoReady,
   subscriptions,
   receipts,
   attendance,
   onNavigate,
 }: {
+  photoReady: boolean;
   subscriptions: Subscription[];
   receipts: Receipt[];
   attendance: Attendance[];
@@ -413,6 +432,27 @@ function MemberOverview({
 
   return (
     <div className="space-y-6">
+      {!photoReady ? (
+        <section className="rounded-lg border border-amber-300/30 bg-amber-300/[0.06] p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-200">
+                Action obligatoire avant votre premiere entree
+              </p>
+              <h3 className="mt-2 text-xl font-black uppercase text-white">
+                Ajoutez une photo claire de votre visage
+              </h3>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
+                Ouvrez la camera ou importez une photo. Un seul visage doit etre
+                visible et bien eclaire.
+              </p>
+            </div>
+            <Button type="button" onClick={() => onNavigate("profile")}>
+              <Camera className="h-4 w-4" /> Ajouter ma photo
+            </Button>
+          </div>
+        </section>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-3">
         <OverviewCard
           icon={CalendarDays}
@@ -495,22 +535,46 @@ function OverviewCard({
   );
 }
 
-function ProfilePanel({ user }: { user: User }) {
+function ProfilePanel({
+  session,
+  user,
+  onUpdated,
+}: {
+  session: AuthSession;
+  user: User;
+  onUpdated: (user: User) => void;
+}) {
   return (
     <Panel
       title="Mon profil"
-      subtitle="Vos informations personnelles et votre statut membre."
+      subtitle="Votre photo de reconnaissance et vos informations personnelles."
     >
-      <dl className="grid gap-x-8 gap-y-4 text-sm md:grid-cols-2">
-        <Info label="Nom" value={user.full_name} />
-        <Info label="Telephone" value={user.phone} />
-        <Info label="Email" value={user.email ?? "Non renseigne"} />
-        <Info
-          label="Numero membre"
-          value={user.member_number ?? "Non attribue"}
+      <div className="space-y-5">
+        <MemberPhotoCapture
+          session={session}
+          member={user}
+          onUploaded={onUpdated}
         />
-        <Info label="Statut" value={statusLabels[user.status] ?? user.status} />
-      </dl>
+        <Card className="p-5">
+          <dl className="grid gap-x-8 gap-y-4 text-sm md:grid-cols-2">
+            <Info label="Nom" value={user.full_name} />
+            <Info label="Telephone" value={user.phone} />
+            <Info label="Email" value={user.email ?? "Non renseigne"} />
+            <Info
+              label="Numero membre"
+              value={user.member_number ?? "Non attribue"}
+            />
+            <Info
+              label="Statut"
+              value={statusLabels[user.status] ?? user.status}
+            />
+            <Info
+              label="Photo visage"
+              value={user.profile_photo_verified_at ? "Validee" : "Obligatoire"}
+            />
+          </dl>
+        </Card>
+      </div>
     </Panel>
   );
 }

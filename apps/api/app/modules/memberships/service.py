@@ -172,6 +172,8 @@ class MembershipService:
                     gender=member.gender,
                     account_status=member.status,
                     member_number=member.member_number or "",
+                    profile_photo_url=member.profile_photo_url,
+                    profile_photo_verified_at=member.profile_photo_verified_at,
                     created_at=member.created_at,
                     subscription_id=subscription.id if subscription else None,
                     plan_name=subscription.plan_name if subscription else None,

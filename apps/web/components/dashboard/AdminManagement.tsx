@@ -29,6 +29,7 @@ import {
   selectClass,
   statusLabels,
 } from "./dashboard-shared";
+import { MemberAvatar } from "./MemberPhotoCapture";
 
 const roles: User["role"][] = [
   "admin",
@@ -440,18 +441,30 @@ export function AdminUserManager({
         {visibleUsers.map((user) => (
           <Card key={user.id} className="p-4 sm:p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p className="truncate font-bold text-white">
-                  {user.full_name}
-                </p>
-                <p className="mt-1 text-xs text-gray-500">{user.phone}</p>
-                {user.email || user.member_number ? (
-                  <p className="mt-1 truncate text-xs text-gray-600">
-                    {[user.member_number, user.email]
-                      .filter(Boolean)
-                      .join(" · ")}
+              <div className="flex min-w-0 items-center gap-3">
+                <MemberAvatar member={user} className="h-14 w-14" />
+                <div className="min-w-0">
+                  <p className="truncate font-bold text-white">
+                    {user.full_name}
                   </p>
-                ) : null}
+                  <p className="mt-1 text-xs text-gray-500">{user.phone}</p>
+                  {user.email || user.member_number ? (
+                    <p className="mt-1 truncate text-xs text-gray-600">
+                      {[user.member_number, user.email]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  ) : null}
+                  {user.role === "member" ? (
+                    <p
+                      className={`mt-1 text-[0.65rem] font-bold uppercase tracking-[0.08em] ${user.profile_photo_verified_at ? "text-emerald-300" : "text-amber-200"}`}
+                    >
+                      {user.profile_photo_verified_at
+                        ? "Photo validee"
+                        : "Photo manquante"}
+                    </p>
+                  ) : null}
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <span className="rounded-full border border-primary/20 bg-primary/[0.07] px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.1em] text-primary">

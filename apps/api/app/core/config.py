@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     otp_expiry_minutes: int = 10
     store_media_root: Path = Path(gettempdir()) / "masterz-gym" / "store-products"
     store_media_max_bytes: int = 30 * 1024 * 1024
+    member_photo_root: Path = Path(gettempdir()) / "masterz-gym" / "member-photos"
+    member_photo_max_bytes: int = 8 * 1024 * 1024
+    member_photo_min_dimension: int = 320
+    member_photo_min_brightness: float = 35.0
+    member_photo_min_contrast: float = 12.0
+    member_photo_min_face_area_ratio: float = 0.06
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

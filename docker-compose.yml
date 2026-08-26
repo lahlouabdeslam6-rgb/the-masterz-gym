@@ -35,11 +35,13 @@ services:
       API_HOST: 0.0.0.0
       API_PORT: 8000
       STORE_MEDIA_ROOT: /data/store-products
+      MEMBER_PHOTO_ROOT: /data/member-photos
     ports:
       - "${MASTERZ_API_PORT:-8000}:8000"
     volumes:
       - ./apps/api:/app
       - store_media:/data/store-products
+      - member_photos:/data/member-photos
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,3 +76,4 @@ volumes:
   web_node_modules:
   web_next:
   store_media:
+  member_photos:

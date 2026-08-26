@@ -1,6 +1,7 @@
 import uuid
+from datetime import UTC, datetime
 
-from fastapi import status
+from fastapi import UploadFile, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -8,6 +9,7 @@ from app.core.errors import api_error
 from app.core.security import hash_password
 from app.modules.audit.service import AuditService
 from app.modules.users.models import User
+from app.modules.users.photo import MemberPhotoService
 from app.modules.users.repository import UserRepository
 from app.modules.users.schemas import (
     MemberProfileUpdate,
@@ -23,6 +25,42 @@ class UserService:
         self.session = session
         self.users = UserRepository(session)
         self.audit = AuditService(session)
+
+    async def upload_member_photo(self, user_id: uuid.UUID, photo: UploadFile, actor: User) -> User:
+        member = self.users.get(user_id)
+        if not member or member.role != UserRole.MEMBER:
+            raise api_error(
+                status.HTTP_404_NOT_FOUND,
+                "member_not_found",
+                "Membre introuvable.",
+            )
+        is_staff = actor.role in {UserRole.ADMIN, UserRole.RECEPTIONIST}
+        if actor.id != member.id and not is_staff:
+            raise api_error(
+                status.HTTP_403_FORBIDDEN,
+                "permission_denied",
+                "Vous ne pouvez pas modifier la photo de ce membre.",
+            )
+
+        media = MemberPhotoService()
+        verified = await media.validate_and_save(photo)
+        previous_url = member.profile_photo_url
+        try:
+            member.profile_photo_url = verified.media_url
+            member.profile_photo_verified_at = datetime.now(UTC)
+            self.session.flush()
+            self.audit.record(
+                actor=actor,
+                action="member.profile_photo_verified",
+                entity_type="user",
+                entity_id=member.id,
+                previous_value={"profile_photo_url": previous_url},
+                new_value={"profile_photo_url": member.profile_photo_url},
+            )
+        except Exception:
+            verified.path.unlink(missing_ok=True)
+            raise
+        return member
 
     def create(self, data: UserCreate, actor: User) -> User:
         if data.role == UserRole.MEMBER and not data.member_number:

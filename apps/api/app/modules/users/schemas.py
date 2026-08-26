@@ -19,6 +19,8 @@ class UserRead(BaseModel):
     role: UserRole
     status: AccountStatus
     member_number: str | None
+    profile_photo_url: str | None
+    profile_photo_verified_at: datetime | None
     created_at: datetime
     updated_at: datetime
 

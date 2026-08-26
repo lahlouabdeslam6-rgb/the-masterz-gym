@@ -9,8 +9,14 @@ from app.modules.applications.models import MembershipApplication
 from app.modules.auth.otp import OTPProvider
 from app.modules.memberships.models import MembershipPlan, Subscription
 from app.modules.users.models import User
+from app.modules.users.photo import MemberPhotoService, VerifiedMemberPhoto
 from app.shared.enums import AccountStatus, ServiceType, SubscriptionStatus, UserRole
 from app.shared.time import add_months, local_today
+
+
+def mark_member_photo_verified(member: User) -> None:
+    member.profile_photo_url = f"/media/member-photos/{member.id}.jpg"
+    member.profile_photo_verified_at = datetime.now(UTC)
 
 
 def test_login_rejects_invalid_credentials_without_disclosing_account(client: TestClient) -> None:
@@ -45,6 +51,7 @@ def test_existing_member_activation_uses_otp_and_enables_login(
     )
     db_session.add(member)
     db_session.flush()
+    mark_member_photo_verified(member)
 
     requested = client.post(
         "/api/v1/auth/member-activation/request",
@@ -73,6 +80,38 @@ def test_existing_member_activation_uses_otp_and_enables_login(
     )
     assert logged_in.status_code == 200
     assert logged_in.json()["user"]["status"] == "active"
+
+
+def test_reception_can_add_a_verified_photo_to_a_member_dossier(
+    client: TestClient,
+    db_session: Session,
+    reception_headers: dict[str, str],
+    tmp_path,
+    monkeypatch,
+) -> None:
+    member = db_session.query(User).filter(User.phone == "+212600000003").one()
+
+    async def fake_validation(_service, photo):
+        await photo.close()
+        saved_path = tmp_path / "verified-member.jpg"
+        saved_path.write_bytes(b"verified-photo")
+        return VerifiedMemberPhoto(
+            media_url="/media/member-photos/verified-member.jpg",
+            path=saved_path,
+        )
+
+    monkeypatch.setattr(MemberPhotoService, "validate_and_save", fake_validation)
+    response = client.post(
+        f"/api/v1/users/{member.id}/profile-photo",
+        headers=reception_headers,
+        files={"photo": ("visage.jpg", b"photo", "image/jpeg")},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["profile_photo_url"] == "/media/member-photos/verified-member.jpg"
+    assert response.json()["profile_photo_verified_at"]
+    db_session.refresh(member)
+    assert member.profile_photo_verified_at is not None
 
 
 def test_reception_cannot_create_membership_plan(
@@ -806,6 +845,7 @@ def test_finished_subscription_is_expired_but_keeps_configured_grace_access(
     )
     db_session.add(member)
     db_session.flush()
+    mark_member_photo_verified(member)
     subscription = Subscription(
         member_id=member.id,
         plan_id=plan.id,
@@ -849,6 +889,7 @@ def test_future_subscription_does_not_allow_early_attendance(
     reception_headers: dict[str, str],
 ) -> None:
     member = db_session.query(User).filter(User.phone == "+212600000003").one()
+    mark_member_photo_verified(member)
     receptionist = db_session.query(User).filter(User.phone == "+212600000002").one()
     plan = (
         db_session.query(MembershipPlan)
@@ -917,6 +958,7 @@ def test_future_subscription_does_not_allow_early_attendance(
 
 def test_application_payment_attendance_and_audit_workflow(
     client: TestClient,
+    db_session: Session,
     admin_headers: dict[str, str],
     reception_headers: dict[str, str],
 ) -> None:
@@ -998,6 +1040,19 @@ def test_application_payment_attendance_and_audit_workflow(
     )
     assert duplicate_application.status_code == 409
     assert duplicate_application.json()["detail"]["code"] == "active_subscription"
+
+    blocked_without_photo = client.post(
+        "/api/v1/attendance/check-ins",
+        headers=reception_headers,
+        json={"member_id": member["id"]},
+    )
+    assert blocked_without_photo.status_code == 409
+    assert blocked_without_photo.json()["detail"]["code"] == "member_photo_required"
+
+    member_model = db_session.get(User, uuid.UUID(member["id"]))
+    assert member_model is not None
+    mark_member_photo_verified(member_model)
+    db_session.flush()
 
     check_in = client.post(
         "/api/v1/attendance/check-ins",

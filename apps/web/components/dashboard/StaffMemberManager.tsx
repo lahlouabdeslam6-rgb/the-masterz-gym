@@ -25,12 +25,14 @@ import {
   type Receipt,
   type Subscription,
   type SubscriptionEvent,
+  type User,
   EmptyState,
   Field,
   formatDate,
   selectClass,
   statusLabels,
 } from "./dashboard-shared";
+import { MemberAvatar, MemberPhotoCapture } from "./MemberPhotoCapture";
 
 type PaymentMethod = "cash" | "bank_card";
 export type StaffMemberMode = "full" | "profile" | "payments" | "access";
@@ -466,6 +468,22 @@ export function StaffMemberManager({
     }
   }
 
+  function handlePhotoUploaded(user: User) {
+    if (!selected || user.id !== selected.id) return;
+    const updatedMember: MemberListItem = {
+      ...selected,
+      profile_photo_url: user.profile_photo_url,
+      profile_photo_verified_at: user.profile_photo_verified_at,
+    };
+    setSelected(updatedMember);
+    setMembers((current) =>
+      current.map((member) =>
+        member.id === updatedMember.id ? updatedMember : member,
+      ),
+    );
+    setFeedback("Photo du membre validee et ajoutee au dossier.");
+  }
+
   async function recordPayment() {
     if (!selected || !selectedPlan) return;
     setBusy(true);
@@ -643,27 +661,43 @@ export function StaffMemberManager({
   const selectedStartsLater = selected
     ? hasScheduledSubscription(selected)
     : false;
-  const normalAccessAvailable =
+  const subscriptionAccessAvailable =
     !selectedStartsLater &&
     (selectedStatus === "active" || selectedStatus === "expiring_soon");
+  const memberPhotoReady = Boolean(
+    selected?.profile_photo_url && selected.profile_photo_verified_at,
+  );
+  const normalAccessAvailable = subscriptionAccessAvailable && memberPhotoReady;
   const accessGuidance = selectedStartsLater
     ? {
         title: "Abonnement a venir",
         text: `L'abonnement commence le ${formatDate(selected?.starts_on ?? "")}. Si le membre commence maintenant, utilisez le bouton ci-dessous.`,
         className: "border-amber-300/25 bg-amber-300/[0.06] text-amber-100",
       }
-    : normalAccessAvailable
+    : !subscriptionAccessAvailable
       ? {
-          title: "Entree possible",
-          text: "L'abonnement est valide aujourd'hui. Enregistrez simplement l'entree.",
-          className:
-            "border-emerald-300/20 bg-emerald-300/[0.05] text-emerald-100",
-        }
-      : {
           title: "Abonnement non valide",
           text: "Passez par la page Paiements pour creer ou renouveler l'abonnement avant d'enregistrer une entree.",
           className: "border-red-300/20 bg-red-300/[0.05] text-red-100",
-        };
+        }
+      : !memberPhotoReady
+        ? {
+            title: "Photo visage requise",
+            text: "Prenez ou importez une photo nette du membre. L'entree sera disponible apres la validation automatique du visage.",
+            className: "border-amber-300/25 bg-amber-300/[0.06] text-amber-100",
+          }
+        : normalAccessAvailable
+          ? {
+              title: "Entree possible",
+              text: "L'abonnement est valide aujourd'hui. Enregistrez simplement l'entree.",
+              className:
+                "border-emerald-300/20 bg-emerald-300/[0.05] text-emerald-100",
+            }
+          : {
+              title: "Entree indisponible",
+              text: "Verifiez le dossier du membre avant de continuer.",
+              className: "border-red-300/20 bg-red-300/[0.05] text-red-100",
+            };
 
   return (
     <div className="space-y-5">
@@ -734,8 +768,9 @@ export function StaffMemberManager({
               onClick={() => loadMember(member)}
               className={`rounded-sm border p-4 text-left transition ${selected?.id === member.id ? "border-primary bg-primary/10" : "border-white/10 bg-black/20 hover:border-primary/50 hover:bg-white/[0.03]"}`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+              <div className="flex items-start gap-3">
+                <MemberAvatar member={member} className="h-16 w-16" />
+                <div className="min-w-0 flex-1">
                   <p className="truncate font-black text-white">
                     {member.full_name}
                   </p>
@@ -785,12 +820,24 @@ export function StaffMemberManager({
 
       {selected ? (
         <div className="space-y-6 border-t border-white/10 pt-6">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xl font-black text-white">
-                {selected.full_name}
-              </p>
-              <p className="text-sm text-gray-500">{selected.member_number}</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <MemberAvatar member={selected} className="h-20 w-20" />
+              <div className="min-w-0">
+                <p className="text-xl font-black text-white">
+                  {selected.full_name}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {selected.member_number}
+                </p>
+                <p
+                  className={`mt-1 text-xs font-bold ${memberPhotoReady ? "text-emerald-300" : "text-amber-200"}`}
+                >
+                  {memberPhotoReady
+                    ? "Photo visage validee"
+                    : "Photo visage manquante"}
+                </p>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span
@@ -954,170 +1001,178 @@ export function StaffMemberManager({
           ) : null}
 
           {profileMode && profileTab === "informations" && memberProfile ? (
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
-              <Card className="p-5">
-                <h3 className="font-black uppercase text-white">
-                  Informations personnelles
-                </h3>
-                <p className="mt-2 text-sm text-gray-500">
-                  {canEditMemberProfile
-                    ? "Modifiez uniquement les informations confirmees avec le membre."
-                    : "Consultez les informations confirmees du membre."}
-                </p>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <Field label="Nom complet">
-                    <Input
-                      disabled={!canEditMemberProfile}
-                      value={memberProfile.full_name}
-                      onChange={(event) =>
-                        setMemberProfile((current) =>
-                          current
-                            ? { ...current, full_name: event.target.value }
-                            : current,
-                        )
-                      }
-                    />
-                  </Field>
-                  <Field label="Telephone">
-                    <Input
-                      disabled={!canEditMemberProfile}
-                      value={memberProfile.phone}
-                      onChange={(event) =>
-                        setMemberProfile((current) =>
-                          current
-                            ? { ...current, phone: event.target.value }
-                            : current,
-                        )
-                      }
-                    />
-                  </Field>
-                  <Field label="Email">
-                    <Input
-                      type="email"
-                      disabled={!canEditMemberProfile}
-                      value={memberProfile.email}
-                      onChange={(event) =>
-                        setMemberProfile((current) =>
-                          current
-                            ? { ...current, email: event.target.value }
-                            : current,
-                        )
-                      }
-                    />
-                  </Field>
-                  <Field label="Date de naissance">
-                    <Input
-                      type="date"
-                      disabled={!canEditMemberProfile}
-                      value={memberProfile.date_of_birth}
-                      onChange={(event) =>
-                        setMemberProfile((current) =>
-                          current
-                            ? {
-                                ...current,
-                                date_of_birth: event.target.value,
-                              }
-                            : current,
-                        )
-                      }
-                    />
-                  </Field>
-                  <Field label="Genre">
-                    <select
-                      className={selectClass}
-                      disabled={!canEditMemberProfile}
-                      value={memberProfile.gender}
-                      onChange={(event) =>
-                        setMemberProfile((current) =>
-                          current
-                            ? {
-                                ...current,
-                                gender: event.target.value as "female" | "male",
-                              }
-                            : current,
-                        )
-                      }
-                    >
-                      <option value="male">Homme</option>
-                      <option value="female">Femme</option>
-                    </select>
-                  </Field>
-                  {canEditMemberProfile ? (
-                    <Field label="Motif de modification">
+            <div className="space-y-5">
+              <MemberPhotoCapture
+                session={session}
+                member={selected}
+                onUploaded={handlePhotoUploaded}
+              />
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
+                <Card className="p-5">
+                  <h3 className="font-black uppercase text-white">
+                    Informations personnelles
+                  </h3>
+                  <p className="mt-2 text-sm text-gray-500">
+                    {canEditMemberProfile
+                      ? "Modifiez uniquement les informations confirmees avec le membre."
+                      : "Consultez les informations confirmees du membre."}
+                  </p>
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <Field label="Nom complet">
                       <Input
-                        value={profileReason}
+                        disabled={!canEditMemberProfile}
+                        value={memberProfile.full_name}
                         onChange={(event) =>
-                          setProfileReason(event.target.value)
+                          setMemberProfile((current) =>
+                            current
+                              ? { ...current, full_name: event.target.value }
+                              : current,
+                          )
                         }
                       />
                     </Field>
+                    <Field label="Telephone">
+                      <Input
+                        disabled={!canEditMemberProfile}
+                        value={memberProfile.phone}
+                        onChange={(event) =>
+                          setMemberProfile((current) =>
+                            current
+                              ? { ...current, phone: event.target.value }
+                              : current,
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Email">
+                      <Input
+                        type="email"
+                        disabled={!canEditMemberProfile}
+                        value={memberProfile.email}
+                        onChange={(event) =>
+                          setMemberProfile((current) =>
+                            current
+                              ? { ...current, email: event.target.value }
+                              : current,
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Date de naissance">
+                      <Input
+                        type="date"
+                        disabled={!canEditMemberProfile}
+                        value={memberProfile.date_of_birth}
+                        onChange={(event) =>
+                          setMemberProfile((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  date_of_birth: event.target.value,
+                                }
+                              : current,
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Genre">
+                      <select
+                        className={selectClass}
+                        disabled={!canEditMemberProfile}
+                        value={memberProfile.gender}
+                        onChange={(event) =>
+                          setMemberProfile((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  gender: event.target.value as
+                                    "female" | "male",
+                                }
+                              : current,
+                          )
+                        }
+                      >
+                        <option value="male">Homme</option>
+                        <option value="female">Femme</option>
+                      </select>
+                    </Field>
+                    {canEditMemberProfile ? (
+                      <Field label="Motif de modification">
+                        <Input
+                          value={profileReason}
+                          onChange={(event) =>
+                            setProfileReason(event.target.value)
+                          }
+                        />
+                      </Field>
+                    ) : null}
+                  </div>
+                  {canEditMemberProfile ? (
+                    <Button
+                      className="mt-5"
+                      onClick={updateMemberProfile}
+                      disabled={
+                        busy ||
+                        memberProfile.full_name.trim().length < 2 ||
+                        !memberProfile.phone.trim() ||
+                        profileReason.trim().length < 3
+                      }
+                    >
+                      <Save className="h-4 w-4" /> Enregistrer les modifications
+                    </Button>
                   ) : null}
-                </div>
-                {canEditMemberProfile ? (
-                  <Button
-                    className="mt-5"
-                    onClick={updateMemberProfile}
-                    disabled={
-                      busy ||
-                      memberProfile.full_name.trim().length < 2 ||
-                      !memberProfile.phone.trim() ||
-                      profileReason.trim().length < 3
-                    }
-                  >
-                    <Save className="h-4 w-4" /> Enregistrer les modifications
-                  </Button>
-                ) : null}
-              </Card>
-              <Card className="p-5">
-                <h3 className="font-black uppercase text-white">
-                  Resume du dossier
-                </h3>
-                <dl className="mt-5 space-y-4 text-sm">
-                  <div className="border-b border-white/10 pb-3">
-                    <dt className="text-xs uppercase tracking-[0.08em] text-gray-600">
-                      Numero membre
-                    </dt>
-                    <dd className="mt-1 font-bold text-white">
-                      {selected.member_number}
-                    </dd>
-                  </div>
-                  <div className="border-b border-white/10 pb-3">
-                    <dt className="text-xs uppercase tracking-[0.08em] text-gray-600">
-                      Compte
-                    </dt>
-                    <dd className="mt-1 font-bold text-white">
-                      {statusLabels[selected.account_status] ??
-                        selected.account_status}
-                    </dd>
-                  </div>
-                  <div className="border-b border-white/10 pb-3">
-                    <dt className="text-xs uppercase tracking-[0.08em] text-gray-600">
-                      Abonnement actuel
-                    </dt>
-                    <dd className="mt-1 font-bold text-white">
-                      {selected.plan_name ?? "Aucun abonnement"}
-                    </dd>
-                  </div>
-                  <div className="border-b border-white/10 pb-3">
-                    <dt className="text-xs uppercase tracking-[0.08em] text-gray-600">
-                      Fin prevue
-                    </dt>
-                    <dd className="mt-1 font-bold text-white">
-                      {selected.ends_on
-                        ? formatDate(selected.ends_on)
-                        : "Non disponible"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.08em] text-gray-600">
-                      Inscrit le
-                    </dt>
-                    <dd className="mt-1 font-bold text-white">
-                      {formatDate(selected.created_at)}
-                    </dd>
-                  </div>
-                </dl>
-              </Card>
+                </Card>
+                <Card className="p-5">
+                  <h3 className="font-black uppercase text-white">
+                    Resume du dossier
+                  </h3>
+                  <dl className="mt-5 space-y-4 text-sm">
+                    <div className="border-b border-white/10 pb-3">
+                      <dt className="text-xs uppercase tracking-[0.08em] text-gray-600">
+                        Numero membre
+                      </dt>
+                      <dd className="mt-1 font-bold text-white">
+                        {selected.member_number}
+                      </dd>
+                    </div>
+                    <div className="border-b border-white/10 pb-3">
+                      <dt className="text-xs uppercase tracking-[0.08em] text-gray-600">
+                        Compte
+                      </dt>
+                      <dd className="mt-1 font-bold text-white">
+                        {statusLabels[selected.account_status] ??
+                          selected.account_status}
+                      </dd>
+                    </div>
+                    <div className="border-b border-white/10 pb-3">
+                      <dt className="text-xs uppercase tracking-[0.08em] text-gray-600">
+                        Abonnement actuel
+                      </dt>
+                      <dd className="mt-1 font-bold text-white">
+                        {selected.plan_name ?? "Aucun abonnement"}
+                      </dd>
+                    </div>
+                    <div className="border-b border-white/10 pb-3">
+                      <dt className="text-xs uppercase tracking-[0.08em] text-gray-600">
+                        Fin prevue
+                      </dt>
+                      <dd className="mt-1 font-bold text-white">
+                        {selected.ends_on
+                          ? formatDate(selected.ends_on)
+                          : "Non disponible"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-[0.08em] text-gray-600">
+                        Inscrit le
+                      </dt>
+                      <dd className="mt-1 font-bold text-white">
+                        {formatDate(selected.created_at)}
+                      </dd>
+                    </div>
+                  </dl>
+                </Card>
+              </div>
             </div>
           ) : null}
 
@@ -1140,6 +1195,16 @@ export function StaffMemberManager({
                   {accessGuidance.text}
                 </p>
               </div>
+              {!memberPhotoReady ? (
+                <div className="mt-4">
+                  <MemberPhotoCapture
+                    session={session}
+                    member={selected}
+                    onUploaded={handlePhotoUploaded}
+                    compact
+                  />
+                </div>
+              ) : null}
               <div className="mt-4">
                 {selectedStartsLater ? (
                   <Button onClick={startSelectedToday} disabled={busy}>
@@ -1151,10 +1216,16 @@ export function StaffMemberManager({
                     <Activity className="h-4 w-4" /> Enregistrer l&apos;entree
                   </Button>
                 ) : null}
-                {!selectedStartsLater && !normalAccessAvailable ? (
+                {!selectedStartsLater && !subscriptionAccessAvailable ? (
                   <p className="text-sm font-bold text-red-200">
                     Entree indisponible tant que l&apos;abonnement n&apos;est
                     pas valide.
+                  </p>
+                ) : null}
+                {subscriptionAccessAvailable && !memberPhotoReady ? (
+                  <p className="text-sm font-bold text-amber-200">
+                    L&apos;entree sera active des que la photo du visage sera
+                    validee.
                   </p>
                 ) : null}
               </div>
