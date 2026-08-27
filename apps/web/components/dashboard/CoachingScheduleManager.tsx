@@ -664,46 +664,68 @@ function CoachAvailabilityEditor({
           </p>
         </div>
       </div>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Field label="Debut du creneau">
-          <Input
-            type="datetime-local"
-            aria-label="Debut du creneau coaching"
-            value={startsAt}
-            onChange={(event) => onStartsAt(event.target.value)}
-          />
-        </Field>
-        <Field label="Duree totale du planning en heures">
-          <Input
-            type="number"
-            min={0.25}
-            step={0.25}
-            aria-label="Duree totale du planning coaching"
-            value={availabilityDuration}
-            onChange={(event) => onAvailabilityDuration(event.target.value)}
-            placeholder="Ex. 8"
-          />
-        </Field>
-        <Field label="Duree d'une seance en minutes">
-          <Input
-            type="number"
-            min={15}
-            max={240}
-            step={15}
-            aria-label="Duree d'une seance coaching"
-            value={sessionDuration}
-            onChange={(event) => onSessionDuration(event.target.value)}
-            placeholder="Ex. 60"
-          />
-        </Field>
-        <Field label="Fin calculee automatiquement">
-          <Input
-            type="datetime-local"
-            aria-label="Fin calculee du planning coaching"
-            value={endsAt}
-            readOnly
-          />
-        </Field>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="rounded-sm border border-white/10 bg-black/15 p-4">
+          <Field label="1. Date et heure de debut">
+            <Input
+              type="datetime-local"
+              aria-label="Debut du creneau coaching"
+              value={startsAt}
+              onChange={(event) => onStartsAt(event.target.value)}
+            />
+          </Field>
+        </div>
+        <div className="rounded-sm border border-white/10 bg-black/15 p-4">
+          <Field label="2. Duree totale de disponibilite">
+            <div className="relative">
+              <Input
+                type="number"
+                min={0.25}
+                step={0.25}
+                aria-label="Duree totale du planning coaching"
+                className="pr-20"
+                value={availabilityDuration}
+                onChange={(event) => onAvailabilityDuration(event.target.value)}
+                placeholder="Ex. 8"
+              />
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black uppercase tracking-[0.12em] text-gray-500">
+                heures
+              </span>
+            </div>
+          </Field>
+        </div>
+        <div className="rounded-sm border border-white/10 bg-black/15 p-4">
+          <Field label="3. Duree de chaque seance">
+            <div className="relative">
+              <Input
+                type="number"
+                min={15}
+                max={240}
+                step={15}
+                aria-label="Duree d'une seance coaching"
+                className="pr-24"
+                value={sessionDuration}
+                onChange={(event) => onSessionDuration(event.target.value)}
+                placeholder="Ex. 60"
+              />
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black uppercase tracking-[0.12em] text-gray-500">
+                minutes
+              </span>
+            </div>
+          </Field>
+        </div>
+        <div className="rounded-sm border border-primary/20 bg-primary/[0.04] p-4">
+          <Field label="4. Fin calculee automatiquement">
+            <div
+              aria-label="Fin calculee du planning coaching"
+              className="flex min-h-12 items-center rounded-sm border border-primary/20 bg-[#050a0f] px-4 text-sm font-bold text-white"
+            >
+              {endsAt
+                ? formatCalculatedEnd(endsAt)
+                : "Ajoutez le debut et la duree totale"}
+            </div>
+          </Field>
+        </div>
       </div>
       <Field label="Note optionnelle">
         <textarea
@@ -1222,6 +1244,13 @@ function formatTime(value: string) {
   return new Intl.DateTimeFormat("fr-MA", {
     hour: "2-digit",
     minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatCalculatedEnd(value: string) {
+  return new Intl.DateTimeFormat("fr-MA", {
+    dateStyle: "full",
+    timeStyle: "short",
   }).format(new Date(value));
 }
 

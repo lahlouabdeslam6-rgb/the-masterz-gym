@@ -215,6 +215,9 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
   await page.getByLabel("Debut du creneau coaching").fill("2026-08-31T14:00");
   await page.getByLabel("Duree totale du planning coaching").fill("1");
   await page.getByLabel("Duree d'une seance coaching").fill("60");
+  await expect(
+    page.getByLabel("Fin calculee du planning coaching"),
+  ).toContainText("15:00");
   await page.getByLabel("Note du creneau coaching").fill("Technique et force");
   await page.getByRole("button", { name: /Ajouter au planning/ }).click();
   await expect(
