@@ -89,6 +89,8 @@ class CoachMemberAssignmentRead(BaseModel):
     member_id: uuid.UUID
     member_name: str
     member_number: str
+    member_profile_photo_url: str | None
+    member_profile_photo_verified_at: datetime | None
     assigned_by_id: uuid.UUID
     started_at: datetime
     ended_at: datetime | None

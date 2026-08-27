@@ -187,7 +187,7 @@ export function RoleDashboard() {
               · {session.user.phone}
             </p>
           </div>
-          {session.user.role !== "coach" ? (
+          {!["coach", "member"].includes(session.user.role) ? (
             <button
               type="button"
               onClick={logout}
@@ -223,6 +223,7 @@ export function RoleDashboard() {
             subscriptions={subscriptions}
             receipts={receipts}
             attendance={attendance}
+            onLogout={() => void logout()}
           />
         ) : null}
         {session.user.role === "coach" ? (

@@ -14,6 +14,7 @@ from app.modules.auth.schemas import (
     LogoutRequest,
     MessageResponse,
     OTPRequest,
+    PasswordChangeRequest,
     PasswordResetConfirm,
     RefreshRequest,
     TokenPair,
@@ -47,6 +48,16 @@ def logout(
 ) -> MessageResponse:
     auth.logout(data.refresh_token, actor)
     return MessageResponse(message="Déconnexion effectuée.")
+
+
+@router.patch("/password", response_model=MessageResponse)
+def change_password(
+    data: PasswordChangeRequest,
+    actor: CurrentUser,
+    auth: Annotated[AuthService, Depends(service)],
+) -> MessageResponse:
+    auth.change_password(actor, data.current_password, data.new_password)
+    return MessageResponse(message="Mot de passe mis à jour.")
 
 
 @router.post(

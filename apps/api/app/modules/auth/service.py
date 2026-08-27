@@ -137,6 +137,28 @@ class AuthService:
             entity_id=actor.id,
         )
 
+    def change_password(self, actor: User, current_password: str, new_password: str) -> None:
+        if not verify_password(current_password, actor.password_hash):
+            raise api_error(
+                status.HTTP_400_BAD_REQUEST,
+                "current_password_incorrect",
+                "Le mot de passe actuel est incorrect.",
+            )
+        if verify_password(new_password, actor.password_hash):
+            raise api_error(
+                status.HTTP_400_BAD_REQUEST,
+                "new_password_must_differ",
+                "Le nouveau mot de passe doit etre different.",
+            )
+        actor.password_hash = hash_password(new_password)
+        self.session.flush()
+        self.audit.record(
+            actor=actor,
+            action="auth.password_changed",
+            entity_type="user",
+            entity_id=actor.id,
+        )
+
     def request_password_reset(self, phone: str) -> OTPChallenge:
         user = self.users.by_phone(phone)
         eligible = user if user and user.status == AccountStatus.ACTIVE else None

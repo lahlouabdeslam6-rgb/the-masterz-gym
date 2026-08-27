@@ -12,6 +12,7 @@ import {
   History,
   LayoutDashboard,
   ListChecks,
+  LogOut,
   MessageSquareText,
   ReceiptText,
   ShoppingBag,
@@ -19,7 +20,7 @@ import {
   UserRound,
   Waves,
 } from "lucide-react";
-import { Button, Card, Pill } from "@masterz/ui";
+import { Button, Card, Pill, buttonStyles } from "@masterz/ui";
 import { updateSessionUser, type AuthSession } from "@/lib/auth";
 import {
   type NavigationBadgeKey,
@@ -40,6 +41,7 @@ import { MemberNotifications } from "./MemberNotifications";
 import { MemberAvatar, MemberPhotoCapture } from "./MemberPhotoCapture";
 import { ComplaintCenter } from "./ComplaintCenter";
 import { MemberStoreManager } from "./StoreManager";
+import { ChangePasswordForm } from "./ChangePasswordForm";
 import {
   type Attendance,
   type Receipt,
@@ -147,12 +149,14 @@ export function MemberDashboard({
   subscriptions,
   receipts,
   attendance,
+  onLogout,
 }: {
   session: AuthSession;
   user: User;
   subscriptions: Subscription[];
   receipts: Receipt[];
   attendance: Attendance[];
+  onLogout: () => void;
 }) {
   const [activeSection, setActiveSection] = useState<MemberSection>("overview");
   const [coachingView, setCoachingView] = useState<
@@ -179,7 +183,7 @@ export function MemberDashboard({
 
   return (
     <div className="mt-8 grid items-start gap-5 lg:grid-cols-[15.5rem_minmax(0,1fr)]">
-      <aside className="overflow-hidden rounded-lg border border-white/10 bg-[#081119]/95 shadow-2xl lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
+      <aside className="flex overflow-hidden rounded-lg border border-white/10 bg-[#081119]/95 shadow-2xl lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:flex-col">
         <div className="border-b border-white/10 bg-primary/[0.07] p-4">
           <MemberAvatar member={currentUser} className="h-12 w-12" />
           <p className="mt-3 truncate text-sm font-black uppercase text-white">
@@ -192,7 +196,7 @@ export function MemberDashboard({
 
         <nav
           aria-label="Navigation espace membre"
-          className="hidden space-y-0.5 p-2.5 lg:block"
+          className="hidden min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2.5 lg:block"
         >
           {memberSections.map((item) => {
             const Icon = item.icon;
@@ -233,7 +237,19 @@ export function MemberDashboard({
           })}
         </nav>
 
-        <label className="block p-4 lg:hidden">
+        <button
+          type="button"
+          onClick={onLogout}
+          className={buttonStyles({
+            variant: "outline",
+            className:
+              "mx-3 mb-3 mt-auto hidden w-[calc(100%-1.5rem)] shrink-0 lg:flex",
+          })}
+        >
+          <LogOut className="h-4 w-4" /> Se deconnecter
+        </button>
+
+        <label className="block p-4 pb-2 lg:hidden">
           <span className="mb-2 block text-[0.65rem] font-black uppercase tracking-[0.14em] text-gray-500">
             Choisir une rubrique
           </span>
@@ -255,6 +271,16 @@ export function MemberDashboard({
             ))}
           </select>
         </label>
+        <button
+          type="button"
+          onClick={onLogout}
+          className={buttonStyles({
+            variant: "outline",
+            className: "mx-4 mb-4 w-[calc(100%-2rem)] lg:hidden",
+          })}
+        >
+          <LogOut className="h-4 w-4" /> Se deconnecter
+        </button>
       </aside>
 
       <main className="min-w-0">
@@ -614,6 +640,7 @@ function ProfilePanel({
             />
           </dl>
         </Card>
+        <ChangePasswordForm session={session} />
       </div>
     </Panel>
   );

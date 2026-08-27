@@ -6,6 +6,7 @@ import {
   Bell,
   CalendarDays,
   LayoutDashboard,
+  KeyRound,
   LogOut,
   MessageCircleMore,
   Search,
@@ -30,6 +31,8 @@ import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 import { CoachingScheduleManager } from "./CoachingScheduleManager";
 import { CoachingConversationPanel } from "./CoachingConversationPanel";
 import { MemberNotifications } from "./MemberNotifications";
+import { MemberAvatar } from "./MemberPhotoCapture";
+import { ChangePasswordForm } from "./ChangePasswordForm";
 import {
   type CoachingAssignment,
   EmptyState,
@@ -39,7 +42,12 @@ import {
 } from "./dashboard-shared";
 
 type CoachSection =
-  "overview" | "notifications" | "schedule" | "clients" | "messages";
+  | "overview"
+  | "notifications"
+  | "schedule"
+  | "clients"
+  | "messages"
+  | "account";
 
 const coachSections: Array<{
   id: CoachSection;
@@ -76,6 +84,12 @@ const coachSections: Array<{
     label: "Messages clients",
     description: "Texte, photos et audios",
     icon: MessageCircleMore,
+  },
+  {
+    id: "account",
+    label: "Mon compte",
+    description: "Securite du compte",
+    icon: KeyRound,
   },
 ];
 
@@ -356,60 +370,82 @@ export function CoachDashboard({
             </Panel>
           ) : null}
 
+          {activeSection === "account" ? (
+            <Panel
+              title="Mon compte"
+              subtitle="Modifiez votre mot de passe depuis un espace securise."
+            >
+              <ChangePasswordForm session={session} />
+            </Panel>
+          ) : null}
+
           {activeSection === "clients" ? (
-            <div className="grid gap-6 xl:grid-cols-[minmax(300px,0.65fr)_minmax(0,1.35fr)]">
-              <Panel
-                title="Mes clients"
-                subtitle="Choisissez un client pour saisir son objectif et ses tests."
-              >
-                <div className="relative">
+            <div className="space-y-6">
+              <Card className="p-5 sm:p-6">
+                <p className="text-sm text-gray-500">
+                  Recherchez un client puis ouvrez son objectif, ses tests et sa
+                  progression.
+                </p>
+                <div className="relative mt-4">
                   <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
                   <Input
                     aria-label="Rechercher un client"
-                    className="pl-11"
+                    className="h-14 pl-11 text-base"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Nom ou numero membre"
                   />
                 </div>
-                <div className="mt-4 max-h-[60vh] space-y-2 overflow-y-auto pr-1">
-                  {visibleAssignments.length ? (
-                    visibleAssignments.map((assignment) => (
-                      <button
-                        type="button"
-                        key={assignment.id}
-                        onClick={() =>
-                          setSelectedMemberId(assignment.member_id)
-                        }
-                        className={`w-full rounded-sm border p-4 text-left transition ${
-                          selectedMemberId === assignment.member_id
-                            ? "border-primary bg-primary/10"
-                            : "border-white/10 bg-black/20 hover:border-primary/40"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-black text-white">
-                              {assignment.member_name}
-                            </p>
-                            <p className="mt-1 text-xs text-gray-500">
-                              {assignment.member_number}
-                            </p>
-                          </div>
-                          <Pill>Actif</Pill>
-                        </div>
-                        <p className="mt-3 text-xs text-gray-500">
-                          Suivi depuis le {formatDate(assignment.started_at)}
-                        </p>
-                      </button>
-                    ))
-                  ) : (
-                    <EmptyState text="Aucun client coaching affecte a votre compte." />
-                  )}
-                </div>
-              </Panel>
+              </Card>
 
-              <div className="min-w-0">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {visibleAssignments.length ? (
+                  visibleAssignments.map((assignment) => (
+                    <button
+                      type="button"
+                      key={assignment.id}
+                      onClick={() => setSelectedMemberId(assignment.member_id)}
+                      className={`min-h-36 w-full rounded-lg border p-5 text-left transition ${
+                        selectedMemberId === assignment.member_id
+                          ? "border-primary bg-primary/10 shadow-[0_18px_50px_rgba(0,212,255,0.08)]"
+                          : "border-white/10 bg-[#081119] hover:border-primary/40"
+                      }`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <MemberAvatar
+                          member={{
+                            id: assignment.member_id,
+                            full_name: assignment.member_name,
+                            profile_photo_url:
+                              assignment.member_profile_photo_url,
+                            profile_photo_verified_at:
+                              assignment.member_profile_photo_verified_at,
+                          }}
+                          className="h-16 w-16"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-black text-white">
+                            {assignment.member_name}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {assignment.member_number}
+                          </p>
+                          <Pill className="mt-3">Actif</Pill>
+                        </div>
+                      </div>
+                      <p className="mt-3 text-xs text-gray-500">
+                        Suivi depuis le {formatDate(assignment.started_at)}
+                      </p>
+                    </button>
+                  ))
+                ) : (
+                  <div className="sm:col-span-2 xl:col-span-3">
+                    <EmptyState text="Aucun client coaching affecte a votre compte." />
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 border-t border-white/10 pt-6">
                 {selectedMemberId ? (
                   <CoachingTrackingPanel
                     key={selectedMemberId}

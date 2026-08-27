@@ -28,6 +28,62 @@ def test_login_rejects_invalid_credentials_without_disclosing_account(client: Te
     assert response.json()["detail"]["code"] == "invalid_credentials"
 
 
+def test_authenticated_user_can_change_password(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    suffix = uuid.uuid4().hex[:8]
+    phone = f"+21265{uuid.uuid4().int % 100_000_000:08d}"
+    old_password = "CoachPassword123!"
+    new_password = "CoachPassword456!"
+    coach = User(
+        full_name=f"Coach Password {suffix}",
+        phone=phone,
+        email=f"coach-password-{suffix}@example.com",
+        password_hash=hash_password(old_password),
+        role=UserRole.COACH,
+        status=AccountStatus.ACTIVE,
+    )
+    db_session.add(coach)
+    db_session.flush()
+
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"phone": phone, "password": old_password},
+    )
+    assert login.status_code == 200, login.text
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    wrong_current = client.patch(
+        "/api/v1/auth/password",
+        headers=headers,
+        json={
+            "current_password": "WrongPassword123!",
+            "new_password": new_password,
+        },
+    )
+    assert wrong_current.status_code == 400
+    assert wrong_current.json()["detail"]["code"] == "current_password_incorrect"
+
+    changed = client.patch(
+        "/api/v1/auth/password",
+        headers=headers,
+        json={"current_password": old_password, "new_password": new_password},
+    )
+    assert changed.status_code == 200, changed.text
+
+    old_login = client.post(
+        "/api/v1/auth/login",
+        json={"phone": phone, "password": old_password},
+    )
+    assert old_login.status_code == 401
+    new_login = client.post(
+        "/api/v1/auth/login",
+        json={"phone": phone, "password": new_password},
+    )
+    assert new_login.status_code == 200, new_login.text
+
+
 def test_unknown_password_reset_is_generic(client: TestClient) -> None:
     response = client.post("/api/v1/auth/password-reset/request", json={"phone": "+212699999999"})
     assert response.status_code == 202

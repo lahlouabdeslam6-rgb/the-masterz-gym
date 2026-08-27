@@ -132,11 +132,17 @@ class NotificationService:
         booking_id: uuid.UUID,
         member: User,
         starts_at: datetime,
+        simultaneous_booking_count: int,
     ) -> Notification:
         deduplication_key = f"coaching_booking_requested:{booking_id}"
         existing = self.repository.by_deduplication_key(deduplication_key)
         if existing:
             return existing
+        overlap_message = (
+            f" Attention: {simultaneous_booking_count} clients ont demande ce meme horaire."
+            if simultaneous_booking_count > 1
+            else ""
+        )
         return self.repository.add(
             Notification(
                 user_id=coach.id,
@@ -145,6 +151,7 @@ class NotificationService:
                 body=(
                     f"{member.full_name} a demande une seance le "
                     f"{starts_at.isoformat()}. Confirmez-la depuis votre planning."
+                    f"{overlap_message}"
                 ),
                 deduplication_key=deduplication_key,
             )

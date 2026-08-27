@@ -496,12 +496,7 @@ class CoachingService:
                 CoachingBookingStatus.CONFIRMED,
             },
         )
-        if coach_conflicts:
-            raise api_error(
-                status.HTTP_409_CONFLICT,
-                "coaching_slot_unavailable",
-                "Cette heure vient d'etre reservee. Choisissez une autre heure.",
-            )
+        simultaneous_booking_count = len(coach_conflicts) + 1
         booking = CoachingBooking(
             availability_id=availability.id,
             assignment_id=assignment.id,
@@ -532,6 +527,7 @@ class CoachingService:
             booking_id=booking.id,
             member=actor,
             starts_at=booking.starts_at,
+            simultaneous_booking_count=simultaneous_booking_count,
         )
         self.audit.record(
             actor=actor,
@@ -1193,19 +1189,7 @@ class CoachingService:
             ),
             created_at=availability.created_at,
             updated_at=availability.updated_at,
-            reserved_periods=[
-                {
-                    "starts_at": booking.starts_at,
-                    "ends_at": booking.ends_at,
-                }
-                for booking in self.coaching.availability_bookings(
-                    availability.id,
-                    statuses={
-                        CoachingBookingStatus.REQUESTED,
-                        CoachingBookingStatus.CONFIRMED,
-                    },
-                )
-            ],
+            reserved_periods=[],
         )
 
     def _booking_period(
@@ -1406,6 +1390,8 @@ class CoachingService:
             member_id=assignment.member_id,
             member_name=member.full_name,
             member_number=member.member_number or "",
+            member_profile_photo_url=member.profile_photo_url,
+            member_profile_photo_verified_at=member.profile_photo_verified_at,
             assigned_by_id=assignment.assigned_by_id,
             started_at=assignment.started_at,
             ended_at=assignment.ended_at,

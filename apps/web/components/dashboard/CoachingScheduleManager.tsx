@@ -78,6 +78,7 @@ export function CoachingScheduleManager({
   const [conflict, setConflict] = useState<ConflictAction | null>(null);
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
+  const [availabilityDuration, setAvailabilityDuration] = useState("");
   const [sessionDuration, setSessionDuration] = useState("");
   const [availabilityNote, setAvailabilityNote] = useState("");
   const [memberNotes, setMemberNotes] = useState<Record<string, string>>({});
@@ -172,34 +173,30 @@ export function CoachingScheduleManager({
   function changeStartsAt(value: string) {
     setStartsAt(value);
     const start = new Date(value);
-    const end = new Date(endsAt);
-    const duration = Number(sessionDuration);
+    const duration = Number(availabilityDuration);
     if (
       value &&
       !Number.isNaN(start.getTime()) &&
-      Number.isInteger(duration) &&
-      duration >= 15 &&
-      duration <= 240 &&
-      (!endsAt || Number.isNaN(end.getTime()) || end <= start)
+      Number.isFinite(duration) &&
+      duration > 0
     ) {
-      setEndsAt(toLocalDateTimeInput(start.getTime() + duration * 60_000));
+      setEndsAt(toLocalDateTimeInput(start.getTime() + duration * 3_600_000));
     }
   }
 
-  function changeSessionDuration(value: string) {
-    setSessionDuration(value);
+  function changeAvailabilityDuration(value: string) {
+    setAvailabilityDuration(value);
     const start = new Date(startsAt);
-    const end = new Date(endsAt);
     const duration = Number(value);
     if (
       startsAt &&
       !Number.isNaN(start.getTime()) &&
-      Number.isInteger(duration) &&
-      duration >= 15 &&
-      duration <= 240 &&
-      (!endsAt || Number.isNaN(end.getTime()) || end <= start)
+      Number.isFinite(duration) &&
+      duration > 0
     ) {
-      setEndsAt(toLocalDateTimeInput(start.getTime() + duration * 60_000));
+      setEndsAt(toLocalDateTimeInput(start.getTime() + duration * 3_600_000));
+    } else {
+      setEndsAt("");
     }
   }
 
@@ -212,6 +209,8 @@ export function CoachingScheduleManager({
       !endsAt ||
       Number.isNaN(start.getTime()) ||
       Number.isNaN(end.getTime()) ||
+      !Number.isFinite(Number(availabilityDuration)) ||
+      Number(availabilityDuration) <= 0 ||
       !Number.isInteger(duration)
     ) {
       setFeedback({
@@ -271,6 +270,7 @@ export function CoachingScheduleManager({
     }
     setStartsAt("");
     setEndsAt("");
+    setAvailabilityDuration("");
     setSessionDuration("");
     setAvailabilityNote("");
     setFeedback({
@@ -505,12 +505,13 @@ export function CoachingScheduleManager({
         <CoachAvailabilityEditor
           startsAt={startsAt}
           endsAt={endsAt}
+          availabilityDuration={availabilityDuration}
           sessionDuration={sessionDuration}
           note={availabilityNote}
           busy={busy === "availability-create"}
           onStartsAt={changeStartsAt}
-          onEndsAt={setEndsAt}
-          onSessionDuration={changeSessionDuration}
+          onAvailabilityDuration={changeAvailabilityDuration}
+          onSessionDuration={setSessionDuration}
           onNote={setAvailabilityNote}
           onCreate={() => void createAvailability()}
         />
@@ -596,6 +597,10 @@ export function CoachingScheduleManager({
                     (item) => item.coach_id === booking.coach_id,
                   )}
                   scheduleChoice={scheduleChoices[booking.id] ?? ""}
+                  simultaneousCount={simultaneousBookingCount(
+                    booking,
+                    bookings,
+                  )}
                   busy={busy}
                   onScheduleChoice={(value) =>
                     setScheduleChoices((current) => ({
@@ -622,22 +627,24 @@ export function CoachingScheduleManager({
 function CoachAvailabilityEditor({
   startsAt,
   endsAt,
+  availabilityDuration,
   sessionDuration,
   note,
   busy,
   onStartsAt,
-  onEndsAt,
+  onAvailabilityDuration,
   onSessionDuration,
   onNote,
   onCreate,
 }: {
   startsAt: string;
   endsAt: string;
+  availabilityDuration: string;
   sessionDuration: string;
   note: string;
   busy: boolean;
   onStartsAt: (value: string) => void;
-  onEndsAt: (value: string) => void;
+  onAvailabilityDuration: (value: string) => void;
   onSessionDuration: (value: string) => void;
   onNote: (value: string) => void;
   onCreate: () => void;
@@ -657,7 +664,7 @@ function CoachAvailabilityEditor({
           </p>
         </div>
       </div>
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Field label="Debut du creneau">
           <Input
             type="datetime-local"
@@ -666,13 +673,15 @@ function CoachAvailabilityEditor({
             onChange={(event) => onStartsAt(event.target.value)}
           />
         </Field>
-        <Field label="Fin du creneau">
+        <Field label="Duree totale du planning en heures">
           <Input
-            type="datetime-local"
-            aria-label="Fin du creneau coaching"
-            min={startsAt || undefined}
-            value={endsAt}
-            onChange={(event) => onEndsAt(event.target.value)}
+            type="number"
+            min={0.25}
+            step={0.25}
+            aria-label="Duree totale du planning coaching"
+            value={availabilityDuration}
+            onChange={(event) => onAvailabilityDuration(event.target.value)}
+            placeholder="Ex. 8"
           />
         </Field>
         <Field label="Duree d'une seance en minutes">
@@ -685,6 +694,14 @@ function CoachAvailabilityEditor({
             value={sessionDuration}
             onChange={(event) => onSessionDuration(event.target.value)}
             placeholder="Ex. 60"
+          />
+        </Field>
+        <Field label="Fin calculee automatiquement">
+          <Input
+            type="datetime-local"
+            aria-label="Fin calculee du planning coaching"
+            value={endsAt}
+            readOnly
           />
         </Field>
       </div>
@@ -1003,6 +1020,7 @@ function BookingCard({
   mode,
   availabilityChoices,
   scheduleChoice,
+  simultaneousCount,
   busy,
   onScheduleChoice,
   onStatus,
@@ -1012,6 +1030,7 @@ function BookingCard({
   mode: Mode;
   availabilityChoices: Availability[];
   scheduleChoice: string;
+  simultaneousCount: number;
   busy: string | null;
   onScheduleChoice: (value: string) => void;
   onStatus: (status: BookingStatus) => void;
@@ -1056,6 +1075,15 @@ function BookingCard({
               <p className="mt-2 text-xs text-gray-500">
                 Derniere decision: {booking.decision_note}
               </p>
+            ) : null}
+            {canDecide && simultaneousCount > 1 ? (
+              <div className="mt-3 flex items-start gap-2 rounded-sm border border-amber-300/30 bg-amber-300/[0.08] p-3 text-sm text-amber-100">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  {simultaneousCount} clients ont reserve le meme horaire.
+                  Verifiez les demandes avant de confirmer.
+                </span>
+              </div>
             ) : null}
           </div>
         </div>
@@ -1120,6 +1148,22 @@ function BookingCard({
       ) : null}
     </Card>
   );
+}
+
+function simultaneousBookingCount(booking: Booking, bookings: Booking[]) {
+  const start = new Date(booking.starts_at).getTime();
+  const end = new Date(booking.ends_at).getTime();
+  return bookings.filter((candidate) => {
+    if (
+      candidate.coach_id !== booking.coach_id ||
+      !["requested", "confirmed"].includes(candidate.status)
+    ) {
+      return false;
+    }
+    const candidateStart = new Date(candidate.starts_at).getTime();
+    const candidateEnd = new Date(candidate.ends_at).getTime();
+    return start < candidateEnd && end > candidateStart;
+  }).length;
 }
 
 function formatSchedule(startsAt: string, endsAt: string) {

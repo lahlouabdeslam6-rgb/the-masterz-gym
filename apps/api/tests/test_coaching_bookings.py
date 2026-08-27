@@ -135,7 +135,7 @@ def test_coaching_booking_conflict_can_be_explicitly_overridden(
     assert {item["id"] for item in member_slots.json()} >= {item["id"] for item in availabilities}
 
     bookings = []
-    requested_starts = (base_start, base_start + timedelta(hours=1))
+    requested_starts = (base_start, base_start)
     for index, requested_start in enumerate(requested_starts):
         requested = client.post(
             "/api/v1/coaching/bookings",
@@ -158,18 +158,7 @@ def test_coaching_booking_conflict_can_be_explicitly_overridden(
     first_availability = next(
         item for item in refreshed_slots.json() if item["id"] == availabilities[0]["id"]
     )
-    assert len(first_availability["reserved_periods"]) == 2
-
-    occupied_slot = client.post(
-        "/api/v1/coaching/bookings",
-        headers=member_headers[1],
-        json={
-            "availability_id": availabilities[0]["id"],
-            "starts_at": base_start.isoformat(),
-        },
-    )
-    assert occupied_slot.status_code == 409, occupied_slot.text
-    assert occupied_slot.json()["detail"]["code"] == "coaching_slot_unavailable"
+    assert first_availability["reserved_periods"] == []
 
     first_confirmed = client.patch(
         f"/api/v1/coaching/bookings/{bookings[0]['id']}/status",
@@ -183,29 +172,18 @@ def test_coaching_booking_conflict_can_be_explicitly_overridden(
         headers=reception_headers,
         json={"status": "confirmed", "decision_note": "Validation reception"},
     )
-    assert second_confirmed.status_code == 200, second_confirmed.text
-
-    conflict = client.patch(
-        f"/api/v1/coaching/bookings/{bookings[1]['id']}/schedule",
-        headers=reception_headers,
-        json={
-            "availability_id": availabilities[0]["id"],
-            "starts_at": base_start.isoformat(),
-            "decision_note": "Essai de double horaire",
-        },
-    )
-    assert conflict.status_code == 409, conflict.text
-    assert conflict.json()["detail"]["code"] == "coaching_booking_overlap"
+    assert second_confirmed.status_code == 409, second_confirmed.text
+    assert second_confirmed.json()["detail"]["code"] == "coaching_booking_overlap"
     assert (
-        conflict.json()["detail"]["details"]["conflicts"][0]["member_name"] == members[0].full_name
+        second_confirmed.json()["detail"]["details"]["conflicts"][0]["member_name"]
+        == members[0].full_name
     )
 
     override = client.patch(
-        f"/api/v1/coaching/bookings/{bookings[1]['id']}/schedule",
+        f"/api/v1/coaching/bookings/{bookings[1]['id']}/status",
         headers=reception_headers,
         json={
-            "availability_id": availabilities[0]["id"],
-            "starts_at": base_start.isoformat(),
+            "status": "confirmed",
             "decision_note": "Deux seances maintenues avec accord",
             "confirm_overlap": True,
         },
@@ -270,6 +248,10 @@ def test_coaching_booking_conflict_can_be_explicitly_overridden(
     coach_notifications = client.get("/api/v1/notifications", headers=coach_headers)
     assert coach_notifications.status_code == 200
     assert "Nouvelle reservation coaching" in {item["title"] for item in coach_notifications.json()}
+    assert any(
+        "2 clients ont demande ce meme horaire" in item["body"]
+        for item in coach_notifications.json()
+    )
 
     audit = client.get("/api/v1/audit-logs", headers=admin_headers)
     assert audit.status_code == 200

@@ -304,17 +304,32 @@ export function PublicStoreCatalog({
                       {product.currency}
                     </span>
                   </p>
-                  <button
-                    type="button"
-                    className={buttonStyles({
-                      variant: "outline",
-                      className: "mt-5 w-full",
-                    })}
-                    onClick={() => openProduct(product)}
-                  >
-                    <Eye className="h-4 w-4" />
-                    Voir le produit
-                  </button>
+                  <div className="mt-5 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      aria-label="Voir le produit"
+                      className={buttonStyles({
+                        variant: "outline",
+                        className: "w-full px-3",
+                      })}
+                      onClick={() => openProduct(product)}
+                    >
+                      <Eye className="h-4 w-4" />
+                      Voir
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!product.is_available}
+                      className={buttonStyles({
+                        className:
+                          "w-full px-3 disabled:cursor-not-allowed disabled:opacity-40",
+                      })}
+                      onClick={() => openProduct(product)}
+                    >
+                      <ShoppingBag className="h-4 w-4" />
+                      Reserver
+                    </button>
+                  </div>
                 </div>
               </div>
             </article>
