@@ -155,6 +155,9 @@ export function MemberDashboard({
   attendance: Attendance[];
 }) {
   const [activeSection, setActiveSection] = useState<MemberSection>("overview");
+  const [coachingView, setCoachingView] = useState<
+    "schedule" | "progress" | "messages"
+  >("schedule");
   const [currentUser, setCurrentUser] = useState(user);
   const { badges, clearBadge } = useNavigationBadges(session, activeSection);
   const openSection = (nextSection: MemberSection) => {
@@ -292,7 +295,27 @@ export function MemberDashboard({
               title="Mes notifications"
               subtitle="Les alertes importantes concernant vos abonnements, vos packs et vos reservations."
             >
-              <MemberNotifications session={session} />
+              <MemberNotifications
+                session={session}
+                onOpen={(kind) => {
+                  if (kind.startsWith("coaching_")) {
+                    setCoachingView(
+                      kind === "coaching_message_received"
+                        ? "messages"
+                        : "schedule",
+                    );
+                    openSection("coaching");
+                  } else if (kind.startsWith("recovery_")) {
+                    openSection("recovery");
+                  } else if (kind.startsWith("store_")) {
+                    openSection("store");
+                  } else if (kind.startsWith("complaint_")) {
+                    openSection("complaints");
+                  } else {
+                    openSection("subscriptions");
+                  }
+                }}
+              />
             </Panel>
           ) : null}
           {activeSection === "profile" ? (
@@ -319,6 +342,8 @@ export function MemberDashboard({
               session={session}
               memberId={currentUser.id}
               hasActiveCoaching={hasActiveCoaching}
+              activeView={coachingView}
+              onViewChange={setCoachingView}
             />
           ) : null}
           {activeSection === "recovery" ? (
@@ -358,15 +383,15 @@ function MemberCoachingWorkspace({
   session,
   memberId,
   hasActiveCoaching,
+  activeView,
+  onViewChange,
 }: {
   session: AuthSession;
   memberId: string;
   hasActiveCoaching: boolean;
+  activeView: "schedule" | "progress" | "messages";
+  onViewChange: (view: "schedule" | "progress" | "messages") => void;
 }) {
-  const [activeView, setActiveView] = useState<
-    "schedule" | "progress" | "messages"
-  >("schedule");
-
   return (
     <MemberCoachingAssignmentRequest
       session={session}
@@ -376,7 +401,7 @@ function MemberCoachingWorkspace({
         eyebrow="Rubriques coaching"
         ariaLabel="Rubriques coaching membre"
         activeTab={activeView}
-        onChange={setActiveView}
+        onChange={onViewChange}
         tabs={[
           {
             id: "schedule",

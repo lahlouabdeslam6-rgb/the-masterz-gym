@@ -99,7 +99,24 @@ async function storeSession(
 test("coach ajoute un creneau et confirme explicitement un conflit", async ({
   page,
 }) => {
-  const availabilities = [{ ...availability }];
+  const pastAvailability = {
+    ...availability,
+    id: "00000000-0000-0000-0000-000000000509",
+    starts_at: "2026-08-25T09:00:00Z",
+    ends_at: "2026-08-25T12:00:00Z",
+    requested_booking_count: 0,
+    confirmed_booking_count: 0,
+  };
+  const completedBooking = {
+    ...booking("confirmed"),
+    id: "00000000-0000-0000-0000-000000000510",
+    availability_id: pastAvailability.id,
+    starts_at: "2026-08-25T09:00:00Z",
+    ends_at: "2026-08-25T10:00:00Z",
+    status: "completed" as const,
+    decision_note: "Seance terminee",
+  };
+  const availabilities = [{ ...availability }, pastAvailability];
   let currentBooking = booking();
   let confirmCalls = 0;
   let overrideSent = false;
@@ -142,7 +159,9 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
         body = availabilities;
       }
     }
-    if (path === "/api/v1/coaching/bookings") body = [currentBooking];
+    if (path === "/api/v1/coaching/bookings") {
+      body = [currentBooking, completedBooking];
+    }
     if (
       path === `/api/v1/coaching/bookings/${currentBooking.id}/status` &&
       request.method() === "PATCH"
@@ -180,6 +199,19 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
   await expect(
     page.getByRole("heading", { name: "Mon planning" }).first(),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Se deconnecter", exact: true }),
+  ).toHaveCount(1);
+  await page.getByRole("button", { name: "Historique", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Historique du planning" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(member.member_number, { exact: false }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Planning actuel", exact: true })
+    .click();
   await page.getByLabel("Debut du creneau coaching").fill("2026-08-31T14:00");
   await page.getByLabel("Fin du creneau coaching").fill("2026-08-31T15:00");
   await page.getByLabel("Duree d'une seance coaching").fill("60");
@@ -195,6 +227,7 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: "Confirmer quand meme" }).click();
   await expect(page.getByText("Reservation: Confirmee.")).toBeVisible();
+  await expect(page.getByText("Choisir un autre creneau")).toHaveCount(0);
   expect(confirmCalls).toBe(2);
   expect(overrideSent).toBe(true);
 });

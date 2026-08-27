@@ -14,7 +14,7 @@ const member = {
   updated_at: "2026-08-21T10:00:00Z",
 };
 
-test("affiche et marque comme lue la fin du pack recovery", async ({
+test("ouvre la rubrique concernee et marque la notification comme lue", async ({
   page,
 }) => {
   let readAt: string | null = null;
@@ -103,8 +103,12 @@ test("affiche et marque comme lue la fin du pack recovery", async ({
   ).toBeVisible();
   await expect(page.getByText("1 non lue(s)", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Marquer comme lue" }).click();
-  await expect(page.getByText("0 non lue(s)", { exact: true })).toBeVisible();
+  await page
+    .getByText("Vos seances Recovery sont terminees", { exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Mon pack recovery" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Marquer comme lue" }),
   ).toHaveCount(0);

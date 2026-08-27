@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Check } from "lucide-react";
+import { Bell, Check, ChevronRight } from "lucide-react";
 import type { components } from "@masterz/api-client";
 import { Button, Card, Pill } from "@masterz/ui";
 import { api } from "@/lib/api";
@@ -11,7 +11,13 @@ import { EmptyState, formatDate } from "./dashboard-shared";
 
 type Notification = components["schemas"]["NotificationRead"];
 
-export function MemberNotifications({ session }: { session: AuthSession }) {
+export function MemberNotifications({
+  session,
+  onOpen,
+}: {
+  session: AuthSession;
+  onOpen?: (kind: string) => void;
+}) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -28,7 +34,7 @@ export function MemberNotifications({ session }: { session: AuthSession }) {
         params: { query: { unread_only: false, limit: 20 } },
       });
       if (active) {
-        setNotifications(result.data ?? []);
+        setNotifications(Array.isArray(result.data) ? result.data : []);
         setLoading(false);
       }
     }
@@ -57,6 +63,11 @@ export function MemberNotifications({ session }: { session: AuthSession }) {
     notifyNavigationBadgesChanged();
   }
 
+  async function openNotification(notification: Notification) {
+    if (!notification.read_at) await markRead(notification.id);
+    onOpen?.(notification.kind);
+  }
+
   if (loading) {
     return <p className="text-sm text-gray-500">Chargement...</p>;
   }
@@ -75,7 +86,22 @@ export function MemberNotifications({ session }: { session: AuthSession }) {
       {notifications.map((notification) => (
         <Card
           key={notification.id}
-          className={`p-5 ${notification.read_at ? "opacity-65" : "border-primary/35 bg-primary/[0.04]"}`}
+          role={onOpen ? "button" : undefined}
+          tabIndex={onOpen ? 0 : undefined}
+          onClick={
+            onOpen ? () => void openNotification(notification) : undefined
+          }
+          onKeyDown={
+            onOpen
+              ? (event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    void openNotification(notification);
+                  }
+                }
+              : undefined
+          }
+          className={`p-5 ${onOpen ? "cursor-pointer transition hover:border-primary hover:bg-primary/[0.07]" : ""} ${notification.read_at ? "opacity-65" : "border-primary/35 bg-primary/[0.04]"}`}
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex gap-3">
@@ -90,15 +116,25 @@ export function MemberNotifications({ session }: { session: AuthSession }) {
                 </p>
               </div>
             </div>
-            {!notification.read_at ? (
-              <Button
-                variant="outline"
-                disabled={busyId === notification.id}
-                onClick={() => void markRead(notification.id)}
-              >
-                <Check className="h-4 w-4" /> Marquer comme lue
-              </Button>
-            ) : null}
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {!notification.read_at ? (
+                <Button
+                  variant="outline"
+                  disabled={busyId === notification.id}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void markRead(notification.id);
+                  }}
+                >
+                  <Check className="h-4 w-4" /> Marquer comme lue
+                </Button>
+              ) : null}
+              {onOpen ? (
+                <span className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary/25 text-primary">
+                  <ChevronRight className="h-5 w-5" />
+                </span>
+              ) : null}
+            </div>
           </div>
         </Card>
       ))}

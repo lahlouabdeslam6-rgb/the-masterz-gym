@@ -67,12 +67,13 @@ services:
       TZ: ${GYM_TIMEZONE:-Africa/Casablanca}
       WATCHPACK_POLLING: "true"
     ports:
-      - "${MASTERZ_WEB_PORT:-3000}:3000"
+      - "${MASTERZ_WEB_PORT:-13000}:3000"
     volumes:
       - ./apps/web:/workspace/apps/web
       - ./packages:/workspace/packages
       - web_node_modules:/workspace/node_modules
       - web_next:/workspace/apps/web/.next
+      - web_next_dev:/workspace/apps/web/.next-dev
     depends_on:
       api:
         condition: service_healthy
@@ -81,6 +82,7 @@ volumes:
   postgres_data:
   web_node_modules:
   web_next:
+  web_next_dev:
   store_media:
   member_photos:
   coaching_media:

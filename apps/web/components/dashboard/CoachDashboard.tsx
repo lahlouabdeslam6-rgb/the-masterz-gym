@@ -6,12 +6,20 @@ import {
   Bell,
   CalendarDays,
   LayoutDashboard,
+  LogOut,
   MessageCircleMore,
   Search,
   Target,
   UsersRound,
 } from "lucide-react";
-import { Alert, Card, Input, LoadingMessage, Pill } from "@masterz/ui";
+import {
+  Alert,
+  Card,
+  Input,
+  LoadingMessage,
+  Pill,
+  buttonStyles,
+} from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
 import {
@@ -78,7 +86,13 @@ const coachBadgeKeys: Partial<Record<CoachSection, NavigationBadgeKey>> = {
   messages: "messages",
 };
 
-export function CoachDashboard({ session }: { session: AuthSession }) {
+export function CoachDashboard({
+  session,
+  onLogout,
+}: {
+  session: AuthSession;
+  onLogout: () => void;
+}) {
   const [activeSection, setActiveSection] = useState<CoachSection>("overview");
   const [assignments, setAssignments] = useState<CoachingAssignment[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState("");
@@ -131,7 +145,7 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
 
   return (
     <div className="mt-8 grid items-start gap-6 lg:grid-cols-[17rem_minmax(0,1fr)]">
-      <aside className="overflow-hidden rounded-lg border border-white/10 bg-[#081119]/95 shadow-2xl lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
+      <aside className="flex overflow-hidden rounded-lg border border-white/10 bg-[#081119]/95 shadow-2xl lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:flex-col">
         <div className="border-b border-white/10 bg-primary/[0.07] p-5">
           <span className="flex h-11 w-11 items-center justify-center rounded-sm bg-primary text-black">
             <Target className="h-5 w-5" />
@@ -144,7 +158,7 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
 
         <nav
           aria-label="Navigation espace coach"
-          className="hidden space-y-1 p-3 lg:block"
+          className="hidden min-h-0 flex-1 space-y-1 overflow-y-auto p-3 lg:block"
         >
           {coachSections.map((item) => {
             const Icon = item.icon;
@@ -190,7 +204,19 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
           })}
         </nav>
 
-        <label className="block p-4 lg:hidden">
+        <button
+          type="button"
+          onClick={onLogout}
+          className={buttonStyles({
+            variant: "outline",
+            className:
+              "mx-3 mb-3 mt-auto hidden w-[calc(100%-1.5rem)] shrink-0 lg:flex",
+          })}
+        >
+          <LogOut className="h-4 w-4" /> Se deconnecter
+        </button>
+
+        <label className="block p-4 pb-2 lg:hidden">
           <span className="mb-2 block text-[0.65rem] font-black uppercase tracking-[0.14em] text-gray-500">
             Choisir une rubrique
           </span>
@@ -212,6 +238,16 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
             ))}
           </select>
         </label>
+        <button
+          type="button"
+          onClick={onLogout}
+          className={buttonStyles({
+            variant: "outline",
+            className: "mx-4 mb-4 w-[calc(100%-2rem)] lg:hidden",
+          })}
+        >
+          <LogOut className="h-4 w-4" /> Se deconnecter
+        </button>
       </aside>
 
       <main className="min-w-0">
@@ -287,7 +323,18 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
               title="Mes notifications"
               subtitle="Retrouvez les nouveaux clients et les reservations qui demandent votre attention."
             >
-              <MemberNotifications session={session} />
+              <MemberNotifications
+                session={session}
+                onOpen={(kind) => {
+                  if (kind === "coaching_message_received") {
+                    openSection("messages");
+                  } else if (kind === "coaching_member_assigned") {
+                    openSection("clients");
+                  } else {
+                    openSection("schedule");
+                  }
+                }}
+              />
             </Panel>
           ) : null}
 

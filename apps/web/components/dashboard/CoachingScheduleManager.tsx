@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Check,
   Clock3,
+  History,
   Plus,
   RefreshCw,
   X,
@@ -18,6 +19,7 @@ import { authorizationHeaders, type AuthSession } from "@/lib/auth";
 import { notifyNavigationBadgesChanged } from "@/lib/navigation-badges";
 import {
   EmptyState,
+  DashboardTabs,
   Field,
   formatDate,
   selectClass,
@@ -87,6 +89,9 @@ export function CoachingScheduleManager({
   const [statusFilter, setStatusFilter] = useState<"all" | BookingStatus>(
     "all",
   );
+  const [coachScheduleView, setCoachScheduleView] = useState<
+    "current" | "history"
+  >("current");
 
   const load = useCallback(async () => {
     setReferenceTime(Date.now());
@@ -131,6 +136,18 @@ export function CoachingScheduleManager({
     [availabilities, referenceTime],
   );
 
+  const pastAvailabilities = useMemo(
+    () =>
+      availabilities
+        .filter((item) => new Date(item.ends_at).getTime() <= referenceTime)
+        .sort(
+          (first, second) =>
+            new Date(second.starts_at).getTime() -
+            new Date(first.starts_at).getTime(),
+        ),
+    [availabilities, referenceTime],
+  );
+
   const visibleBookings = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
     return bookings.filter((booking) => {
@@ -140,16 +157,94 @@ export function CoachingScheduleManager({
         `${booking.member_name} ${booking.member_number} ${booking.coach_name}`
           .toLocaleLowerCase()
           .includes(normalized);
-      return matchesStatus && matchesQuery;
+      const belongsToHistory =
+        ["completed", "cancelled"].includes(booking.status) ||
+        new Date(booking.ends_at).getTime() <= referenceTime;
+      const matchesCoachView =
+        mode !== "coach" ||
+        (coachScheduleView === "history"
+          ? belongsToHistory
+          : !belongsToHistory);
+      return matchesStatus && matchesQuery && matchesCoachView;
     });
-  }, [bookings, query, statusFilter]);
+  }, [bookings, coachScheduleView, mode, query, referenceTime, statusFilter]);
+
+  function changeStartsAt(value: string) {
+    setStartsAt(value);
+    const start = new Date(value);
+    const end = new Date(endsAt);
+    const duration = Number(sessionDuration);
+    if (
+      value &&
+      !Number.isNaN(start.getTime()) &&
+      Number.isInteger(duration) &&
+      duration >= 15 &&
+      duration <= 240 &&
+      (!endsAt || Number.isNaN(end.getTime()) || end <= start)
+    ) {
+      setEndsAt(toLocalDateTimeInput(start.getTime() + duration * 60_000));
+    }
+  }
+
+  function changeSessionDuration(value: string) {
+    setSessionDuration(value);
+    const start = new Date(startsAt);
+    const end = new Date(endsAt);
+    const duration = Number(value);
+    if (
+      startsAt &&
+      !Number.isNaN(start.getTime()) &&
+      Number.isInteger(duration) &&
+      duration >= 15 &&
+      duration <= 240 &&
+      (!endsAt || Number.isNaN(end.getTime()) || end <= start)
+    ) {
+      setEndsAt(toLocalDateTimeInput(start.getTime() + duration * 60_000));
+    }
+  }
 
   async function createAvailability() {
     const duration = Number(sessionDuration);
-    if (!startsAt || !endsAt || !Number.isInteger(duration)) {
+    const start = new Date(startsAt);
+    const end = new Date(endsAt);
+    if (
+      !startsAt ||
+      !endsAt ||
+      Number.isNaN(start.getTime()) ||
+      Number.isNaN(end.getTime()) ||
+      !Number.isInteger(duration)
+    ) {
       setFeedback({
         type: "error",
         message: "Choisissez la plage et la duree de chaque seance.",
+      });
+      return;
+    }
+    if (end <= start) {
+      setFeedback({
+        type: "error",
+        message: "L'heure de fin doit etre apres l'heure de debut.",
+      });
+      return;
+    }
+    if (start.getTime() <= Date.now()) {
+      setFeedback({
+        type: "error",
+        message: "Le planning doit commencer dans le futur.",
+      });
+      return;
+    }
+    if (duration < 15 || duration > 240) {
+      setFeedback({
+        type: "error",
+        message: "La duree d'une seance doit etre entre 15 et 240 minutes.",
+      });
+      return;
+    }
+    if (end.getTime() - start.getTime() < duration * 60_000) {
+      setFeedback({
+        type: "error",
+        message: "La plage choisie doit contenir au moins une seance complete.",
       });
       return;
     }
@@ -157,8 +252,8 @@ export function CoachingScheduleManager({
     const result = await api.POST("/api/v1/coaching/availability", {
       headers,
       body: {
-        starts_at: new Date(startsAt).toISOString(),
-        ends_at: new Date(endsAt).toISOString(),
+        starts_at: start.toISOString(),
+        ends_at: end.toISOString(),
         session_duration_minutes: duration,
         note: availabilityNote.trim() || null,
       },
@@ -384,15 +479,38 @@ export function CoachingScheduleManager({
       ) : null}
 
       {mode === "coach" ? (
+        <DashboardTabs
+          eyebrow="Organisation du planning"
+          ariaLabel="Rubriques planning coach"
+          activeTab={coachScheduleView}
+          onChange={setCoachScheduleView}
+          tabs={[
+            {
+              id: "current",
+              label: "Planning actuel",
+              icon: CalendarDays,
+              badge: futureAvailabilities.length,
+            },
+            {
+              id: "history",
+              label: "Historique",
+              icon: History,
+              badge: pastAvailabilities.length,
+            },
+          ]}
+        />
+      ) : null}
+
+      {mode === "coach" && coachScheduleView === "current" ? (
         <CoachAvailabilityEditor
           startsAt={startsAt}
           endsAt={endsAt}
           sessionDuration={sessionDuration}
           note={availabilityNote}
           busy={busy === "availability-create"}
-          onStartsAt={setStartsAt}
+          onStartsAt={changeStartsAt}
           onEndsAt={setEndsAt}
-          onSessionDuration={setSessionDuration}
+          onSessionDuration={changeSessionDuration}
           onNote={setAvailabilityNote}
           onCreate={() => void createAvailability()}
         />
@@ -414,78 +532,89 @@ export function CoachingScheduleManager({
             void reserve(availability, slotStart)
           }
         />
+      ) : mode === "coach" && coachScheduleView === "history" ? (
+        <CoachAvailabilityHistory
+          availabilities={pastAvailabilities}
+          bookings={bookings}
+        />
       ) : (
         <AvailabilityOverview
           mode={mode}
-          availabilities={availabilities}
+          availabilities={
+            mode === "coach" ? futureAvailabilities : availabilities
+          }
           busy={busy}
           onDisable={(availability) => void disableAvailability(availability)}
         />
       )}
 
-      <section>
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-[0.65rem] font-black uppercase tracking-[0.16em] text-primary">
-              Calendrier des seances
-            </p>
-            <h3 className="mt-2 text-2xl font-black text-white">
-              {mode === "member" ? "Mes reservations" : "Reservations coaching"}
-            </h3>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              aria-label="Rechercher une reservation coaching"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Client, numero ou coach"
-            />
-            <select
-              aria-label="Filtrer les reservations coaching"
-              className={selectClass}
-              value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value as "all" | BookingStatus)
-              }
-            >
-              <option value="all">Tous les statuts</option>
-              {Object.entries(statusLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="mt-5 space-y-3">
-          {visibleBookings.length ? (
-            visibleBookings.map((booking) => (
-              <BookingCard
-                key={booking.id}
-                booking={booking}
-                mode={mode}
-                availabilityChoices={futureAvailabilities.filter(
-                  (item) => item.coach_id === booking.coach_id,
-                )}
-                scheduleChoice={scheduleChoices[booking.id] ?? ""}
-                busy={busy}
-                onScheduleChoice={(value) =>
-                  setScheduleChoices((current) => ({
-                    ...current,
-                    [booking.id]: value,
-                  }))
-                }
-                onStatus={(status) => void updateStatus(booking, status)}
-                onReschedule={(availabilityId) =>
-                  void reschedule(booking, availabilityId)
-                }
+      {mode !== "coach" || coachScheduleView === "current" ? (
+        <section>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-[0.65rem] font-black uppercase tracking-[0.16em] text-primary">
+                Calendrier des seances
+              </p>
+              <h3 className="mt-2 text-2xl font-black text-white">
+                {mode === "member"
+                  ? "Mes reservations"
+                  : "Reservations coaching"}
+              </h3>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                aria-label="Rechercher une reservation coaching"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Client, numero ou coach"
               />
-            ))
-          ) : (
-            <EmptyState text="Aucune reservation coaching dans cette liste." />
-          )}
-        </div>
-      </section>
+              <select
+                aria-label="Filtrer les reservations coaching"
+                className={selectClass}
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as "all" | BookingStatus)
+                }
+              >
+                <option value="all">Tous les statuts</option>
+                {Object.entries(statusLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="mt-5 space-y-3">
+            {visibleBookings.length ? (
+              visibleBookings.map((booking) => (
+                <BookingCard
+                  key={booking.id}
+                  booking={booking}
+                  mode={mode}
+                  availabilityChoices={futureAvailabilities.filter(
+                    (item) => item.coach_id === booking.coach_id,
+                  )}
+                  scheduleChoice={scheduleChoices[booking.id] ?? ""}
+                  busy={busy}
+                  onScheduleChoice={(value) =>
+                    setScheduleChoices((current) => ({
+                      ...current,
+                      [booking.id]: value,
+                    }))
+                  }
+                  onStatus={(status) => void updateStatus(booking, status)}
+                  onReschedule={(availabilityId) =>
+                    void reschedule(booking, availabilityId)
+                  }
+                />
+              ))
+            ) : (
+              <EmptyState text="Aucune reservation coaching dans cette liste." />
+            )}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -541,6 +670,7 @@ function CoachAvailabilityEditor({
           <Input
             type="datetime-local"
             aria-label="Fin du creneau coaching"
+            min={startsAt || undefined}
             value={endsAt}
             onChange={(event) => onEndsAt(event.target.value)}
           />
@@ -644,6 +774,101 @@ function AvailabilityOverview({
           <div className="md:col-span-2 xl:col-span-3">
             <EmptyState text="Aucune disponibilite ajoutee au planning." />
           </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function CoachAvailabilityHistory({
+  availabilities,
+  bookings,
+}: {
+  availabilities: Availability[];
+  bookings: Booking[];
+}) {
+  return (
+    <section>
+      <div className="flex items-center gap-3">
+        <History className="h-5 w-5 text-primary" />
+        <div>
+          <h3 className="text-xl font-black text-white">
+            Historique du planning
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Les anciennes plages et les clients recus restent classes ici.
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 space-y-4">
+        {availabilities.length ? (
+          availabilities.map((availability) => {
+            const relatedBookings = bookings
+              .filter(
+                (booking) =>
+                  booking.availability_id === availability.id &&
+                  booking.status !== "cancelled",
+              )
+              .sort(
+                (first, second) =>
+                  new Date(first.starts_at).getTime() -
+                  new Date(second.starts_at).getTime(),
+              );
+            return (
+              <Card key={availability.id} className="p-5 sm:p-6">
+                <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="font-black text-white">
+                      {formatSchedule(
+                        availability.starts_at,
+                        availability.ends_at,
+                      )}
+                    </p>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Seances de {availability.session_duration_minutes} minutes
+                      {availability.note ? ` · ${availability.note}` : ""}
+                    </p>
+                  </div>
+                  <Pill>
+                    {relatedBookings.length} client(s) dans cette plage
+                  </Pill>
+                </div>
+                <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                  {relatedBookings.length ? (
+                    relatedBookings.map((booking) => (
+                      <div
+                        key={booking.id}
+                        className="flex items-center justify-between gap-4 rounded-sm border border-white/10 bg-black/20 p-4"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-black text-white">
+                            {booking.member_name}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {booking.member_number} ·{" "}
+                            {formatTime(booking.starts_at)}
+                            {" - "}
+                            {formatTime(booking.ends_at)}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full border px-3 py-1 text-[0.62rem] font-black uppercase ${statusClasses[booking.status]}`}
+                        >
+                          {statusLabels[booking.status]}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="lg:col-span-2">
+                      <EmptyState text="Aucun client enregistre dans cette ancienne plage." />
+                    </div>
+                  )}
+                </div>
+              </Card>
+            );
+          })
+        ) : (
+          <EmptyState text="Aucun ancien planning pour le moment." />
         )}
       </div>
     </section>
@@ -867,7 +1092,7 @@ function BookingCard({
         </div>
       </div>
 
-      {canDecide &&
+      {mode === "staff" &&
       open &&
       availableScheduleChoices(availabilityChoices).length ? (
         <div className="mt-5 grid gap-3 border-t border-white/10 pt-5 md:grid-cols-[1fr_auto]">
@@ -954,6 +1179,13 @@ function formatTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function toLocalDateTimeInput(timestamp: number) {
+  const date = new Date(timestamp);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
 }
 
 function errorCode(error: unknown) {

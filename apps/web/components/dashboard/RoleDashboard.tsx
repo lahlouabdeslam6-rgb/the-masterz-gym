@@ -187,13 +187,15 @@ export function RoleDashboard() {
               · {session.user.phone}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={logout}
-            className={buttonStyles({ variant: "outline" })}
-          >
-            <LogOut className="h-4 w-4" /> Se déconnecter
-          </button>
+          {session.user.role !== "coach" ? (
+            <button
+              type="button"
+              onClick={logout}
+              className={buttonStyles({ variant: "outline" })}
+            >
+              <LogOut className="h-4 w-4" /> Se déconnecter
+            </button>
+          ) : null}
         </div>
         {session.user.role === "admin" ? (
           <AdminSpace
@@ -224,7 +226,7 @@ export function RoleDashboard() {
           />
         ) : null}
         {session.user.role === "coach" ? (
-          <CoachDashboard session={session} />
+          <CoachDashboard session={session} onLogout={() => void logout()} />
         ) : null}
         {session.user.role === "recovery_client" ? (
           <FutureRoleDashboard role="recovery" />

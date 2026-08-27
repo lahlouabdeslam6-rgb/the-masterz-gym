@@ -53,7 +53,9 @@ export function useNavigationBadges(
         headers,
         params: { query: { unread_only: true, limit: 100 } },
       });
-      const notifications = (result.data ?? []) as Notification[];
+      const notifications = Array.isArray(result.data)
+        ? (result.data as Notification[])
+        : [];
       showBadges(notificationBadges(notifications, session.user.role));
       return;
     }

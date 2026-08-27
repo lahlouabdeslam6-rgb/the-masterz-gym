@@ -6,6 +6,7 @@ __pycache__/
 *.py[cod]
 node_modules/
 .next/
+.next-dev/
 playwright-report/
 test-results/
 debug.log
