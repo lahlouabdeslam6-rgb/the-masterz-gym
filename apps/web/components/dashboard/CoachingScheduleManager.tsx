@@ -562,13 +562,19 @@ export function CoachingScheduleManager({
                   : "Reservations coaching"}
               </h3>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input
-                aria-label="Rechercher une reservation coaching"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Client, numero ou coach"
-              />
+            <div
+              className={`grid gap-3 ${
+                mode === "member" ? "sm:min-w-56" : "sm:grid-cols-2"
+              }`}
+            >
+              {mode !== "member" ? (
+                <Input
+                  aria-label="Rechercher une reservation coaching"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Client, numero ou coach"
+                />
+              ) : null}
               <select
                 aria-label="Filtrer les reservations coaching"
                 className={selectClass}

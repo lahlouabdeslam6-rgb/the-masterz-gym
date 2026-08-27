@@ -49,6 +49,28 @@ const plans = [
   },
 ];
 
+const memberPromotion = {
+  id: "00000000-0000-0000-0000-000000000105",
+  title: "Offre Duo Membre",
+  slug: "offre-duo-membre",
+  short_description: "Deux personnes, une annee, un prix special.",
+  description: "Une offre speciale creee par l'administration.",
+  base_plan_id: plans[0].id,
+  base_plan_name: plans[0].name,
+  price: "3000.00",
+  currency: "MAD",
+  participant_count: 2,
+  starts_at: "2026-08-01T00:00:00Z",
+  ends_at: "2026-12-31T23:59:59Z",
+  terms: null,
+  is_active: true,
+  is_featured: true,
+  created_by_id: "00000000-0000-0000-0000-000000000110",
+  updated_by_id: null,
+  created_at: "2026-08-01T00:00:00Z",
+  updated_at: "2026-08-01T00:00:00Z",
+};
+
 test("affiche chaque offre dans sa page publique", async ({ page }) => {
   await page.route("**/api/v1/membership-plans**", async (route) => {
     const serviceType = new URL(route.request().url()).searchParams.get(
@@ -222,6 +244,7 @@ test("informe le membre de ses abonnements avant une nouvelle inscription", asyn
         ? plans.filter((plan) => plan.service_type === serviceType)
         : plans;
     }
+    if (url.pathname === "/api/v1/promotions") body = [memberPromotion];
     if (url.pathname === `/api/v1/members/${member.id}/subscriptions`) {
       body = subscriptions;
     }
@@ -289,13 +312,17 @@ test("informe le membre de ses abonnements avant une nouvelle inscription", asyn
     page.getByRole("button", { name: "Historique des abonnements" }),
   ).toBeVisible();
   await expect(page.getByText("Salle 1 mois", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(memberPromotion.title, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Decouvrir l'offre/ }),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: "Deja paye" })).toBeVisible();
   await expect(page.getByTestId("member-service-recovery")).toContainText(
     "Seances terminees",
   );
-  await page
-    .getByRole("button", { name: "Historique des abonnements" })
-    .click();
+  await page.getByRole("button", { name: "Voir mon abonnement" }).click();
   await expect(page.getByText("Pack Recovery", { exact: true })).toBeVisible();
 });
 

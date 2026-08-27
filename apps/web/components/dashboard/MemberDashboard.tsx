@@ -735,7 +735,11 @@ function SubscriptionsPanel({
             })}
           </div>
           <div className="mt-6 border-t border-white/10 pt-6">
-            <MembershipPlansList serviceType={activeService} />
+            <MembershipPlansList
+              serviceType={activeService}
+              showPromotions
+              onViewSubscription={() => setActiveView("history")}
+            />
           </div>
         </div>
       ) : null}

@@ -307,6 +307,9 @@ test("membre reserve un creneau propose par son coach", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Mes seances coaching" }),
   ).toBeVisible();
+  await expect(
+    page.getByLabel("Rechercher une reservation coaching"),
+  ).toHaveCount(0);
   await page
     .getByRole("button", { name: "Ma progression", exact: true })
     .click();

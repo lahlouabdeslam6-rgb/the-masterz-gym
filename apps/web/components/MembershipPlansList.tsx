@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Check, CheckCircle2, RefreshCw } from "lucide-react";
+import {
+  ArrowUpRight,
+  Check,
+  CheckCircle2,
+  Megaphone,
+  RefreshCw,
+} from "lucide-react";
 import type { components } from "@masterz/api-client";
 import {
   Button,
@@ -20,6 +26,7 @@ import {
 } from "@/lib/member-subscriptions";
 
 type MembershipPlan = components["schemas"]["MembershipPlanRead"];
+type Promotion = components["schemas"]["PromotionRead"];
 type ServiceType = MembershipPlan["service_type"];
 
 const planContent: Record<
@@ -57,10 +64,15 @@ const planContent: Record<
 
 export function MembershipPlansList({
   serviceType = "gym",
+  showPromotions = false,
+  onViewSubscription,
 }: {
   serviceType?: ServiceType;
+  showPromotions?: boolean;
+  onViewSubscription?: () => void;
 }) {
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [requestKey, setRequestKey] = useState(0);
@@ -74,21 +86,30 @@ export function MembershipPlansList({
       setError(null);
 
       try {
-        const { data, error: apiError } = await api.GET(
-          "/api/v1/membership-plans",
-          {
+        const [plansResult, promotionsResult] = await Promise.all([
+          api.GET("/api/v1/membership-plans", {
             params: { query: { active_only: true, service_type: serviceType } },
-          },
-        );
+          }),
+          showPromotions
+            ? api.GET("/api/v1/promotions")
+            : Promise.resolve(null),
+        ]);
 
         if (!active) return;
-        if (apiError) {
+        if (plansResult.error) {
           setError("Impossible de charger les formules pour le moment.");
           return;
         }
 
-        setPlans(
-          [...(data ?? [])].sort((a, b) => Number(a.price) - Number(b.price)),
+        const loadedPlans = [...(plansResult.data ?? [])].sort(
+          (a, b) => Number(a.price) - Number(b.price),
+        );
+        const planIds = new Set(loadedPlans.map((plan) => plan.id));
+        setPlans(loadedPlans);
+        setPromotions(
+          (promotionsResult?.data ?? []).filter((promotion) =>
+            planIds.has(promotion.base_plan_id),
+          ),
         );
       } catch {
         if (active)
@@ -102,7 +123,7 @@ export function MembershipPlansList({
     return () => {
       active = false;
     };
-  }, [requestKey, serviceType]);
+  }, [requestKey, serviceType, showPromotions]);
 
   const content = planContent[serviceType];
   const currentSubscription = currentSubscriptionFor(
@@ -188,18 +209,78 @@ export function MembershipPlansList({
               </p>
             </div>
           </div>
-          <Link
-            href="/espace/membre"
-            className={buttonStyles({ variant: "outline" })}
-          >
-            Voir mon abonnement
-          </Link>
+          {onViewSubscription ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onViewSubscription}
+            >
+              Voir mon abonnement
+            </Button>
+          ) : (
+            <Link
+              href="/espace/membre"
+              className={buttonStyles({ variant: "outline" })}
+            >
+              Voir mon abonnement
+            </Link>
+          )}
         </div>
       ) : memberIsRenewing ? (
         <div className="rounded-lg border border-amber-300/25 bg-amber-300/[0.06] p-5 text-sm leading-6 text-amber-100">
           Votre ancienne formule {latestSubscription?.plan_name} est terminee.
           Vous pouvez choisir une nouvelle offre ci-dessous.
         </div>
+      ) : null}
+
+      {promotions.length ? (
+        <section className="rounded-lg border border-primary/25 bg-primary/[0.055] p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <span className="rounded-sm bg-primary p-2 text-black">
+              <Megaphone className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-[0.65rem] font-black uppercase tracking-[0.16em] text-primary">
+                Promotions Masterz
+              </p>
+              <h3 className="mt-1 text-xl font-black text-white">
+                Offres speciales du moment
+              </h3>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            {promotions.map((promotion) => (
+              <Link
+                key={promotion.id}
+                href={`/offres/${promotion.slug}`}
+                className="group rounded-sm border border-white/10 bg-black/25 p-5 transition hover:border-primary/50 hover:bg-primary/[0.06]"
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-lg font-black text-white group-hover:text-primary">
+                      {promotion.title}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-gray-400">
+                      {promotion.short_description}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-black text-primary">
+                    {formatPrice(promotion.price)} {promotion.currency}
+                  </span>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4 text-xs text-gray-500">
+                  <span>
+                    {promotion.participant_count} personne(s) · jusqu&apos;au{" "}
+                    {new Date(promotion.ends_at).toLocaleDateString("fr-MA")}
+                  </span>
+                  <span className="flex items-center gap-2 font-black uppercase text-primary">
+                    Decouvrir l&apos;offre <ArrowUpRight className="h-4 w-4" />
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       ) : null}
 
       <div
