@@ -76,7 +76,7 @@ const coachSections: Array<{
   {
     id: "clients",
     label: "Mes clients",
-    description: "Objectifs, tests et progression",
+    description: "Dossiers clients",
     icon: UsersRound,
   },
   {
@@ -266,20 +266,48 @@ export function CoachDashboard({
 
       <main className="min-w-0">
         <header className="rounded-lg border border-white/10 bg-[linear-gradient(135deg,rgba(0,212,255,0.12),rgba(8,17,25,0.92)_48%)] p-5 shadow-2xl sm:p-7">
-          <div className="flex items-center gap-4">
+          <div
+            className={`flex gap-4 ${
+              activeSection === "clients" ? "items-start" : "items-center"
+            }`}
+          >
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border border-primary/30 bg-primary/[0.1] text-primary">
               <SectionIcon className="h-6 w-6" />
             </span>
-            <div>
-              <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-primary">
-                Espace coach
-              </p>
-              <h2 className="mt-1 font-display text-3xl font-black uppercase tracking-[-0.035em] text-white">
-                {section.label}
-              </h2>
-              <p className="mt-1 text-sm text-gray-500">
-                {section.description}
-              </p>
+            <div className="min-w-0 flex-1">
+              <div
+                className={
+                  activeSection === "clients"
+                    ? "sm:flex sm:items-end sm:justify-between sm:gap-6"
+                    : undefined
+                }
+              >
+                <div className="shrink-0">
+                  <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-primary">
+                    Espace coach
+                  </p>
+                  <h2 className="mt-1 font-display text-3xl font-black uppercase tracking-[-0.035em] text-white">
+                    {section.label}
+                  </h2>
+                  {activeSection !== "clients" ? (
+                    <p className="mt-1 text-sm text-gray-500">
+                      {section.description}
+                    </p>
+                  ) : null}
+                </div>
+                {activeSection === "clients" ? (
+                  <div className="relative mt-4 w-full sm:mt-0 sm:max-w-sm">
+                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                    <Input
+                      aria-label="Rechercher un client"
+                      className="h-11 bg-black/20 pl-10 text-sm"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Nom ou numero membre"
+                    />
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </header>
@@ -381,23 +409,6 @@ export function CoachDashboard({
 
           {activeSection === "clients" ? (
             <div className="space-y-6">
-              <Card className="p-5 sm:p-6">
-                <p className="text-sm text-gray-500">
-                  Recherchez un client puis ouvrez son objectif, ses tests et sa
-                  progression.
-                </p>
-                <div className="relative mt-4">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-                  <Input
-                    aria-label="Rechercher un client"
-                    className="h-14 pl-11 text-base"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Nom ou numero membre"
-                  />
-                </div>
-              </Card>
-
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {visibleAssignments.length ? (
                   visibleAssignments.map((assignment) => (

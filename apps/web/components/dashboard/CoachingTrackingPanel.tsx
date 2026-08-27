@@ -323,66 +323,72 @@ export function CoachingTrackingPanel({
     <div className="space-y-5" data-testid="coaching-tracking-panel">
       {feedback ? <Alert type="info" message={feedback} /> : null}
 
-      <Card className="border-primary/20 bg-primary/[0.035] p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <Pill>Suivi coaching</Pill>
-            <h3 className="mt-4 text-2xl font-black text-white">
+      <Card className="border-primary/20 bg-primary/[0.025] p-5">
+        <div className="grid gap-5 lg:grid-cols-[minmax(13rem,0.34fr)_minmax(0,0.66fr)] lg:items-start">
+          <div className="min-w-0 lg:border-r lg:border-white/10 lg:pr-5">
+            <div className="flex items-start justify-between gap-3">
+              <Pill>Dossier coaching</Pill>
+              <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-[0.65rem] font-black uppercase text-primary">
+                {tracking.assessments.length} test(s)
+              </span>
+            </div>
+            <h3 className="mt-4 truncate text-xl font-black text-white">
               {tracking.member_name}
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {tracking.member_number} · Coach :{" "}
-              {tracking.coach_name ?? "Non affecte"}
+            <p className="mt-1 text-xs leading-5 text-gray-500">
+              {tracking.member_number}
+            </p>
+            <p className="mt-2 text-xs text-gray-500">
+              Coach : {tracking.coach_name ?? "Non affecte"}
             </p>
           </div>
-          <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-black uppercase text-primary">
-            {tracking.assessments.length} test(s)
-          </span>
-        </div>
-      </Card>
 
-      <Card className="p-5">
-        <div className="flex items-center gap-3">
-          <Target className="h-5 w-5 text-primary" />
-          <div>
-            <h4 className="font-black uppercase text-white">
-              Objectif du client
-            </h4>
-            <p className="mt-1 text-xs text-gray-500">
-              Direction principale du parcours coaching.
-            </p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <Target className="h-5 w-5 shrink-0 text-primary" />
+              <div>
+                <h4 className="font-black uppercase text-white">
+                  Objectif du client
+                </h4>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Direction principale du parcours coaching.
+                </p>
+              </div>
+            </div>
+            {editable ? (
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+                <textarea
+                  aria-label="Objectif du client"
+                  className={`${textareaClass} min-h-24 flex-1`}
+                  value={objective}
+                  onChange={(event) => setObjective(event.target.value)}
+                  placeholder="Ex. perdre du poids, gagner en force, reprendre la forme..."
+                />
+                <Button
+                  className="shrink-0 sm:h-12"
+                  onClick={saveObjective}
+                  disabled={busy || objective.trim().length < 3}
+                >
+                  <Save className="h-4 w-4" /> Enregistrer l&apos;objectif
+                </Button>
+              </div>
+            ) : tracking.objective ? (
+              <div className="mt-3 rounded-sm border border-white/10 bg-black/20 p-4">
+                <p className="leading-7 text-gray-200">
+                  {tracking.objective.objective}
+                </p>
+                <p className="mt-2 text-xs text-gray-500">
+                  Mis a jour par {tracking.objective.updated_by_name} le{" "}
+                  {formatDate(tracking.objective.updated_at)}
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3">
+                <EmptyState text="Aucun objectif coaching enregistre." />
+              </div>
+            )}
           </div>
         </div>
-        {editable ? (
-          <>
-            <textarea
-              aria-label="Objectif du client"
-              className={`${textareaClass} mt-4 min-h-28`}
-              value={objective}
-              onChange={(event) => setObjective(event.target.value)}
-              placeholder="Ex. perdre du poids, gagner en force, reprendre la forme..."
-            />
-            <Button
-              className="mt-4"
-              onClick={saveObjective}
-              disabled={busy || objective.trim().length < 3}
-            >
-              <Save className="h-4 w-4" /> Enregistrer l&apos;objectif
-            </Button>
-          </>
-        ) : tracking.objective ? (
-          <div className="mt-4 rounded-sm border border-white/10 bg-black/20 p-4">
-            <p className="leading-7 text-gray-200">
-              {tracking.objective.objective}
-            </p>
-            <p className="mt-3 text-xs text-gray-500">
-              Mis a jour par {tracking.objective.updated_by_name} le{" "}
-              {formatDate(tracking.objective.updated_at)}
-            </p>
-          </div>
-        ) : (
-          <EmptyState text="Aucun objectif coaching enregistre." />
-        )}
       </Card>
 
       {editable ? (
