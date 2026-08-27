@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   Dumbbell,
   Footprints,
+  MessageCircleMore,
   Package,
   Settings2,
   ShoppingCart,
@@ -27,6 +28,7 @@ import { ApplicationManager } from "../ApplicationManager";
 import { CoachingManager } from "../CoachingManager";
 import { StaffCoachingAssignmentRequests } from "../CoachingAssignmentRequests";
 import { CoachingScheduleManager } from "../CoachingScheduleManager";
+import { CoachingConversationPanel } from "../CoachingConversationPanel";
 import { ComplaintCenter } from "../ComplaintCenter";
 import { PromotionManager } from "../PromotionManager";
 import { RecoveryManager } from "../RecoveryManager";
@@ -212,7 +214,7 @@ export function AdminMembersSection() {
 export function AdminCoachesSection() {
   const { session } = useAdminSession();
   const [activeView, setActiveView] = useState<
-    "requests" | "management" | "schedule"
+    "requests" | "management" | "schedule" | "messages"
   >("requests");
   return (
     <AdminPage
@@ -242,6 +244,11 @@ export function AdminCoachesSection() {
               label: "Planning des seances",
               icon: CalendarDays,
             },
+            {
+              id: "messages",
+              label: "Messages coach-client",
+              icon: MessageCircleMore,
+            },
           ]}
         />
 
@@ -263,6 +270,14 @@ export function AdminCoachesSection() {
               subtitle="Consultez les horaires de tous les coachs, confirmez les demandes et gerez les conflits."
             >
               <CoachingScheduleManager session={session} mode="staff" />
+            </Panel>
+          ) : null}
+          {activeView === "messages" ? (
+            <Panel
+              title="Suivi des conversations coaching"
+              subtitle="Consultez les echanges entre chaque coach et son client sans intervenir dans leur conversation."
+            >
+              <CoachingConversationPanel session={session} readOnly />
             </Panel>
           ) : null}
         </div>

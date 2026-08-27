@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 
 from app.core.dependencies import DbSession, require_roles
 from app.modules.coaching.schemas import (
@@ -19,6 +19,8 @@ from app.modules.coaching.schemas import (
     CoachingBookingRead,
     CoachingBookingReschedule,
     CoachingBookingStatusUpdate,
+    CoachingConversationRead,
+    CoachingMessageRead,
     CoachingObjectiveRead,
     CoachingObjectiveUpdate,
     CoachingTrackingRead,
@@ -58,6 +60,10 @@ AssignmentRequestReader = Annotated[
     Depends(require_roles(UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.MEMBER)),
 ]
 Member = Annotated[User, Depends(require_roles(UserRole.MEMBER))]
+ConversationReader = Annotated[
+    User,
+    Depends(require_roles(UserRole.ADMIN, UserRole.COACH, UserRole.MEMBER)),
+]
 
 
 @router.get("/coaches", response_model=list[CoachSummary])
@@ -183,6 +189,48 @@ def create_member_assessment(
     actor: Coach,
 ):
     return CoachingService(session).create_assessment(member_id, data, actor)
+
+
+@router.get("/conversations", response_model=list[CoachingConversationRead])
+def list_conversations(session: DbSession, actor: ConversationReader):
+    return CoachingService(session).list_conversations(actor)
+
+
+@router.get(
+    "/conversations/{assignment_id}/messages",
+    response_model=list[CoachingMessageRead],
+)
+def list_conversation_messages(
+    assignment_id: uuid.UUID,
+    session: DbSession,
+    actor: ConversationReader,
+    limit: Annotated[int, Query(ge=1, le=500)] = 300,
+):
+    return CoachingService(session).list_messages(
+        assignment_id,
+        actor,
+        limit=limit,
+    )
+
+
+@router.post(
+    "/conversations/{assignment_id}/messages",
+    response_model=CoachingMessageRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_conversation_message(
+    assignment_id: uuid.UUID,
+    session: DbSession,
+    actor: ConversationReader,
+    body: Annotated[str | None, Form(max_length=4000)] = None,
+    media: Annotated[UploadFile | None, File()] = None,
+):
+    return await CoachingService(session).create_message(
+        assignment_id,
+        actor,
+        body=body,
+        media=media,
+    )
 
 
 @router.post(

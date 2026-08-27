@@ -10,6 +10,7 @@ from app.modules.coaching.models import (
     CoachingAssignmentRequest,
     CoachingBooking,
     CoachingClientProfile,
+    CoachingMessage,
     CoachMemberAssignment,
 )
 from app.modules.users.models import User
@@ -219,6 +220,23 @@ class CoachingRepository:
             or 0
         )
 
+    def availability_bookings(
+        self,
+        availability_id: uuid.UUID,
+        *,
+        statuses: set[CoachingBookingStatus],
+    ) -> list[CoachingBooking]:
+        return list(
+            self.session.scalars(
+                select(CoachingBooking)
+                .where(
+                    CoachingBooking.availability_id == availability_id,
+                    CoachingBooking.status.in_(tuple(statuses)),
+                )
+                .order_by(CoachingBooking.starts_at)
+            )
+        )
+
     def get_booking(
         self, booking_id: uuid.UUID, *, for_update: bool = False
     ) -> CoachingBooking | None:
@@ -287,3 +305,30 @@ class CoachingRepository:
 
     def lock_coach_schedule(self, coach_id: uuid.UUID) -> None:
         self.session.scalar(select(User.id).where(User.id == coach_id).with_for_update())
+
+    def add_message(self, message: CoachingMessage) -> CoachingMessage:
+        self.session.add(message)
+        self.session.flush()
+        return message
+
+    def list_messages(
+        self,
+        assignment_id: uuid.UUID,
+        *,
+        limit: int = 300,
+    ) -> list[CoachingMessage]:
+        statement = (
+            select(CoachingMessage)
+            .where(CoachingMessage.assignment_id == assignment_id)
+            .order_by(CoachingMessage.created_at.desc())
+            .limit(limit)
+        )
+        return list(reversed(list(self.session.scalars(statement))))
+
+    def last_message(self, assignment_id: uuid.UUID) -> CoachingMessage | None:
+        return self.session.scalar(
+            select(CoachingMessage)
+            .where(CoachingMessage.assignment_id == assignment_id)
+            .order_by(CoachingMessage.created_at.desc())
+            .limit(1)
+        )

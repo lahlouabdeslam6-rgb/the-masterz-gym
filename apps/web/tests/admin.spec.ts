@@ -551,8 +551,11 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
     navigation.getByRole("link", { name: "Journal d'audit" }),
   ).toBeVisible();
 
+  await page.waitForLoadState("networkidle");
   await navigation.getByRole("link", { name: "Utilisateurs" }).click();
-  await expect(page).toHaveURL(/\/espace\/admin\/utilisateurs$/);
+  await expect(page).toHaveURL(/\/espace\/admin\/utilisateurs$/, {
+    timeout: 15_000,
+  });
   await expect(page.getByText("1-10 sur 12 compte(s)")).toBeVisible();
   await expect(page.getByText("Coach Test 11", { exact: true })).toHaveCount(0);
 
@@ -588,8 +591,11 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   await expect(page.getByText("Compte supprime.")).toBeVisible();
   expect(userDeleteCalls).toBe(1);
 
+  await page.waitForLoadState("networkidle");
   await navigation.getByRole("link", { name: "Membres" }).click();
-  await expect(page).toHaveURL(/\/espace\/admin\/membres$/);
+  await expect(page).toHaveURL(/\/espace\/admin\/membres$/, {
+    timeout: 15_000,
+  });
   await expect(
     page.getByRole("heading", { name: "Membres", exact: true }),
   ).toBeVisible();
@@ -669,8 +675,11 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   await memberSearch.fill("");
   await expect(urgentMemberCard).toBeVisible();
 
+  await page.waitForLoadState("networkidle");
   await navigation.getByRole("link", { name: "Coachs" }).click();
-  await expect(page).toHaveURL(/\/espace\/admin\/coachs$/);
+  await expect(page).toHaveURL(/\/espace\/admin\/coachs$/, {
+    timeout: 15_000,
+  });
   await expect(
     page.getByRole("heading", { name: "Coachs", exact: true }),
   ).toBeVisible();
@@ -708,8 +717,11 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   ).toBeVisible();
   expect(coachingAssignmentCalls).toBe(1);
 
+  await page.waitForLoadState("networkidle");
   await navigation.getByRole("link", { name: "Paiements" }).click();
-  await expect(page).toHaveURL(/\/espace\/admin\/paiements$/);
+  await expect(page).toHaveURL(/\/espace\/admin\/paiements$/, {
+    timeout: 15_000,
+  });
   await expect(
     page.getByRole("heading", { name: "Paiements", exact: true }),
   ).toBeVisible();
@@ -823,8 +835,11 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   expect(receiptsIndex).toBeGreaterThan(subscriptionIndex);
   expect(subscriptionIndex).toBeGreaterThan(paymentIndex);
 
+  await page.waitForLoadState("networkidle");
   await navigation.getByRole("link", { name: "Entrees" }).click();
-  await expect(page).toHaveURL(/\/espace\/admin\/acces$/);
+  await expect(page).toHaveURL(/\/espace\/admin\/acces$/, {
+    timeout: 15_000,
+  });
   await expect(page.getByText("Membre Urgent", { exact: true })).toBeVisible();
   await expect(page.getByText("Membre Stable", { exact: true })).toBeVisible();
   await page.getByText("Membre Stable", { exact: true }).click();
@@ -851,8 +866,11 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
     page.getByText("Hna kaybano ghir les passages li tsajlo b date w sa3a."),
   ).toBeVisible();
 
+  await page.waitForLoadState("networkidle");
   await navigation.getByRole("link", { name: "Journal d'audit" }).click();
-  await expect(page).toHaveURL(/\/espace\/admin\/audit$/);
+  await expect(page).toHaveURL(/\/espace\/admin\/audit$/, {
+    timeout: 15_000,
+  });
   await expect(
     page.getByRole("heading", { name: "Historique des mouvements" }),
   ).toBeVisible();

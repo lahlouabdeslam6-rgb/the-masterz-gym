@@ -36,12 +36,14 @@ services:
       API_PORT: 8000
       STORE_MEDIA_ROOT: /data/store-products
       MEMBER_PHOTO_ROOT: /data/member-photos
+      COACHING_MEDIA_ROOT: /data/coaching-media
     ports:
       - "${MASTERZ_API_PORT:-8000}:8000"
     volumes:
       - ./apps/api:/app
       - store_media:/data/store-products
       - member_photos:/data/member-photos
+      - coaching_media:/data/coaching-media
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,6 +61,10 @@ services:
       dockerfile: apps/web/Dockerfile
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
+      PLAYWRIGHT_CHROME_EXECUTABLE: /usr/bin/chromium
+      PLAYWRIGHT_SKIP_WEBSERVER: "1"
+      TZ: ${GYM_TIMEZONE:-Africa/Casablanca}
       WATCHPACK_POLLING: "true"
     ports:
       - "${MASTERZ_WEB_PORT:-3000}:3000"
@@ -77,3 +83,4 @@ volumes:
   web_next:
   store_media:
   member_photos:
+  coaching_media:

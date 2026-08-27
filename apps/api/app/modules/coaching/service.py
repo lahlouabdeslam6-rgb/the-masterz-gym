@@ -1,18 +1,20 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
-from fastapi import status
+from fastapi import UploadFile, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.errors import api_error
 from app.modules.audit.service import AuditService
+from app.modules.coaching.media import CoachingMediaService
 from app.modules.coaching.models import (
     CoachAvailability,
     CoachingAssessment,
     CoachingAssignmentRequest,
     CoachingBooking,
     CoachingClientProfile,
+    CoachingMessage,
     CoachMemberAssignment,
 )
 from app.modules.coaching.repository import CoachingRepository
@@ -30,6 +32,8 @@ from app.modules.coaching.schemas import (
     CoachingBookingRead,
     CoachingBookingReschedule,
     CoachingBookingStatusUpdate,
+    CoachingConversationRead,
+    CoachingMessageRead,
     CoachingObjectiveRead,
     CoachingObjectiveUpdate,
     CoachingTrackingRead,
@@ -323,6 +327,7 @@ class CoachingService:
                 coach_id=actor.id,
                 starts_at=starts_at,
                 ends_at=ends_at,
+                session_duration_minutes=data.session_duration_minutes,
                 note=self._clean_note(data.note),
                 is_active=True,
             )
@@ -336,6 +341,7 @@ class CoachingService:
             new_value={
                 "starts_at": starts_at.isoformat(),
                 "ends_at": ends_at.isoformat(),
+                "session_duration_minutes": data.session_duration_minutes,
             },
             reason="Ajout d'une disponibilite coaching",
         )
@@ -356,7 +362,11 @@ class CoachingService:
             )
         starts_at = data.starts_at.astimezone(UTC)
         ends_at = data.ends_at.astimezone(UTC)
-        schedule_changed = starts_at != availability.starts_at or ends_at != availability.ends_at
+        schedule_changed = (
+            starts_at != availability.starts_at
+            or ends_at != availability.ends_at
+            or data.session_duration_minutes != availability.session_duration_minutes
+        )
         open_booking_count = self.coaching.availability_booking_count(
             availability.id,
             statuses={
@@ -381,9 +391,11 @@ class CoachingService:
             "starts_at": availability.starts_at.isoformat(),
             "ends_at": availability.ends_at.isoformat(),
             "is_active": availability.is_active,
+            "session_duration_minutes": availability.session_duration_minutes,
         }
         availability.starts_at = starts_at
         availability.ends_at = ends_at
+        availability.session_duration_minutes = data.session_duration_minutes
         availability.note = self._clean_note(data.note)
         availability.is_active = data.is_active
         self.coaching.save_availability(availability)
@@ -397,6 +409,7 @@ class CoachingService:
                 "starts_at": starts_at.isoformat(),
                 "ends_at": ends_at.isoformat(),
                 "is_active": availability.is_active,
+                "session_duration_minutes": availability.session_duration_minutes,
             },
             reason="Mise a jour d'une disponibilite coaching",
         )
@@ -457,17 +470,12 @@ class CoachingService:
                 "availability_not_found",
                 "Ce creneau n'est plus disponible.",
             )
-        if availability.starts_at <= datetime.now(UTC):
-            raise api_error(
-                status.HTTP_409_CONFLICT,
-                "availability_already_started",
-                "Ce creneau a deja commence.",
-            )
+        starts_at, ends_at = self._booking_period(availability, data.starts_at)
         self.coaching.lock_coach_schedule(assignment.coach_id)
         member_conflicts = self.coaching.overlapping_bookings(
             member_id=actor.id,
-            starts_at=availability.starts_at,
-            ends_at=availability.ends_at,
+            starts_at=starts_at,
+            ends_at=ends_at,
             statuses={
                 CoachingBookingStatus.REQUESTED,
                 CoachingBookingStatus.CONFIRMED,
@@ -479,13 +487,28 @@ class CoachingService:
                 "member_booking_overlap",
                 "Vous avez deja une reservation coaching pendant ce creneau.",
             )
+        coach_conflicts = self.coaching.overlapping_bookings(
+            coach_id=assignment.coach_id,
+            starts_at=starts_at,
+            ends_at=ends_at,
+            statuses={
+                CoachingBookingStatus.REQUESTED,
+                CoachingBookingStatus.CONFIRMED,
+            },
+        )
+        if coach_conflicts:
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "coaching_slot_unavailable",
+                "Cette heure vient d'etre reservee. Choisissez une autre heure.",
+            )
         booking = CoachingBooking(
             availability_id=availability.id,
             assignment_id=assignment.id,
             coach_id=assignment.coach_id,
             member_id=actor.id,
-            starts_at=availability.starts_at,
-            ends_at=availability.ends_at,
+            starts_at=starts_at,
+            ends_at=ends_at,
             status=CoachingBookingStatus.REQUESTED,
             member_note=self._clean_note(data.member_note),
             decision_note=None,
@@ -628,18 +651,18 @@ class CoachingService:
             not availability
             or not availability.is_active
             or availability.coach_id != booking.coach_id
-            or availability.starts_at <= datetime.now(UTC)
         ):
             raise api_error(
                 status.HTTP_404_NOT_FOUND,
                 "availability_not_found",
                 "Le nouveau creneau n'est plus disponible.",
             )
+        starts_at, ends_at = self._booking_period(availability, data.starts_at)
         self.coaching.lock_coach_schedule(booking.coach_id)
         member_conflicts = self.coaching.overlapping_bookings(
             member_id=booking.member_id,
-            starts_at=availability.starts_at,
-            ends_at=availability.ends_at,
+            starts_at=starts_at,
+            ends_at=ends_at,
             statuses={
                 CoachingBookingStatus.REQUESTED,
                 CoachingBookingStatus.CONFIRMED,
@@ -652,16 +675,24 @@ class CoachingService:
                 "member_booking_overlap",
                 "Le membre a deja une reservation pendant ce creneau.",
             )
-        coach_conflicts: list[CoachingBooking] = []
-        if booking.status == CoachingBookingStatus.CONFIRMED:
-            coach_conflicts = self.coaching.overlapping_bookings(
-                coach_id=booking.coach_id,
-                starts_at=availability.starts_at,
-                ends_at=availability.ends_at,
-                statuses={CoachingBookingStatus.CONFIRMED},
-                exclude_booking_id=booking.id,
-            )
-            if coach_conflicts and not data.confirm_overlap:
+        coach_conflicts = self.coaching.overlapping_bookings(
+            coach_id=booking.coach_id,
+            starts_at=starts_at,
+            ends_at=ends_at,
+            statuses={
+                CoachingBookingStatus.REQUESTED,
+                CoachingBookingStatus.CONFIRMED,
+            },
+            exclude_booking_id=booking.id,
+        )
+        if coach_conflicts:
+            if booking.status == CoachingBookingStatus.REQUESTED:
+                raise api_error(
+                    status.HTTP_409_CONFLICT,
+                    "coaching_slot_unavailable",
+                    "Cette heure est deja reservee.",
+                )
+            if not data.confirm_overlap:
                 self._raise_booking_overlap(coach_conflicts)
         previous_value = {
             "availability_id": str(booking.availability_id),
@@ -669,8 +700,8 @@ class CoachingService:
             "ends_at": booking.ends_at.isoformat(),
         }
         booking.availability_id = availability.id
-        booking.starts_at = availability.starts_at
-        booking.ends_at = availability.ends_at
+        booking.starts_at = starts_at
+        booking.ends_at = ends_at
         booking.decision_note = self._clean_note(data.decision_note)
         booking.decided_by_id = actor.id
         booking.decided_at = datetime.now(UTC)
@@ -701,6 +732,91 @@ class CoachingService:
             reason=booking.decision_note or "Deplacement de la reservation coaching",
         )
         return self._booking_read(booking, coach=coach, member=member, decided_by=actor)
+
+    def list_conversations(self, actor: User) -> list[CoachingConversationRead]:
+        coach_id = actor.id if actor.role == UserRole.COACH else None
+        member_id = actor.id if actor.role == UserRole.MEMBER else None
+        assignments = self.coaching.list_assignments(
+            active_only=True,
+            coach_id=coach_id,
+            member_id=member_id,
+        )
+        return [self._conversation_read(item) for item in assignments]
+
+    def list_messages(
+        self,
+        assignment_id: uuid.UUID,
+        actor: User,
+        *,
+        limit: int = 300,
+    ) -> list[CoachingMessageRead]:
+        assignment = self._message_assignment(assignment_id, actor, writing=False)
+        return [
+            self._message_read(message)
+            for message in self.coaching.list_messages(assignment.id, limit=limit)
+        ]
+
+    async def create_message(
+        self,
+        assignment_id: uuid.UUID,
+        actor: User,
+        *,
+        body: str | None,
+        media: UploadFile | None,
+    ) -> CoachingMessageRead:
+        assignment = self._message_assignment(assignment_id, actor, writing=True)
+        normalized_body = self._clean_note(body)
+        if normalized_body and len(normalized_body) > 4000:
+            raise api_error(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "coaching_message_too_long",
+                "Le message ne doit pas depasser 4000 caracteres.",
+            )
+        media_url = None
+        media_type = None
+        media_path = None
+        if media:
+            media_url, media_type, media_path = await CoachingMediaService().save(media)
+        if not normalized_body and not media_url:
+            raise api_error(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "coaching_message_empty",
+                "Ecrivez un message ou ajoutez une photo ou un audio.",
+            )
+        try:
+            message = self.coaching.add_message(
+                CoachingMessage(
+                    assignment_id=assignment.id,
+                    sender_id=actor.id,
+                    body=normalized_body,
+                    media_url=media_url,
+                    media_type=media_type,
+                )
+            )
+            self.audit.record(
+                actor=actor,
+                action="coaching.message_sent",
+                entity_type="coaching_assignment",
+                entity_id=assignment.id,
+                new_value={"media_type": media_type, "has_text": bool(normalized_body)},
+                reason="Message prive coaching",
+            )
+            recipient_id = (
+                assignment.member_id if actor.id == assignment.coach_id else assignment.coach_id
+            )
+            recipient = self.users.get(recipient_id)
+            if not recipient:
+                raise RuntimeError("Destinataire du message coaching introuvable.")
+            self.notifications.coaching_message_received(
+                recipient,
+                message_id=message.id,
+                sender=actor,
+            )
+        except Exception:
+            if media_path:
+                media_path.unlink(missing_ok=True)
+            raise
+        return self._message_read(message, sender=actor)
 
     def list_coaches(self) -> list[CoachSummary]:
         return [
@@ -1064,6 +1180,7 @@ class CoachingService:
             coach_name=coach.full_name,
             starts_at=availability.starts_at,
             ends_at=availability.ends_at,
+            session_duration_minutes=availability.session_duration_minutes,
             note=availability.note,
             is_active=availability.is_active,
             requested_booking_count=self.coaching.availability_booking_count(
@@ -1076,6 +1193,119 @@ class CoachingService:
             ),
             created_at=availability.created_at,
             updated_at=availability.updated_at,
+            reserved_periods=[
+                {
+                    "starts_at": booking.starts_at,
+                    "ends_at": booking.ends_at,
+                }
+                for booking in self.coaching.availability_bookings(
+                    availability.id,
+                    statuses={
+                        CoachingBookingStatus.REQUESTED,
+                        CoachingBookingStatus.CONFIRMED,
+                    },
+                )
+            ],
+        )
+
+    def _booking_period(
+        self,
+        availability: CoachAvailability,
+        requested_start: datetime,
+    ) -> tuple[datetime, datetime]:
+        starts_at = requested_start.astimezone(UTC)
+        duration = timedelta(minutes=availability.session_duration_minutes)
+        ends_at = starts_at + duration
+        offset = starts_at - availability.starts_at
+        aligned = (
+            offset.total_seconds() >= 0 and offset.total_seconds() % duration.total_seconds() == 0
+        )
+        if not aligned or starts_at < availability.starts_at or ends_at > availability.ends_at:
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "coaching_slot_outside_availability",
+                "Choisissez une heure proposee dans la plage du coach.",
+            )
+        if starts_at <= datetime.now(UTC):
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "availability_already_started",
+                "Cette heure a deja commence.",
+            )
+        return starts_at, ends_at
+
+    def _message_assignment(
+        self,
+        assignment_id: uuid.UUID,
+        actor: User,
+        *,
+        writing: bool,
+    ) -> CoachMemberAssignment:
+        assignment = self.coaching.get_assignment(assignment_id)
+        if not assignment:
+            raise api_error(
+                status.HTTP_404_NOT_FOUND,
+                "coaching_conversation_not_found",
+                "Conversation coaching introuvable.",
+            )
+        allowed = (
+            actor.role == UserRole.ADMIN
+            or (actor.role == UserRole.COACH and assignment.coach_id == actor.id)
+            or (actor.role == UserRole.MEMBER and assignment.member_id == actor.id)
+        )
+        if not allowed or (writing and actor.role == UserRole.ADMIN):
+            raise api_error(
+                status.HTTP_403_FORBIDDEN,
+                "coaching_conversation_forbidden",
+                "Vous n'avez pas acces a cette conversation.",
+            )
+        if writing and assignment.ended_at is not None:
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "coaching_conversation_closed",
+                "Cette conversation est fermee car le suivi coaching est termine.",
+            )
+        return assignment
+
+    def _message_read(
+        self,
+        message: CoachingMessage,
+        *,
+        sender: User | None = None,
+    ) -> CoachingMessageRead:
+        sender = sender or self.users.get(message.sender_id)
+        if not sender:
+            raise RuntimeError("Auteur du message coaching introuvable.")
+        return CoachingMessageRead(
+            id=message.id,
+            assignment_id=message.assignment_id,
+            sender_id=message.sender_id,
+            sender_name=sender.full_name,
+            sender_role=sender.role.value,
+            body=message.body,
+            media_url=message.media_url,
+            media_type=message.media_type,
+            created_at=message.created_at,
+        )
+
+    def _conversation_read(
+        self,
+        assignment: CoachMemberAssignment,
+    ) -> CoachingConversationRead:
+        coach = self.users.get(assignment.coach_id)
+        member = self.users.get(assignment.member_id)
+        if not coach or not member:
+            raise RuntimeError("Conversation coaching incoherente.")
+        last = self.coaching.last_message(assignment.id)
+        return CoachingConversationRead(
+            assignment_id=assignment.id,
+            coach_id=coach.id,
+            coach_name=coach.full_name,
+            member_id=member.id,
+            member_name=member.full_name,
+            member_number=member.member_number or "",
+            is_active=assignment.ended_at is None,
+            last_message=self._message_read(last) if last else None,
         )
 
     def _booking_read(

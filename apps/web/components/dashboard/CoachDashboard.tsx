@@ -6,6 +6,7 @@ import {
   Bell,
   CalendarDays,
   LayoutDashboard,
+  MessageCircleMore,
   Search,
   Target,
   UsersRound,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/navigation-badges";
 import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 import { CoachingScheduleManager } from "./CoachingScheduleManager";
+import { CoachingConversationPanel } from "./CoachingConversationPanel";
 import { MemberNotifications } from "./MemberNotifications";
 import {
   type CoachingAssignment,
@@ -28,7 +30,8 @@ import {
   formatDate,
 } from "./dashboard-shared";
 
-type CoachSection = "overview" | "notifications" | "schedule" | "clients";
+type CoachSection =
+  "overview" | "notifications" | "schedule" | "clients" | "messages";
 
 const coachSections: Array<{
   id: CoachSection;
@@ -60,12 +63,19 @@ const coachSections: Array<{
     description: "Objectifs, tests et progression",
     icon: UsersRound,
   },
+  {
+    id: "messages",
+    label: "Messages clients",
+    description: "Texte, photos et audios",
+    icon: MessageCircleMore,
+  },
 ];
 
 const coachBadgeKeys: Partial<Record<CoachSection, NavigationBadgeKey>> = {
   notifications: "notifications",
   schedule: "schedule",
   clients: "clients",
+  messages: "messages",
 };
 
 export function CoachDashboard({ session }: { session: AuthSession }) {
@@ -287,6 +297,15 @@ export function CoachDashboard({ session }: { session: AuthSession }) {
               subtitle="Ajoutez vos disponibilites, suivez les demandes de vos clients et confirmez chaque seance."
             >
               <CoachingScheduleManager session={session} mode="coach" />
+            </Panel>
+          ) : null}
+
+          {activeSection === "messages" ? (
+            <Panel
+              title="Messages avec mes clients"
+              subtitle="Echangez avec chaque client suivi sans melanger les conversations."
+            >
+              <CoachingConversationPanel session={session} />
             </Panel>
           ) : null}
 

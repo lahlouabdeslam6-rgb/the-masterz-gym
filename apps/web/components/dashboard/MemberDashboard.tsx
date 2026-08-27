@@ -33,6 +33,7 @@ import { MembershipPlansList } from "@/components/MembershipPlansList";
 import { ReceiptSummary } from "./ApplicationManager";
 import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 import { CoachingScheduleManager } from "./CoachingScheduleManager";
+import { CoachingConversationPanel } from "./CoachingConversationPanel";
 import { MemberCoachingAssignmentRequest } from "./CoachingAssignmentRequests";
 import { MemberRecoveryPanel } from "./RecoveryManager";
 import { MemberNotifications } from "./MemberNotifications";
@@ -362,9 +363,9 @@ function MemberCoachingWorkspace({
   memberId: string;
   hasActiveCoaching: boolean;
 }) {
-  const [activeView, setActiveView] = useState<"schedule" | "progress">(
-    "schedule",
-  );
+  const [activeView, setActiveView] = useState<
+    "schedule" | "progress" | "messages"
+  >("schedule");
 
   return (
     <MemberCoachingAssignmentRequest
@@ -387,6 +388,11 @@ function MemberCoachingWorkspace({
             label: "Ma progression",
             icon: TrendingUp,
           },
+          {
+            id: "messages",
+            label: "Messages avec mon coach",
+            icon: MessageSquareText,
+          },
         ]}
       />
 
@@ -405,6 +411,15 @@ function MemberCoachingWorkspace({
           subtitle="Votre objectif, vos tests et leur historique, sans modifier les donnees saisies par votre coach."
         >
           <CoachingTrackingPanel session={session} memberId={memberId} />
+        </Panel>
+      ) : null}
+
+      {activeView === "messages" ? (
+        <Panel
+          title="Conversation avec mon coach"
+          subtitle="Envoyez un message, une photo ou un audio a votre coach dans un espace separe."
+        >
+          <CoachingConversationPanel session={session} />
         </Panel>
       ) : null}
     </MemberCoachingAssignmentRequest>

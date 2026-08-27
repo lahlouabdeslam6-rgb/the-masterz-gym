@@ -108,9 +108,9 @@ def test_coaching_booking_conflict_can_be_explicitly_overridden(
         microsecond=0,
     )
     periods = [
-        (base_start, base_start + timedelta(hours=1)),
-        (base_start + timedelta(minutes=30), base_start + timedelta(hours=1, minutes=30)),
-        (base_start + timedelta(hours=2), base_start + timedelta(hours=3)),
+        (base_start, base_start + timedelta(hours=3)),
+        (base_start + timedelta(hours=4), base_start + timedelta(hours=6)),
+        (base_start + timedelta(hours=7), base_start + timedelta(hours=10)),
     ]
     availabilities = []
     for index, (starts_at, ends_at) in enumerate(periods, start=1):
@@ -120,6 +120,7 @@ def test_coaching_booking_conflict_can_be_explicitly_overridden(
             json={
                 "starts_at": starts_at.isoformat(),
                 "ends_at": ends_at.isoformat(),
+                "session_duration_minutes": 60,
                 "note": f"Creneau {index}",
             },
         )
@@ -134,18 +135,41 @@ def test_coaching_booking_conflict_can_be_explicitly_overridden(
     assert {item["id"] for item in member_slots.json()} >= {item["id"] for item in availabilities}
 
     bookings = []
-    for index, availability_index in enumerate((0, 1)):
+    requested_starts = (base_start, base_start + timedelta(hours=1))
+    for index, requested_start in enumerate(requested_starts):
         requested = client.post(
             "/api/v1/coaching/bookings",
             headers=member_headers[index],
             json={
-                "availability_id": availabilities[availability_index]["id"],
+                "availability_id": availabilities[0]["id"],
+                "starts_at": requested_start.isoformat(),
                 "member_note": f"Reservation membre {index + 1}",
             },
         )
         assert requested.status_code == 201, requested.text
         assert requested.json()["status"] == "requested"
         bookings.append(requested.json())
+
+    refreshed_slots = client.get(
+        "/api/v1/coaching/availability",
+        headers=member_headers[0],
+    )
+    assert refreshed_slots.status_code == 200, refreshed_slots.text
+    first_availability = next(
+        item for item in refreshed_slots.json() if item["id"] == availabilities[0]["id"]
+    )
+    assert len(first_availability["reserved_periods"]) == 2
+
+    occupied_slot = client.post(
+        "/api/v1/coaching/bookings",
+        headers=member_headers[1],
+        json={
+            "availability_id": availabilities[0]["id"],
+            "starts_at": base_start.isoformat(),
+        },
+    )
+    assert occupied_slot.status_code == 409, occupied_slot.text
+    assert occupied_slot.json()["detail"]["code"] == "coaching_slot_unavailable"
 
     first_confirmed = client.patch(
         f"/api/v1/coaching/bookings/{bookings[0]['id']}/status",
@@ -154,10 +178,21 @@ def test_coaching_booking_conflict_can_be_explicitly_overridden(
     )
     assert first_confirmed.status_code == 200, first_confirmed.text
 
-    conflict = client.patch(
+    second_confirmed = client.patch(
         f"/api/v1/coaching/bookings/{bookings[1]['id']}/status",
         headers=reception_headers,
         json={"status": "confirmed", "decision_note": "Validation reception"},
+    )
+    assert second_confirmed.status_code == 200, second_confirmed.text
+
+    conflict = client.patch(
+        f"/api/v1/coaching/bookings/{bookings[1]['id']}/schedule",
+        headers=reception_headers,
+        json={
+            "availability_id": availabilities[0]["id"],
+            "starts_at": base_start.isoformat(),
+            "decision_note": "Essai de double horaire",
+        },
     )
     assert conflict.status_code == 409, conflict.text
     assert conflict.json()["detail"]["code"] == "coaching_booking_overlap"
@@ -166,10 +201,11 @@ def test_coaching_booking_conflict_can_be_explicitly_overridden(
     )
 
     override = client.patch(
-        f"/api/v1/coaching/bookings/{bookings[1]['id']}/status",
+        f"/api/v1/coaching/bookings/{bookings[1]['id']}/schedule",
         headers=reception_headers,
         json={
-            "status": "confirmed",
+            "availability_id": availabilities[0]["id"],
+            "starts_at": base_start.isoformat(),
             "decision_note": "Deux seances maintenues avec accord",
             "confirm_overlap": True,
         },
@@ -184,6 +220,7 @@ def test_coaching_booking_conflict_can_be_explicitly_overridden(
         headers=admin_headers,
         json={
             "availability_id": availabilities[2]["id"],
+            "starts_at": availabilities[2]["starts_at"],
             "decision_note": "Creneau separe par lAdmin",
         },
     )
@@ -197,6 +234,7 @@ def test_coaching_booking_conflict_can_be_explicitly_overridden(
         json={
             "starts_at": availabilities[0]["starts_at"],
             "ends_at": availabilities[0]["ends_at"],
+            "session_duration_minutes": 60,
             "note": "Fermeture impossible",
             "is_active": False,
         },

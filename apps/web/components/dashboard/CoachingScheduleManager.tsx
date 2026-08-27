@@ -46,7 +46,12 @@ const statusClasses: Record<BookingStatus, string> = {
 
 type ConflictAction =
   | { kind: "status"; booking: Booking; status: BookingStatus }
-  | { kind: "schedule"; booking: Booking; availabilityId: string };
+  | {
+      kind: "schedule";
+      booking: Booking;
+      availabilityId: string;
+      startsAt: string;
+    };
 
 export function CoachingScheduleManager({
   session,
@@ -71,8 +76,10 @@ export function CoachingScheduleManager({
   const [conflict, setConflict] = useState<ConflictAction | null>(null);
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
+  const [sessionDuration, setSessionDuration] = useState("");
   const [availabilityNote, setAvailabilityNote] = useState("");
   const [memberNotes, setMemberNotes] = useState<Record<string, string>>({});
+  const [memberStarts, setMemberStarts] = useState<Record<string, string>>({});
   const [scheduleChoices, setScheduleChoices] = useState<
     Record<string, string>
   >({});
@@ -119,7 +126,7 @@ export function CoachingScheduleManager({
     () =>
       availabilities.filter(
         (item) =>
-          item.is_active && new Date(item.starts_at).getTime() > referenceTime,
+          item.is_active && new Date(item.ends_at).getTime() > referenceTime,
       ),
     [availabilities, referenceTime],
   );
@@ -138,10 +145,11 @@ export function CoachingScheduleManager({
   }, [bookings, query, statusFilter]);
 
   async function createAvailability() {
-    if (!startsAt || !endsAt) {
+    const duration = Number(sessionDuration);
+    if (!startsAt || !endsAt || !Number.isInteger(duration)) {
       setFeedback({
         type: "error",
-        message: "Choisissez le debut et la fin du creneau.",
+        message: "Choisissez la plage et la duree de chaque seance.",
       });
       return;
     }
@@ -151,6 +159,7 @@ export function CoachingScheduleManager({
       body: {
         starts_at: new Date(startsAt).toISOString(),
         ends_at: new Date(endsAt).toISOString(),
+        session_duration_minutes: duration,
         note: availabilityNote.trim() || null,
       },
     });
@@ -167,6 +176,7 @@ export function CoachingScheduleManager({
     }
     setStartsAt("");
     setEndsAt("");
+    setSessionDuration("");
     setAvailabilityNote("");
     setFeedback({
       type: "success",
@@ -186,6 +196,7 @@ export function CoachingScheduleManager({
         body: {
           starts_at: availability.starts_at,
           ends_at: availability.ends_at,
+          session_duration_minutes: availability.session_duration_minutes,
           note: availability.note,
           is_active: false,
         },
@@ -206,12 +217,13 @@ export function CoachingScheduleManager({
     await load();
   }
 
-  async function reserve(availability: Availability) {
+  async function reserve(availability: Availability, startsAt: string) {
     setBusy(availability.id);
     const result = await api.POST("/api/v1/coaching/bookings", {
       headers,
       body: {
         availability_id: availability.id,
+        starts_at: startsAt,
         member_note: memberNotes[availability.id]?.trim() || null,
       },
     });
@@ -227,6 +239,7 @@ export function CoachingScheduleManager({
       return;
     }
     setMemberNotes((current) => ({ ...current, [availability.id]: "" }));
+    setMemberStarts((current) => ({ ...current, [availability.id]: "" }));
     setFeedback({
       type: "success",
       message: "Reservation envoyee. Votre coach doit maintenant la confirmer.",
@@ -282,10 +295,12 @@ export function CoachingScheduleManager({
 
   async function reschedule(
     booking: Booking,
-    availabilityId: string,
+    choice: string,
     confirmOverlap = false,
   ) {
-    if (!availabilityId) return;
+    if (!choice) return;
+    const [availabilityId, startsAt] = choice.split("::");
+    if (!availabilityId || !startsAt) return;
     setBusy(`schedule-${booking.id}`);
     const result = await api.PATCH(
       "/api/v1/coaching/bookings/{booking_id}/schedule",
@@ -294,6 +309,7 @@ export function CoachingScheduleManager({
         params: { path: { booking_id: booking.id } },
         body: {
           availability_id: availabilityId,
+          starts_at: startsAt,
           decision_note: "Horaire modifie depuis le planning",
           confirm_overlap: confirmOverlap,
         },
@@ -302,7 +318,7 @@ export function CoachingScheduleManager({
     setBusy(null);
     if (!result.data) {
       if (errorCode(result.error) === "coaching_booking_overlap") {
-        setConflict({ kind: "schedule", booking, availabilityId });
+        setConflict({ kind: "schedule", booking, availabilityId, startsAt });
         return;
       }
       setFeedback({
@@ -326,7 +342,11 @@ export function CoachingScheduleManager({
     if (conflict.kind === "status") {
       await updateStatus(conflict.booking, conflict.status, true);
     } else {
-      await reschedule(conflict.booking, conflict.availabilityId, true);
+      await reschedule(
+        conflict.booking,
+        `${conflict.availabilityId}::${conflict.startsAt}`,
+        true,
+      );
     }
   }
 
@@ -367,10 +387,12 @@ export function CoachingScheduleManager({
         <CoachAvailabilityEditor
           startsAt={startsAt}
           endsAt={endsAt}
+          sessionDuration={sessionDuration}
           note={availabilityNote}
           busy={busy === "availability-create"}
           onStartsAt={setStartsAt}
           onEndsAt={setEndsAt}
+          onSessionDuration={setSessionDuration}
           onNote={setAvailabilityNote}
           onCreate={() => void createAvailability()}
         />
@@ -379,13 +401,18 @@ export function CoachingScheduleManager({
       {mode === "member" ? (
         <MemberAvailabilityList
           availabilities={futureAvailabilities}
-          bookings={bookings}
           notes={memberNotes}
+          selectedStarts={memberStarts}
           busy={busy}
           onNote={(id, value) =>
             setMemberNotes((current) => ({ ...current, [id]: value }))
           }
-          onReserve={(availability) => void reserve(availability)}
+          onStart={(id, value) =>
+            setMemberStarts((current) => ({ ...current, [id]: value }))
+          }
+          onReserve={(availability, slotStart) =>
+            void reserve(availability, slotStart)
+          }
         />
       ) : (
         <AvailabilityOverview
@@ -438,9 +465,7 @@ export function CoachingScheduleManager({
                 booking={booking}
                 mode={mode}
                 availabilityChoices={futureAvailabilities.filter(
-                  (item) =>
-                    item.coach_id === booking.coach_id &&
-                    item.id !== booking.availability_id,
+                  (item) => item.coach_id === booking.coach_id,
                 )}
                 scheduleChoice={scheduleChoices[booking.id] ?? ""}
                 busy={busy}
@@ -468,19 +493,23 @@ export function CoachingScheduleManager({
 function CoachAvailabilityEditor({
   startsAt,
   endsAt,
+  sessionDuration,
   note,
   busy,
   onStartsAt,
   onEndsAt,
+  onSessionDuration,
   onNote,
   onCreate,
 }: {
   startsAt: string;
   endsAt: string;
+  sessionDuration: string;
   note: string;
   busy: boolean;
   onStartsAt: (value: string) => void;
   onEndsAt: (value: string) => void;
+  onSessionDuration: (value: string) => void;
   onNote: (value: string) => void;
   onCreate: () => void;
 }) {
@@ -499,7 +528,7 @@ function CoachAvailabilityEditor({
           </p>
         </div>
       </div>
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <Field label="Debut du creneau">
           <Input
             type="datetime-local"
@@ -514,6 +543,18 @@ function CoachAvailabilityEditor({
             aria-label="Fin du creneau coaching"
             value={endsAt}
             onChange={(event) => onEndsAt(event.target.value)}
+          />
+        </Field>
+        <Field label="Duree d'une seance en minutes">
+          <Input
+            type="number"
+            min={15}
+            max={240}
+            step={15}
+            aria-label="Duree d'une seance coaching"
+            value={sessionDuration}
+            onChange={(event) => onSessionDuration(event.target.value)}
+            placeholder="Ex. 60"
           />
         </Field>
       </div>
@@ -578,6 +619,10 @@ function AvailabilityOverview({
                 </p>
               ) : null}
               <div className="mt-4 flex flex-wrap gap-2 text-xs text-gray-500">
+                <span>
+                  {availability.session_duration_minutes} min / seance
+                </span>
+                <span>·</span>
                 <span>{availability.requested_booking_count} en attente</span>
                 <span>·</span>
                 <span>{availability.confirmed_booking_count} confirmee(s)</span>
@@ -607,24 +652,21 @@ function AvailabilityOverview({
 
 function MemberAvailabilityList({
   availabilities,
-  bookings,
   notes,
+  selectedStarts,
   busy,
   onNote,
+  onStart,
   onReserve,
 }: {
   availabilities: Availability[];
-  bookings: Booking[];
   notes: Record<string, string>;
+  selectedStarts: Record<string, string>;
   busy: string | null;
   onNote: (id: string, value: string) => void;
-  onReserve: (availability: Availability) => void;
+  onStart: (id: string, value: string) => void;
+  onReserve: (availability: Availability, startsAt: string) => void;
 }) {
-  const reservedIds = new Set(
-    bookings
-      .filter((booking) => ["requested", "confirmed"].includes(booking.status))
-      .map((booking) => booking.availability_id),
-  );
   return (
     <section>
       <div className="flex items-center gap-3">
@@ -642,7 +684,9 @@ function MemberAvailabilityList({
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         {availabilities.length ? (
           availabilities.map((availability) => {
-            const reserved = reservedIds.has(availability.id);
+            const slots = availabilitySlots(availability);
+            const freeSlots = slots.filter((slot) => !slot.occupied);
+            const selectedStart = selectedStarts[availability.id] ?? "";
             return (
               <Card key={availability.id} className="p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -657,30 +701,64 @@ function MemberAvailabilityList({
                       Coach {availability.coach_name}
                     </p>
                   </div>
-                  <Pill>{reserved ? "Reserve" : "Disponible"}</Pill>
+                  <Pill>
+                    {freeSlots.length
+                      ? `${freeSlots.length} horaire(s) libre(s)`
+                      : "Complet"}
+                  </Pill>
                 </div>
+                <p className="mt-3 text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
+                  Seance de {availability.session_duration_minutes} minutes
+                </p>
                 {availability.note ? (
                   <p className="mt-3 text-sm text-gray-400">
                     {availability.note}
                   </p>
                 ) : null}
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {slots.map((slot) => {
+                    const selected = slot.startsAt === selectedStart;
+                    return (
+                      <button
+                        key={slot.startsAt}
+                        type="button"
+                        disabled={slot.occupied}
+                        aria-pressed={selected}
+                        onClick={() => onStart(availability.id, slot.startsAt)}
+                        className={`min-h-12 rounded-sm border px-3 py-2 text-sm font-black transition ${
+                          slot.occupied
+                            ? "cursor-not-allowed border-white/5 bg-white/[0.02] text-gray-700 line-through"
+                            : selected
+                              ? "border-primary bg-primary text-black"
+                              : "border-white/15 bg-black/20 text-white hover:border-primary hover:text-primary"
+                        }`}
+                      >
+                        {formatTime(slot.startsAt)}
+                      </button>
+                    );
+                  })}
+                </div>
                 <textarea
                   aria-label={`Note reservation ${availability.id}`}
                   className={`${textareaClass} mt-4 min-h-20`}
                   placeholder="Message optionnel pour votre coach"
                   value={notes[availability.id] ?? ""}
-                  disabled={reserved}
+                  disabled={!freeSlots.length}
                   onChange={(event) =>
                     onNote(availability.id, event.target.value)
                   }
                 />
                 <Button
                   className="mt-3 w-full"
-                  disabled={reserved || busy === availability.id}
-                  onClick={() => onReserve(availability)}
+                  disabled={!selectedStart || busy === availability.id}
+                  onClick={() => onReserve(availability, selectedStart)}
                 >
                   <CalendarCheck className="h-4 w-4" />
-                  {reserved ? "Deja reserve" : "Reserver ce creneau"}
+                  {freeSlots.length
+                    ? selectedStart
+                      ? `Reserver a ${formatTime(selectedStart)}`
+                      : "Choisir une heure"
+                    : "Aucun horaire libre"}
                 </Button>
               </Card>
             );
@@ -789,7 +867,9 @@ function BookingCard({
         </div>
       </div>
 
-      {canDecide && open && availabilityChoices.length ? (
+      {canDecide &&
+      open &&
+      availableScheduleChoices(availabilityChoices).length ? (
         <div className="mt-5 grid gap-3 border-t border-white/10 pt-5 md:grid-cols-[1fr_auto]">
           <select
             aria-label={`Nouvel horaire ${booking.member_name}`}
@@ -798,9 +878,9 @@ function BookingCard({
             onChange={(event) => onScheduleChoice(event.target.value)}
           >
             <option value="">Choisir un autre creneau</option>
-            {availabilityChoices.map((availability) => (
-              <option key={availability.id} value={availability.id}>
-                {formatSchedule(availability.starts_at, availability.ends_at)}
+            {availableScheduleChoices(availabilityChoices).map((choice) => (
+              <option key={choice.value} value={choice.value}>
+                {choice.label}
               </option>
             ))}
           </select>
@@ -824,6 +904,56 @@ function formatSchedule(startsAt: string, endsAt: string) {
     minute: "2-digit",
   }).format(new Date(endsAt));
   return `${date} - ${end}`;
+}
+
+type AvailabilitySlot = {
+  startsAt: string;
+  endsAt: string;
+  occupied: boolean;
+};
+
+function availabilitySlots(availability: Availability): AvailabilitySlot[] {
+  const slots: AvailabilitySlot[] = [];
+  const rangeEnd = new Date(availability.ends_at).getTime();
+  const duration = availability.session_duration_minutes * 60_000;
+  let cursor = new Date(availability.starts_at).getTime();
+
+  while (cursor + duration <= rangeEnd) {
+    const slotEnd = cursor + duration;
+    const occupied =
+      cursor <= Date.now() ||
+      availability.reserved_periods.some((period) => {
+        const reservedStart = new Date(period.starts_at).getTime();
+        const reservedEnd = new Date(period.ends_at).getTime();
+        return cursor < reservedEnd && slotEnd > reservedStart;
+      });
+    slots.push({
+      startsAt: new Date(cursor).toISOString(),
+      endsAt: new Date(slotEnd).toISOString(),
+      occupied,
+    });
+    cursor = slotEnd;
+  }
+
+  return slots;
+}
+
+function availableScheduleChoices(availabilities: Availability[]) {
+  return availabilities.flatMap((availability) =>
+    availabilitySlots(availability)
+      .filter((slot) => !slot.occupied)
+      .map((slot) => ({
+        value: `${availability.id}::${slot.startsAt}`,
+        label: `${formatSchedule(slot.startsAt, slot.endsAt)} - ${availability.coach_name}`,
+      })),
+  );
+}
+
+function formatTime(value: string) {
+  return new Intl.DateTimeFormat("fr-MA", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function errorCode(error: unknown) {

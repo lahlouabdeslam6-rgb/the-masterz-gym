@@ -1,5 +1,6 @@
 FROM node:20-alpine
 WORKDIR /workspace
+RUN apk add --no-cache chromium
 COPY package.json package-lock.json* ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/api-client/package.json packages/api-client/package.json
@@ -10,4 +11,3 @@ COPY packages packages
 WORKDIR /workspace/apps/web
 EXPOSE 3000
 CMD ["npm", "run", "dev"]
-

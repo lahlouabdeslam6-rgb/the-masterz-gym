@@ -827,6 +827,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/coaching/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Conversations */
+        get: operations["list_conversations_api_v1_coaching_conversations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coaching/conversations/{assignment_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Conversation Messages */
+        get: operations["list_conversation_messages_api_v1_coaching_conversations__assignment_id__messages_get"];
+        put?: never;
+        /** Create Conversation Message */
+        post: operations["create_conversation_message_api_v1_coaching_conversations__assignment_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/coaching/assignments/{assignment_id}/end": {
         parameters: {
             query?: never;
@@ -1426,6 +1461,13 @@ export interface components {
             /** Photo */
             photo: string;
         };
+        /** Body_create_conversation_message_api_v1_coaching_conversations__assignment_id__messages_post */
+        Body_create_conversation_message_api_v1_coaching_conversations__assignment_id__messages_post: {
+            /** Body */
+            body?: string | null;
+            /** Media */
+            media?: string | null;
+        };
         /** Body_upload_member_photo_api_v1_users__user_id__profile_photo_post */
         Body_upload_member_photo_api_v1_users__user_id__profile_photo_post: {
             /** Photo */
@@ -1448,6 +1490,8 @@ export interface components {
              * Format: date-time
              */
             ends_at: string;
+            /** Session Duration Minutes */
+            session_duration_minutes: number;
             /** Note */
             note?: string | null;
         };
@@ -1475,6 +1519,8 @@ export interface components {
              * Format: date-time
              */
             ends_at: string;
+            /** Session Duration Minutes */
+            session_duration_minutes: number;
             /** Note */
             note: string | null;
             /** Is Active */
@@ -1493,6 +1539,8 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /** Reserved Periods */
+            reserved_periods: components["schemas"]["CoachingReservedPeriod"][];
         };
         /** CoachAvailabilityUpdate */
         CoachAvailabilityUpdate: {
@@ -1506,6 +1554,8 @@ export interface components {
              * Format: date-time
              */
             ends_at: string;
+            /** Session Duration Minutes */
+            session_duration_minutes: number;
             /** Note */
             note?: string | null;
             /** Is Active */
@@ -1739,6 +1789,11 @@ export interface components {
              * Format: uuid
              */
             availability_id: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
             /** Member Note */
             member_note?: string | null;
         };
@@ -1818,6 +1873,11 @@ export interface components {
              * Format: uuid
              */
             availability_id: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
             /** Decision Note */
             decision_note?: string | null;
             /**
@@ -1842,6 +1902,66 @@ export interface components {
              */
             confirm_overlap: boolean;
         };
+        /** CoachingConversationRead */
+        CoachingConversationRead: {
+            /**
+             * Assignment Id
+             * Format: uuid
+             */
+            assignment_id: string;
+            /**
+             * Coach Id
+             * Format: uuid
+             */
+            coach_id: string;
+            /** Coach Name */
+            coach_name: string;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Member Name */
+            member_name: string;
+            /** Member Number */
+            member_number: string;
+            /** Is Active */
+            is_active: boolean;
+            last_message: components["schemas"]["CoachingMessageRead"] | null;
+        };
+        /** CoachingMessageRead */
+        CoachingMessageRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Assignment Id
+             * Format: uuid
+             */
+            assignment_id: string;
+            /**
+             * Sender Id
+             * Format: uuid
+             */
+            sender_id: string;
+            /** Sender Name */
+            sender_name: string;
+            /** Sender Role */
+            sender_role: string;
+            /** Body */
+            body: string | null;
+            /** Media Url */
+            media_url: string | null;
+            /** Media Type */
+            media_type: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /** CoachingObjectiveRead */
         CoachingObjectiveRead: {
             /** Objective */
@@ -1863,6 +1983,19 @@ export interface components {
         CoachingObjectiveUpdate: {
             /** Objective */
             objective: string;
+        };
+        /** CoachingReservedPeriod */
+        CoachingReservedPeriod: {
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
         };
         /**
          * CoachingTestType
@@ -4854,6 +4987,94 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CoachingAssessmentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_conversations_api_v1_coaching_conversations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingConversationRead"][];
+                };
+            };
+        };
+    };
+    list_conversation_messages_api_v1_coaching_conversations__assignment_id__messages_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingMessageRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_conversation_message_api_v1_coaching_conversations__assignment_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_create_conversation_message_api_v1_coaching_conversations__assignment_id__messages_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingMessageRead"];
                 };
             };
             /** @description Validation Error */

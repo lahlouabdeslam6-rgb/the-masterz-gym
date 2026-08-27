@@ -154,6 +154,7 @@ def _validate_aware_datetime(value: datetime, field_name: str) -> datetime:
 class CoachAvailabilityCreate(BaseModel):
     starts_at: datetime
     ends_at: datetime
+    session_duration_minutes: int = Field(ge=15, le=240)
     note: str | None = Field(default=None, max_length=1000)
 
     @field_validator("starts_at", "ends_at")
@@ -172,23 +173,36 @@ class CoachAvailabilityUpdate(CoachAvailabilityCreate):
     is_active: bool
 
 
+class CoachingReservedPeriod(BaseModel):
+    starts_at: datetime
+    ends_at: datetime
+
+
 class CoachAvailabilityRead(BaseModel):
     id: uuid.UUID
     coach_id: uuid.UUID
     coach_name: str
     starts_at: datetime
     ends_at: datetime
+    session_duration_minutes: int
     note: str | None
     is_active: bool
     requested_booking_count: int
     confirmed_booking_count: int
     created_at: datetime
     updated_at: datetime
+    reserved_periods: list[CoachingReservedPeriod]
 
 
 class CoachingBookingCreate(BaseModel):
     availability_id: uuid.UUID
+    starts_at: datetime
     member_note: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("starts_at")
+    @classmethod
+    def starts_at_must_be_timezone_aware(cls, value: datetime) -> datetime:
+        return _validate_aware_datetime(value, "starts_at")
 
 
 class CoachingBookingStatusUpdate(BaseModel):
@@ -199,8 +213,14 @@ class CoachingBookingStatusUpdate(BaseModel):
 
 class CoachingBookingReschedule(BaseModel):
     availability_id: uuid.UUID
+    starts_at: datetime
     decision_note: str | None = Field(default=None, max_length=1000)
     confirm_overlap: bool = False
+
+    @field_validator("starts_at")
+    @classmethod
+    def starts_at_must_be_timezone_aware(cls, value: datetime) -> datetime:
+        return _validate_aware_datetime(value, "starts_at")
 
 
 class CoachingBookingRead(BaseModel):
@@ -224,3 +244,26 @@ class CoachingBookingRead(BaseModel):
     overlapping_confirmed_count: int
     created_at: datetime
     updated_at: datetime
+
+
+class CoachingMessageRead(BaseModel):
+    id: uuid.UUID
+    assignment_id: uuid.UUID
+    sender_id: uuid.UUID
+    sender_name: str
+    sender_role: str
+    body: str | None
+    media_url: str | None
+    media_type: str | None
+    created_at: datetime
+
+
+class CoachingConversationRead(BaseModel):
+    assignment_id: uuid.UUID
+    coach_id: uuid.UUID
+    coach_name: str
+    member_id: uuid.UUID
+    member_name: str
+    member_number: str
+    is_active: bool
+    last_message: CoachingMessageRead | None

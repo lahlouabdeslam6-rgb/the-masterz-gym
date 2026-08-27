@@ -48,11 +48,13 @@ const availability = {
   coach_id: coach.id,
   coach_name: coach.full_name,
   starts_at: "2026-08-30T09:00:00Z",
-  ends_at: "2026-08-30T10:00:00Z",
+  ends_at: "2026-08-30T12:00:00Z",
+  session_duration_minutes: 60,
   note: "Seance individuelle",
   is_active: true,
   requested_booking_count: 1,
   confirmed_booking_count: 0,
+  reserved_periods: [],
   created_at: "2026-08-24T08:00:00Z",
   updated_at: "2026-08-24T08:00:00Z",
 };
@@ -68,7 +70,7 @@ function booking(status: "requested" | "confirmed" = "requested") {
     member_name: member.full_name,
     member_number: member.member_number,
     starts_at: availability.starts_at,
-    ends_at: availability.ends_at,
+    ends_at: "2026-08-30T10:00:00Z",
     status,
     member_note: "Travail de force",
     decision_note: status === "confirmed" ? "Confirmee" : null,
@@ -129,8 +131,10 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
           id: "00000000-0000-0000-0000-000000000507",
           starts_at: payload.starts_at,
           ends_at: payload.ends_at,
+          session_duration_minutes: payload.session_duration_minutes,
           note: payload.note,
           requested_booking_count: 0,
+          reserved_periods: [],
         };
         availabilities.push(created);
         body = created;
@@ -178,6 +182,7 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
   ).toBeVisible();
   await page.getByLabel("Debut du creneau coaching").fill("2026-08-31T14:00");
   await page.getByLabel("Fin du creneau coaching").fill("2026-08-31T15:00");
+  await page.getByLabel("Duree d'une seance coaching").fill("60");
   await page.getByLabel("Note du creneau coaching").fill("Technique et force");
   await page.getByRole("button", { name: /Ajouter au planning/ }).click();
   await expect(
@@ -197,6 +202,7 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
 test("membre reserve un creneau propose par son coach", async ({ page }) => {
   const bookings: Array<ReturnType<typeof booking>> = [];
   let reservedAvailability = "";
+  let reservedStart = "";
 
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
@@ -231,6 +237,7 @@ test("membre reserve un creneau propose par son coach", async ({ page }) => {
       if (request.method() === "POST") {
         const payload = request.postDataJSON();
         reservedAvailability = payload.availability_id;
+        reservedStart = payload.starts_at;
         bookings.push(booking());
         body = bookings[0];
       } else {
@@ -278,11 +285,15 @@ test("membre reserve un creneau propose par son coach", async ({ page }) => {
   await page
     .getByLabel(`Note reservation ${availability.id}`)
     .fill("Bghit nkhdem 3la lforce");
-  await page.getByRole("button", { name: "Reserver ce creneau" }).click();
+  await page.locator('button[aria-pressed="false"]').first().click();
+  await page.getByRole("button", { name: /Reserver a/ }).click();
   await expect(
     page.getByText(
       "Reservation envoyee. Votre coach doit maintenant la confirmer.",
     ),
   ).toBeVisible();
   expect(reservedAvailability).toBe(availability.id);
+  expect(new Date(reservedStart).getTime()).toBe(
+    new Date(availability.starts_at).getTime(),
+  );
 });

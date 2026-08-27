@@ -271,3 +271,27 @@ class NotificationService:
                 deduplication_key=deduplication_key,
             )
         )
+
+    def coaching_message_received(
+        self,
+        recipient: User,
+        *,
+        message_id: uuid.UUID,
+        sender: User,
+    ) -> Notification:
+        deduplication_key = f"coaching_message_received:{message_id}:{recipient.id}"
+        existing = self.repository.by_deduplication_key(deduplication_key)
+        if existing:
+            return existing
+        return self.repository.add(
+            Notification(
+                user_id=recipient.id,
+                kind="coaching_message_received",
+                title="Nouveau message coaching",
+                body=(
+                    f"{sender.full_name} vous a envoye un message. "
+                    "Ouvrez votre espace Coaching pour consulter la conversation."
+                ),
+                deduplication_key=deduplication_key,
+            )
+        )

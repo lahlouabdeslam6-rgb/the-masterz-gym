@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     member_photo_min_brightness: float = 35.0
     member_photo_min_contrast: float = 12.0
     member_photo_min_face_area_ratio: float = 0.06
+    coaching_media_root: Path = Path(gettempdir()) / "masterz-gym" / "coaching"
+    coaching_media_max_bytes: int = 15 * 1024 * 1024
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

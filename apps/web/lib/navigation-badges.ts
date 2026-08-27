@@ -9,6 +9,7 @@ type Notification = components["schemas"]["NotificationRead"];
 
 export type NavigationBadgeKey =
   | "notifications"
+  | "messages"
   | "applications"
   | "coaching"
   | "schedule"
@@ -144,6 +145,9 @@ function notificationBadges(
       ),
       clients: count(
         (notification) => notification.kind === "coaching_member_assigned",
+      ),
+      messages: count(
+        (notification) => notification.kind === "coaching_message_received",
       ),
     };
   }
