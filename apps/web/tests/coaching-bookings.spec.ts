@@ -28,6 +28,15 @@ const member = {
   updated_at: "2026-08-24T08:00:00Z",
 };
 
+const secondMember = {
+  ...member,
+  id: "00000000-0000-0000-0000-000000000512",
+  full_name: "Deuxieme Membre",
+  phone: "+212600000512",
+  email: "second.member@masterz.test",
+  member_number: "TMG-PLANNING-02",
+};
+
 const assignment = {
   id: "00000000-0000-0000-0000-000000000503",
   coach_id: coach.id,
@@ -118,8 +127,18 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
   };
   const availabilities = [{ ...availability }, pastAvailability];
   let currentBooking = booking();
+  const alreadyConfirmedBooking = {
+    ...booking("confirmed"),
+    id: "00000000-0000-0000-0000-000000000511",
+    member_id: secondMember.id,
+    member_name: secondMember.full_name,
+    member_number: secondMember.member_number,
+    conflict_override: false,
+  };
   let confirmCalls = 0;
   let overrideSent = false;
+  let completedPayloadSent = false;
+  let rescheduleCalls = 0;
 
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
@@ -160,7 +179,7 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
       }
     }
     if (path === "/api/v1/coaching/bookings") {
-      body = [currentBooking, completedBooking];
+      body = [currentBooking, alreadyConfirmedBooking, completedBooking];
     }
     if (
       path === `/api/v1/coaching/bookings/${currentBooking.id}/status` &&
@@ -168,6 +187,7 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
     ) {
       confirmCalls += 1;
       const payload = request.postDataJSON();
+      completedPayloadSent ||= payload.status === "completed";
       overrideSent = payload.confirm_overlap === true;
       if (!overrideSent) {
         status = 409;
@@ -182,6 +202,21 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
         currentBooking = booking("confirmed");
         body = currentBooking;
       }
+    }
+    if (
+      path === `/api/v1/coaching/bookings/${currentBooking.id}/schedule` &&
+      request.method() === "PATCH"
+    ) {
+      rescheduleCalls += 1;
+      const payload = request.postDataJSON();
+      body = {
+        ...currentBooking,
+        availability_id: payload.availability_id,
+        starts_at: payload.starts_at,
+        ends_at: new Date(
+          new Date(payload.starts_at).getTime() + 60 * 60_000,
+        ).toISOString(),
+      };
     }
 
     await route.fulfill({
@@ -226,13 +261,29 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
 
   await page.getByRole("button", { name: "Confirmer", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Deux seances au meme moment" }),
+    page.getByRole("heading", {
+      name: "Plusieurs clients au meme horaire",
+    }),
   ).toBeVisible();
+  await expect(page.getByRole("dialog")).toContainText(
+    "sans terminer celle qui est deja confirmee",
+  );
   await page.getByRole("button", { name: "Confirmer quand meme" }).click();
   await expect(page.getByText("Reservation: Confirmee.")).toBeVisible();
-  await expect(page.getByText("Choisir un autre creneau")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Terminer" })).toHaveCount(2);
+  const coachScheduleSelect = page.getByLabel(
+    `Nouvel horaire ${member.full_name}`,
+  );
+  await coachScheduleSelect.selectOption({ index: 1 });
+  await page
+    .getByRole("button", { name: "Changer l'horaire" })
+    .first()
+    .click();
+  await expect(page.getByText("Horaire de la seance modifie.")).toBeVisible();
   expect(confirmCalls).toBe(2);
   expect(overrideSent).toBe(true);
+  expect(completedPayloadSent).toBe(false);
+  expect(rescheduleCalls).toBe(1);
 });
 
 test("membre reserve un creneau propose par son coach", async ({ page }) => {

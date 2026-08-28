@@ -454,28 +454,58 @@ export function CoachingScheduleManager({
       ) : null}
 
       {conflict ? (
-        <Card className="border-amber-300/40 bg-amber-300/[0.06] p-5 sm:p-6">
-          <div className="flex items-start gap-4">
-            <AlertTriangle className="mt-1 h-6 w-6 shrink-0 text-amber-200" />
-            <div className="min-w-0 flex-1">
-              <h3 className="text-lg font-black text-white">
-                Deux seances au meme moment
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-gray-400">
-                Ce coach a deja une seance confirmee pendant cet horaire. Vous
-                pouvez annuler cette confirmation ou maintenir les deux seances.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Button variant="outline" onClick={() => setConflict(null)}>
-                  <X className="h-4 w-4" /> Annuler
-                </Button>
-                <Button onClick={() => void confirmConflict()}>
-                  <AlertTriangle className="h-4 w-4" /> Confirmer quand meme
-                </Button>
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="coaching-conflict-title"
+        >
+          <Card className="w-full max-w-xl border-amber-300/40 bg-[#09131c] p-6 shadow-2xl sm:p-8">
+            <div className="flex items-start gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-amber-300/10 text-amber-200">
+                <AlertTriangle className="h-6 w-6" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[0.65rem] font-black uppercase tracking-[0.16em] text-amber-200">
+                  Conflit de planning
+                </p>
+                <h3
+                  id="coaching-conflict-title"
+                  className="mt-2 text-2xl font-black text-white"
+                >
+                  Plusieurs clients au meme horaire
+                </h3>
+                <p className="mt-3 text-sm leading-6 text-gray-300">
+                  {simultaneousBookingCount(conflict.booking, bookings)} clients
+                  ont reserve cette heure. Vous pouvez confirmer cette seance
+                  sans terminer celle qui est deja confirmee.
+                </p>
+                <div className="mt-4 rounded-sm border border-white/10 bg-black/20 p-4">
+                  <p className="font-black text-white">
+                    {conflict.booking.member_name}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-400">
+                    {formatSchedule(
+                      conflict.booking.starts_at,
+                      conflict.booking.ends_at,
+                    )}
+                  </p>
+                </div>
+                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <Button variant="outline" onClick={() => setConflict(null)}>
+                    <X className="h-4 w-4" /> Garder en attente
+                  </Button>
+                  <Button
+                    disabled={busy === conflict.booking.id}
+                    onClick={() => void confirmConflict()}
+                  >
+                    <AlertTriangle className="h-4 w-4" /> Confirmer quand meme
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
       ) : null}
 
       {mode === "coach" ? (
@@ -1148,7 +1178,7 @@ function BookingCard({
         </div>
       </div>
 
-      {mode === "staff" &&
+      {mode !== "member" &&
       open &&
       availableScheduleChoices(availabilityChoices).length ? (
         <div className="mt-5 grid gap-3 border-t border-white/10 pt-5 md:grid-cols-[1fr_auto]">
