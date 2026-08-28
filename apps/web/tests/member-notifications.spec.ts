@@ -170,7 +170,9 @@ test("garde les anciennes notifications lues et affiche seulement les nouvelles"
   newNotificationVisible = true;
   const unreadFetchCallsBeforeNewNotification = unreadFetchCalls;
   await page.getByRole("button", { name: "Coaching", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Coaching" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Coaching", exact: true }),
+  ).toBeVisible();
   const markAllCallsBeforeNewNotification = markAllCalls;
   await expect
     .poll(() => unreadFetchCalls)

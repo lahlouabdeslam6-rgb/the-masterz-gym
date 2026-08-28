@@ -73,6 +73,7 @@ export function ComplaintCenter({
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [staffList, setStaffList] = useState<"active" | "history">("active");
   const [category, setCategory] = useState<ComplaintCategory>("subscription");
   const [subject, setSubject] = useState("");
   const [initialMessage, setInitialMessage] = useState("");
@@ -89,24 +90,40 @@ export function ComplaintCenter({
     });
     const next = result.data ?? [];
     setComplaints(next);
-    setSelectedId((current) =>
-      current && next.some((item) => item.id === current)
-        ? current
-        : (next[0]?.id ?? null),
-    );
+    setSelectedId((current) => {
+      if (current && next.some((item) => item.id === current)) return current;
+      const firstRelevant =
+        mode === "staff"
+          ? next.find((item) => item.status !== "resolved")
+          : next[0];
+      return firstRelevant?.id ?? null;
+    });
     setFeedback(
       result.error ? "Les reclamations n'ont pas pu etre chargees." : null,
     );
     setLoading(false);
-  }, [headers]);
+  }, [headers, mode]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timeoutId);
   }, [load]);
 
-  const selected = complaints.find((item) => item.id === selectedId) ?? null;
-  const visible = complaints.filter((complaint) => {
+  const activeComplaints = complaints.filter(
+    (complaint) => complaint.status !== "resolved",
+  );
+  const resolvedComplaints = complaints.filter(
+    (complaint) => complaint.status === "resolved",
+  );
+  const listComplaints =
+    mode === "staff"
+      ? staffList === "active"
+        ? activeComplaints
+        : resolvedComplaints
+      : complaints;
+  const selected =
+    listComplaints.find((item) => item.id === selectedId) ?? null;
+  const visible = listComplaints.filter((complaint) => {
     const normalized = query.trim().toLocaleLowerCase("fr");
     if (!normalized) return true;
     return [
@@ -187,6 +204,13 @@ export function ComplaintCenter({
       return;
     }
     replaceComplaint(result.data);
+    if (status === "resolved" && staffList === "active") {
+      setSelectedId(
+        complaints.find(
+          (item) => item.id !== result.data!.id && item.status !== "resolved",
+        )?.id ?? null,
+      );
+    }
     setFeedback(`Statut modifie: ${statusLabels[status]}.`);
     notifyNavigationBadgesChanged();
   }
@@ -271,8 +295,42 @@ export function ComplaintCenter({
             <h3 className="font-black text-white">
               {mode === "member" ? "Mes demandes" : "File des reclamations"}
             </h3>
-            <Pill>{complaints.length}</Pill>
+            <Pill>
+              {mode === "staff" ? activeComplaints.length : complaints.length}
+            </Pill>
           </div>
+          {mode === "staff" ? (
+            <div className="mt-4 grid grid-cols-2 gap-2 rounded-sm border border-white/10 bg-black/20 p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setStaffList("active");
+                  setSelectedId(activeComplaints[0]?.id ?? null);
+                }}
+                className={`rounded-sm px-3 py-2 text-xs font-black uppercase tracking-[0.08em] transition ${
+                  staffList === "active"
+                    ? "bg-primary text-black"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                A traiter ({activeComplaints.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStaffList("history");
+                  setSelectedId(resolvedComplaints[0]?.id ?? null);
+                }}
+                className={`rounded-sm px-3 py-2 text-xs font-black uppercase tracking-[0.08em] transition ${
+                  staffList === "history"
+                    ? "bg-primary text-black"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Historique ({resolvedComplaints.length})
+              </button>
+            </div>
+          ) : null}
           <div className="relative mt-4">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
             <Input

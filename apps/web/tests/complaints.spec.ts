@@ -200,6 +200,20 @@ test("la reception repond et change le statut dans sa page", async ({
   await page.getByLabel("Statut de la reclamation").selectOption("in_progress");
   await expect(page.getByText("Statut modifie: En cours.")).toBeVisible();
   expect(statusValue).toBe("in_progress");
+
+  await page.getByLabel("Statut de la reclamation").selectOption("resolved");
+  await expect(page.getByText("Statut modifie: Resolue.")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "A traiter (0)" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Historique (1)" }),
+  ).toBeVisible();
+  await expect(page.getByText("Probleme avec mon recu")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Historique (1)" }).click();
+  await expect(page.getByText("Probleme avec mon recu").first()).toBeVisible();
+  expect(statusValue).toBe("resolved");
 });
 
 async function storeSession(
