@@ -13,3 +13,7 @@ class NotificationRead(BaseModel):
     body: str
     read_at: datetime | None
     created_at: datetime
+
+
+class NotificationsReadAllResponse(BaseModel):
+    marked_read: int

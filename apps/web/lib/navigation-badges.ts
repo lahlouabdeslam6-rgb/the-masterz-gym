@@ -32,13 +32,38 @@ export function useNavigationBadges(
   refreshKey = "",
 ) {
   const [badges, setBadges] = useState<NavigationBadges>({});
-  const dismissedBadges = useRef(new Set<NavigationBadgeKey>());
+  const rawBadges = useRef<NavigationBadges>({});
+  const dismissedCounts = useRef<NavigationBadges>({});
+  const rawNotifications = useRef<Notification[]>([]);
 
   const showBadges = useCallback((nextBadges: NavigationBadges) => {
-    const visibleBadges = { ...nextBadges };
-    dismissedBadges.current.forEach((key) => delete visibleBadges[key]);
+    rawBadges.current = nextBadges;
+    const visibleBadges: NavigationBadges = {};
+    (Object.keys(nextBadges) as NavigationBadgeKey[]).forEach((key) => {
+      const currentCount = nextBadges[key] ?? 0;
+      const dismissedCount = dismissedCounts.current[key] ?? 0;
+      if (currentCount < dismissedCount) {
+        dismissedCounts.current[key] = currentCount;
+      }
+      const visibleCount = currentCount - (dismissedCounts.current[key] ?? 0);
+      if (visibleCount > 0) visibleBadges[key] = visibleCount;
+    });
     setBadges(visibleBadges);
   }, []);
+
+  const showNotificationBadges = useCallback(
+    (notifications: Notification[], role: "member" | "coach") => {
+      const idsByBadge = notificationIdsByBadge(notifications, role);
+      rawNotifications.current = notifications;
+      const visibleBadges: NavigationBadges = {};
+      (Object.keys(idsByBadge) as NavigationBadgeKey[]).forEach((key) => {
+        const visibleCount = idsByBadge[key]?.length ?? 0;
+        if (visibleCount > 0) visibleBadges[key] = visibleCount;
+      });
+      setBadges(visibleBadges);
+    },
+    [],
+  );
 
   const load = useCallback(async () => {
     if (!session) {
@@ -56,7 +81,7 @@ export function useNavigationBadges(
       const notifications = Array.isArray(result.data)
         ? (result.data as Notification[])
         : [];
-      showBadges(notificationBadges(notifications, session.user.role));
+      showNotificationBadges(notifications, session.user.role);
       return;
     }
 
@@ -99,24 +124,46 @@ export function useNavigationBadges(
     }
 
     setBadges({});
-  }, [session, showBadges]);
+  }, [session, showBadges, showNotificationBadges]);
 
-  const clearBadge = useCallback((key: NavigationBadgeKey) => {
-    dismissedBadges.current.add(key);
-    setBadges((current) => {
-      const next = { ...current };
-      delete next[key];
-      return next;
-    });
-  }, []);
+  const clearBadge = useCallback(
+    (key: NavigationBadgeKey) => {
+      if (session?.user.role === "member" || session?.user.role === "coach") {
+        const headers = authorizationHeaders(session.accessToken);
+        const notificationIds =
+          notificationIdsByBadge(rawNotifications.current, session.user.role)[
+            key
+          ] ?? [];
+        if (notificationIds.length) {
+          const request =
+            key === "notifications"
+              ? api.PATCH("/api/v1/notifications/read-all", { headers })
+              : Promise.all(
+                  notificationIds.map((notificationId) =>
+                    api.PATCH("/api/v1/notifications/{notification_id}/read", {
+                      headers,
+                      params: { path: { notification_id: notificationId } },
+                    }),
+                  ),
+                );
+          void request.then(() => notifyNavigationBadgesChanged());
+        }
+      } else {
+        dismissedCounts.current[key] = rawBadges.current[key] ?? 0;
+      }
+      setBadges((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+    },
+    [session],
+  );
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => void load(), 0);
     const reload = () => void load();
-    const reloadAfterChange = () => {
-      dismissedBadges.current.clear();
-      void load();
-    };
+    const reloadAfterChange = () => void load();
     window.addEventListener(NAVIGATION_BADGES_CHANGED_EVENT, reloadAfterChange);
     window.addEventListener("focus", reload);
     return () => {
@@ -132,39 +179,35 @@ export function useNavigationBadges(
   return { badges, clearBadge, reload: load };
 }
 
-function notificationBadges(
+function notificationIdsByBadge(
   notifications: Notification[],
   role: "member" | "coach",
-): NavigationBadges {
-  const count = (predicate: (notification: Notification) => boolean) =>
-    notifications.filter(predicate).length;
+): Partial<Record<NavigationBadgeKey, string[]>> {
+  const ids = (predicate: (notification: Notification) => boolean) =>
+    notifications.filter(predicate).map((notification) => notification.id);
 
   if (role === "coach") {
     return {
-      notifications: notifications.length,
-      schedule: count(
+      notifications: notifications.map((notification) => notification.id),
+      schedule: ids(
         (notification) => notification.kind === "coaching_booking_requested",
       ),
-      clients: count(
+      clients: ids(
         (notification) => notification.kind === "coaching_member_assigned",
       ),
-      messages: count(
+      messages: ids(
         (notification) => notification.kind === "coaching_message_received",
       ),
     };
   }
 
   return {
-    notifications: notifications.length,
-    coaching: count((notification) =>
-      notification.kind.startsWith("coaching_"),
-    ),
-    recovery: count((notification) =>
-      notification.kind.startsWith("recovery_"),
-    ),
-    complaints: count((notification) =>
+    notifications: notifications.map((notification) => notification.id),
+    coaching: ids((notification) => notification.kind.startsWith("coaching_")),
+    recovery: ids((notification) => notification.kind.startsWith("recovery_")),
+    complaints: ids((notification) =>
       notification.kind.startsWith("complaint_"),
     ),
-    store: count((notification) => notification.kind.startsWith("store_")),
+    store: ids((notification) => notification.kind.startsWith("store_")),
   };
 }

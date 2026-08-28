@@ -29,13 +29,26 @@ export function MemberNotifications({
   useEffect(() => {
     let active = true;
     async function load() {
-      const result = await api.GET("/api/v1/notifications", {
+      const notificationsResult = await api.GET("/api/v1/notifications", {
         headers,
         params: { query: { unread_only: false, limit: 20 } },
       });
+      const readResult = await api.PATCH("/api/v1/notifications/read-all", {
+        headers,
+      });
       if (active) {
-        setNotifications(Array.isArray(result.data) ? result.data : []);
+        setNotifications(
+          Array.isArray(notificationsResult.data)
+            ? notificationsResult.data.map((notification) => ({
+                ...notification,
+                read_at:
+                  notification.read_at ??
+                  (readResult.data ? new Date().toISOString() : null),
+              }))
+            : [],
+        );
         setLoading(false);
+        notifyNavigationBadgesChanged();
       }
     }
     void load();

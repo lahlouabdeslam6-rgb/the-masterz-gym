@@ -14,12 +14,18 @@ const member = {
   updated_at: "2026-08-21T10:00:00Z",
 };
 
-test("ouvre la rubrique concernee et marque la notification comme lue", async ({
+test("garde les anciennes notifications lues et affiche seulement les nouvelles", async ({
   page,
 }) => {
   let readAt: string | null = null;
-  let markReadCalls = 0;
+  let newNotificationVisible = false;
+  let allowNewNotificationRead = false;
+  let newReadAt: string | null = null;
+  let markAllCalls = 0;
+  let unreadFetchCalls = 0;
+  let lastUnreadCount = 0;
   const notificationId = "00000000-0000-0000-0000-000000000311";
+  const newNotificationId = "00000000-0000-0000-0000-000000000312";
 
   function notification() {
     return {
@@ -32,21 +38,45 @@ test("ouvre la rubrique concernee et marque la notification comme lue", async ({
     };
   }
 
+  function newNotification() {
+    return {
+      id: newNotificationId,
+      kind: "complaint_updated",
+      title: "Votre reclamation a recu une reponse",
+      body: "La reception a repondu a votre reclamation.",
+      read_at: newReadAt,
+      created_at: "2026-08-21T11:00:00Z",
+    };
+  }
+
   await page.route("**/api/v1/**", async (route) => {
     const url = new URL(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = member;
     if (url.pathname === "/api/v1/notifications") {
       const unreadOnly = url.searchParams.get("unread_only") === "true";
-      body = unreadOnly && readAt ? [] : [notification()];
+      const notifications = [
+        notification(),
+        ...(newNotificationVisible ? [newNotification()] : []),
+      ];
+      body = unreadOnly
+        ? notifications.filter((item) => !item.read_at)
+        : notifications;
+      if (unreadOnly) {
+        unreadFetchCalls += 1;
+        lastUnreadCount = (body as unknown[]).length;
+      }
     }
     if (
-      url.pathname === `/api/v1/notifications/${notificationId}/read` &&
+      url.pathname === "/api/v1/notifications/read-all" &&
       route.request().method() === "PATCH"
     ) {
-      markReadCalls += 1;
+      markAllCalls += 1;
       readAt = "2026-08-21T10:05:00Z";
-      body = notification();
+      if (newNotificationVisible && allowNewNotificationRead) {
+        newReadAt = "2026-08-21T11:05:00Z";
+      }
+      body = { marked_read: newNotificationVisible ? 2 : 1 };
     }
     if (url.pathname === `/api/v1/recovery/members/${member.id}`) {
       body = {
@@ -64,6 +94,17 @@ test("ouvre la rubrique concernee et marque la notification comme lue", async ({
         headers: { "access-control-allow-origin": "*" },
         body: JSON.stringify({
           detail: { code: "tracking_not_found", message: "Introuvable." },
+        }),
+      });
+      return;
+    }
+    if (url.pathname === "/api/v1/coaching/my-assignment") {
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify({
+          detail: { code: "assignment_not_found", message: "Introuvable." },
         }),
       });
       return;
@@ -94,14 +135,15 @@ test("ouvre la rubrique concernee et marque la notification comme lue", async ({
   await expect(page.getByTestId("navigation-badge-notifications")).toHaveCount(
     0,
   );
-  await expect(page.getByTestId("navigation-badge-recovery")).toHaveText("1");
+  await expect(page.getByTestId("navigation-badge-recovery")).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Mes notifications" }),
   ).toBeVisible();
   await expect(
     page.getByText("Vos seances Recovery sont terminees", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("1 non lue(s)", { exact: true })).toBeVisible();
+  await expect(page.getByText("0 non lue(s)", { exact: true })).toBeVisible();
+  expect(markAllCalls).toBeGreaterThanOrEqual(1);
 
   await page
     .getByText("Vos seances Recovery sont terminees", { exact: true })
@@ -116,5 +158,36 @@ test("ouvre la rubrique concernee et marque la notification comme lue", async ({
     0,
   );
   await expect(page.getByTestId("navigation-badge-recovery")).toHaveCount(0);
-  expect(markReadCalls).toBe(1);
+
+  await page
+    .getByRole("button", { name: "Notifications", exact: true })
+    .click();
+  await expect(page.getByTestId("navigation-badge-notifications")).toHaveCount(
+    0,
+  );
+  await expect(page.getByText("0 non lue(s)", { exact: true })).toBeVisible();
+
+  newNotificationVisible = true;
+  const unreadFetchCallsBeforeNewNotification = unreadFetchCalls;
+  await page.getByRole("button", { name: "Coaching", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Coaching" })).toBeVisible();
+  const markAllCallsBeforeNewNotification = markAllCalls;
+  await expect
+    .poll(() => unreadFetchCalls)
+    .toBeGreaterThan(unreadFetchCallsBeforeNewNotification);
+  expect(lastUnreadCount).toBe(1);
+  await expect(page.getByTestId("navigation-badge-notifications")).toHaveText(
+    "1",
+  );
+  await expect(page.getByTestId("navigation-badge-complaints")).toHaveText("1");
+
+  allowNewNotificationRead = true;
+  await page
+    .getByRole("button", { name: "Notifications", exact: true })
+    .click();
+  await expect(page.getByText("0 non lue(s)", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("navigation-badge-notifications")).toHaveCount(
+    0,
+  );
+  expect(markAllCalls).toBeGreaterThan(markAllCallsBeforeNewNotification);
 });

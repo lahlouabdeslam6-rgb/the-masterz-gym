@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 
 from app.core.dependencies import CurrentUser, DbSession
-from app.modules.notifications.schemas import NotificationRead
+from app.modules.notifications.schemas import NotificationRead, NotificationsReadAllResponse
 from app.modules.notifications.service import NotificationService
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
@@ -18,6 +18,13 @@ def list_notifications(
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
 ):
     return NotificationService(session).list_for_user(actor, unread_only=unread_only, limit=limit)
+
+
+@router.patch("/read-all", response_model=NotificationsReadAllResponse)
+def mark_all_notifications_read(session: DbSession, actor: CurrentUser):
+    return NotificationsReadAllResponse(
+        marked_read=NotificationService(session).mark_all_read(actor)
+    )
 
 
 @router.patch("/{notification_id}/read", response_model=NotificationRead)

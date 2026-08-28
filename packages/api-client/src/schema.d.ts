@@ -1103,6 +1103,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Mark All Notifications Read */
+        patch: operations["mark_all_notifications_read_api_v1_notifications_read_all_patch"];
+        trace?: never;
+    };
     "/api/v1/notifications/{notification_id}/read": {
         parameters: {
             query?: never;
@@ -2390,6 +2407,11 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** NotificationsReadAllResponse */
+        NotificationsReadAllResponse: {
+            /** Marked Read */
+            marked_read: number;
         };
         /** OTPRequest */
         OTPRequest: {
@@ -5685,6 +5707,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_all_notifications_read_api_v1_notifications_read_all_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationsReadAllResponse"];
                 };
             };
         };

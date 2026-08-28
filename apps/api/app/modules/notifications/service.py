@@ -37,6 +37,9 @@ class NotificationService:
             notification.read_at = datetime.now(UTC)
         return self.repository.save(notification)
 
+    def mark_all_read(self, user: User) -> int:
+        return self.repository.mark_all_read(user.id, datetime.now(UTC))
+
     def recovery_pack_exhausted(self, member: User, subscription: Subscription) -> Notification:
         deduplication_key = f"recovery_pack_exhausted:{subscription.id}"
         existing = self.repository.by_deduplication_key(deduplication_key)

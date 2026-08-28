@@ -275,10 +275,7 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
     `Nouvel horaire ${member.full_name}`,
   );
   await coachScheduleSelect.selectOption({ index: 1 });
-  await page
-    .getByRole("button", { name: "Changer l'horaire" })
-    .first()
-    .click();
+  await page.getByRole("button", { name: "Changer l'horaire" }).first().click();
   await expect(page.getByText("Horaire de la seance modifie.")).toBeVisible();
   expect(confirmCalls).toBe(2);
   expect(overrideSent).toBe(true);

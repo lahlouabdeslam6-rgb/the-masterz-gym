@@ -1,11 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
   BadgeDollarSign,
+  Bell,
+  ChevronRight,
   ClipboardCheck,
   CreditCard,
   Dumbbell,
@@ -279,12 +281,142 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </div>
           ) : null}
 
+          <AdminNotificationBell badges={badges} onBadgeOpen={clearBadge} />
+
           <div className="mx-auto w-full max-w-[1500px] p-5 sm:p-8 xl:p-10">
             {children}
           </div>
         </div>
       </div>
     </AdminSessionContext.Provider>
+  );
+}
+
+const adminNotificationItems: Array<{
+  key: NavigationBadgeKey;
+  label: string;
+  description: string;
+  href: string;
+}> = [
+  {
+    key: "applications",
+    label: "Demandes d'inscription",
+    description: "Nouvelles demandes a verifier et traiter.",
+    href: "/espace/admin/demandes",
+  },
+  {
+    key: "coaching",
+    label: "Coaching",
+    description: "Affectations ou reservations en attente.",
+    href: "/espace/admin/coachs",
+  },
+  {
+    key: "complaints",
+    label: "Reclamations",
+    description: "Reclamations ouvertes qui demandent une reponse.",
+    href: "/espace/admin/reclamations",
+  },
+  {
+    key: "store",
+    label: "Reservations Store",
+    description: "Produits reserves a preparer ou valider.",
+    href: "/espace/admin/store",
+  },
+];
+
+function AdminNotificationBell({
+  badges,
+  onBadgeOpen,
+}: {
+  badges: NavigationBadges;
+  onBadgeOpen: (key: NavigationBadgeKey) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [visibleItems, setVisibleItems] = useState<
+    Array<(typeof adminNotificationItems)[number] & { count: number }>
+  >([]);
+  const currentItems = useMemo(
+    () =>
+      adminNotificationItems
+        .map((item) => ({ ...item, count: badges[item.key] ?? 0 }))
+        .filter((item) => item.count > 0),
+    [badges],
+  );
+  const unreadCount = currentItems.reduce(
+    (total, item) => total + item.count,
+    0,
+  );
+
+  function toggleNotifications() {
+    if (!open) {
+      setVisibleItems(currentItems);
+      currentItems.forEach((item) => onBadgeOpen(item.key));
+    }
+    setOpen((current) => !current);
+  }
+
+  return (
+    <div className="fixed right-20 top-2 z-50 lg:right-8 lg:top-6">
+      <button
+        type="button"
+        aria-label="Notifications administration"
+        aria-expanded={open}
+        onClick={toggleNotifications}
+        className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#081119] text-white shadow-2xl transition hover:border-primary hover:text-primary"
+      >
+        <Bell className="h-5 w-5" />
+        {unreadCount ? (
+          <span
+            data-testid="admin-notification-badge"
+            className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1 text-[0.62rem] font-black text-black"
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        ) : null}
+      </button>
+
+      {open ? (
+        <div className="absolute right-0 mt-3 w-[min(23rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-white/15 bg-[#081119] shadow-2xl">
+          <div className="border-b border-white/10 px-5 py-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-primary">
+              Notifications Admin
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              Les nouvelles actions qui demandent votre attention.
+            </p>
+          </div>
+          <div className="max-h-[min(28rem,70vh)] overflow-y-auto p-2">
+            {visibleItems.length ? (
+              visibleItems.map((item) => (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 rounded-md border border-transparent px-3 py-3 transition hover:border-primary/30 hover:bg-primary/[0.07]"
+                >
+                  <span className="flex h-9 min-w-9 items-center justify-center rounded-full bg-primary text-xs font-black text-black">
+                    {item.count > 99 ? "99+" : item.count}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <strong className="block text-sm text-white">
+                      {item.label}
+                    </strong>
+                    <span className="mt-1 block text-xs leading-5 text-gray-500">
+                      {item.description}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+                </Link>
+              ))
+            ) : (
+              <p className="px-4 py-8 text-center text-sm text-gray-500">
+                Aucune nouvelle notification.
+              </p>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

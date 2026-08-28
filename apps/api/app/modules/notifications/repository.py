@@ -1,6 +1,7 @@
 import uuid
+from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.modules.notifications.models import Notification
@@ -45,3 +46,15 @@ class NotificationRepository:
                 Notification.user_id == user_id,
             )
         )
+
+    def mark_all_read(self, user_id: uuid.UUID, read_at: datetime) -> int:
+        result = self.session.execute(
+            update(Notification)
+            .where(
+                Notification.user_id == user_id,
+                Notification.read_at.is_(None),
+            )
+            .values(read_at=read_at)
+        )
+        self.session.flush()
+        return result.rowcount or 0
