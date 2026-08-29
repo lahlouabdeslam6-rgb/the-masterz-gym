@@ -32,6 +32,7 @@ export function useNavigationBadges(
   refreshKey = "",
 ) {
   const [badges, setBadges] = useState<NavigationBadges>({});
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const rawBadges = useRef<NavigationBadges>({});
   const dismissedCounts = useRef<NavigationBadges>({});
   const rawNotifications = useRef<Notification[]>([]);
@@ -55,6 +56,7 @@ export function useNavigationBadges(
     (notifications: Notification[], role: "member" | "coach") => {
       const idsByBadge = notificationIdsByBadge(notifications, role);
       rawNotifications.current = notifications;
+      setNotifications(notifications);
       const visibleBadges: NavigationBadges = {};
       (Object.keys(idsByBadge) as NavigationBadgeKey[]).forEach((key) => {
         const visibleCount = idsByBadge[key]?.length ?? 0;
@@ -68,6 +70,7 @@ export function useNavigationBadges(
   const load = useCallback(async () => {
     if (!session) {
       setBadges({});
+      setNotifications([]);
       return;
     }
 
@@ -86,6 +89,7 @@ export function useNavigationBadges(
     }
 
     if (session.user.role === "admin" || session.user.role === "receptionist") {
+      setNotifications([]);
       const [applications, assignments, bookings, complaints, reservations] =
         await Promise.all([
           api.GET("/api/v1/membership-applications", { headers }),
@@ -124,6 +128,7 @@ export function useNavigationBadges(
     }
 
     setBadges({});
+    setNotifications([]);
   }, [session, showBadges, showNotificationBadges]);
 
   const clearBadge = useCallback(
@@ -176,7 +181,7 @@ export function useNavigationBadges(
     };
   }, [load, refreshKey]);
 
-  return { badges, clearBadge, reload: load };
+  return { badges, clearBadge, reload: load, notifications };
 }
 
 function notificationIdsByBadge(

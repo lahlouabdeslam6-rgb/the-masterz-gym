@@ -33,6 +33,7 @@ import { CoachingConversationPanel } from "./CoachingConversationPanel";
 import { MemberNotifications } from "./MemberNotifications";
 import { MemberAvatar } from "./MemberPhotoCapture";
 import { ChangePasswordForm } from "./ChangePasswordForm";
+import { AccountNotificationBell } from "./AccountNotificationBell";
 import {
   type CoachingAssignment,
   EmptyState,
@@ -113,7 +114,10 @@ export function CoachDashboard({
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { badges, clearBadge } = useNavigationBadges(session, activeSection);
+  const { badges, clearBadge, notifications } = useNavigationBadges(
+    session,
+    activeSection,
+  );
   const openSection = (nextSection: CoachSection) => {
     const badgeKey = coachBadgeKeys[nextSection];
     if (badgeKey) clearBadge(badgeKey);
@@ -151,6 +155,16 @@ export function CoachDashboard({
     );
   }, [assignments, query]);
 
+  const openNotification = (kind: string) => {
+    if (kind === "coaching_message_received") {
+      openSection("messages");
+    } else if (kind === "coaching_member_assigned") {
+      openSection("clients");
+    } else {
+      openSection("schedule");
+    }
+  };
+
   if (loading) return <LoadingMessage message="Chargement de vos clients..." />;
 
   const section =
@@ -159,6 +173,14 @@ export function CoachDashboard({
 
   return (
     <div className="mt-8 grid items-start gap-6 lg:grid-cols-[17rem_minmax(0,1fr)]">
+      <AccountNotificationBell
+        accountLabel="coach"
+        notifications={notifications}
+        unreadCount={badges.notifications ?? 0}
+        testId="coach-notification-badge"
+        onClear={() => clearBadge("notifications")}
+        onOpenNotification={openNotification}
+      />
       <aside className="flex overflow-hidden rounded-lg border border-white/10 bg-[#081119]/95 shadow-2xl lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:flex-col">
         <div className="border-b border-white/10 bg-primary/[0.07] p-5">
           <span className="flex h-11 w-11 items-center justify-center rounded-sm bg-primary text-black">
@@ -367,15 +389,7 @@ export function CoachDashboard({
             >
               <MemberNotifications
                 session={session}
-                onOpen={(kind) => {
-                  if (kind === "coaching_message_received") {
-                    openSection("messages");
-                  } else if (kind === "coaching_member_assigned") {
-                    openSection("clients");
-                  } else {
-                    openSection("schedule");
-                  }
-                }}
+                onOpen={openNotification}
               />
             </Panel>
           ) : null}

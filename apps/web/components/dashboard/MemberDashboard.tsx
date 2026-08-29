@@ -42,6 +42,7 @@ import { MemberAvatar, MemberPhotoCapture } from "./MemberPhotoCapture";
 import { ComplaintCenter } from "./ComplaintCenter";
 import { MemberStoreManager } from "./StoreManager";
 import { ChangePasswordForm } from "./ChangePasswordForm";
+import { AccountNotificationBell } from "./AccountNotificationBell";
 import {
   type Attendance,
   type Receipt,
@@ -163,7 +164,10 @@ export function MemberDashboard({
     "schedule" | "progress" | "messages"
   >("schedule");
   const [currentUser, setCurrentUser] = useState(user);
-  const { badges, clearBadge } = useNavigationBadges(session, activeSection);
+  const { badges, clearBadge, notifications } = useNavigationBadges(
+    session,
+    activeSection,
+  );
   const openSection = (nextSection: MemberSection) => {
     const badgeKey = memberBadgeKeys[nextSection];
     if (badgeKey) clearBadge(badgeKey);
@@ -181,8 +185,33 @@ export function MemberDashboard({
       ),
   );
 
+  const openNotification = (kind: string) => {
+    if (kind.startsWith("coaching_")) {
+      setCoachingView(
+        kind === "coaching_message_received" ? "messages" : "schedule",
+      );
+      openSection("coaching");
+    } else if (kind.startsWith("recovery_")) {
+      openSection("recovery");
+    } else if (kind.startsWith("store_")) {
+      openSection("store");
+    } else if (kind.startsWith("complaint_")) {
+      openSection("complaints");
+    } else {
+      openSection("subscriptions");
+    }
+  };
+
   return (
     <div className="mt-8 grid items-start gap-5 lg:grid-cols-[15.5rem_minmax(0,1fr)]">
+      <AccountNotificationBell
+        accountLabel="membre"
+        notifications={notifications}
+        unreadCount={badges.notifications ?? 0}
+        testId="member-notification-badge"
+        onClear={() => clearBadge("notifications")}
+        onOpenNotification={openNotification}
+      />
       <aside className="flex overflow-hidden rounded-lg border border-white/10 bg-[#081119]/95 shadow-2xl lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:flex-col">
         <div className="border-b border-white/10 bg-primary/[0.07] p-4">
           <MemberAvatar member={currentUser} className="h-12 w-12" />
@@ -323,24 +352,7 @@ export function MemberDashboard({
             >
               <MemberNotifications
                 session={session}
-                onOpen={(kind) => {
-                  if (kind.startsWith("coaching_")) {
-                    setCoachingView(
-                      kind === "coaching_message_received"
-                        ? "messages"
-                        : "schedule",
-                    );
-                    openSection("coaching");
-                  } else if (kind.startsWith("recovery_")) {
-                    openSection("recovery");
-                  } else if (kind.startsWith("store_")) {
-                    openSection("store");
-                  } else if (kind.startsWith("complaint_")) {
-                    openSection("complaints");
-                  } else {
-                    openSection("subscriptions");
-                  }
-                }}
+                onOpen={openNotification}
               />
             </Panel>
           ) : null}

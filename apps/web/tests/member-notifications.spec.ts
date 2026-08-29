@@ -129,6 +129,16 @@ test("garde les anciennes notifications lues et affiche seulement les nouvelles"
     "1",
   );
   await expect(page.getByTestId("navigation-badge-recovery")).toHaveText("1");
+  await expect(page.getByTestId("member-notification-badge")).toHaveText("1");
+  await page.getByRole("button", { name: "Notifications membre" }).click();
+  await expect(page.getByTestId("member-notification-badge")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: /Vos seances Recovery sont terminees/ })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Mon pack recovery" }),
+  ).toBeVisible();
+
   await page
     .getByRole("button", { name: "Notifications", exact: true })
     .click();
@@ -192,4 +202,70 @@ test("garde les anciennes notifications lues et affiche seulement les nouvelles"
     0,
   );
   expect(markAllCalls).toBeGreaterThan(markAllCallsBeforeNewNotification);
+});
+
+test("le jaras Coach affiche l'alerte et ouvre directement le planning", async ({
+  page,
+}) => {
+  const coach = {
+    ...member,
+    id: "00000000-0000-0000-0000-000000000320",
+    full_name: "Coach Notification",
+    phone: "+212600000320",
+    email: "coach-notification@masterz.test",
+    role: "coach",
+    member_number: null,
+  };
+  let readAt: string | null = null;
+  const coachNotification = {
+    id: "00000000-0000-0000-0000-000000000321",
+    kind: "coaching_booking_requested",
+    title: "Nouvelle reservation coaching",
+    body: "Un client demande une seance dans votre planning.",
+    read_at: readAt,
+    created_at: "2026-08-21T12:00:00Z",
+  };
+
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    let body: unknown = [];
+    if (url.pathname === "/api/v1/users/me") body = coach;
+    if (url.pathname === "/api/v1/notifications") {
+      body =
+        url.searchParams.get("unread_only") === "true" && readAt
+          ? []
+          : [{ ...coachNotification, read_at: readAt }];
+    }
+    if (
+      url.pathname === "/api/v1/notifications/read-all" &&
+      route.request().method() === "PATCH"
+    ) {
+      readAt = "2026-08-21T12:05:00Z";
+      body = { marked_read: 1 };
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify(body),
+    });
+  });
+
+  await page.goto("/");
+  await page.evaluate((user) => {
+    window.localStorage.setItem("access_token", "coach-access-token");
+    window.localStorage.setItem("refresh_token", "coach-refresh-token");
+    window.localStorage.setItem("auth_user", JSON.stringify(user));
+  }, coach);
+
+  await page.goto("/espace/coach");
+  await expect(page.getByTestId("coach-notification-badge")).toHaveText("1");
+  await page.getByRole("button", { name: "Notifications coach" }).click();
+  await expect(page.getByTestId("coach-notification-badge")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: /Nouvelle reservation coaching/ })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Planning des seances" }),
+  ).toBeVisible();
 });
