@@ -49,12 +49,6 @@ export default function CoachingPage() {
         align="center"
       />
       <SectionShell tone="blue" className="!py-10 sm:!py-12 lg:!py-14">
-        <SectionTitle
-          eyebrow="Formules coaching"
-          title="Choisissez votre accompagnement."
-          subtitle="Chaque formule coaching active inclut l’analyse corporelle dans le parcours de suivi."
-          className="!mb-8"
-        />
         <MembershipPlansList serviceType="coaching" />
       </SectionShell>
       <SectionShell>

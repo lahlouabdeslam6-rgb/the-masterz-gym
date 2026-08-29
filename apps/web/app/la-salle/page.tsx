@@ -50,12 +50,6 @@ export default function LaSallePage() {
         <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20">
           <ClubMediaShowcase compact />
           <div>
-            <SectionTitle
-              eyebrow="Dans le club"
-              title="L’énergie réelle de Masterz."
-              subtitle="Découvrez l’ambiance, les équipements et le rythme de la salle à travers les images du club."
-              align="left"
-            />
             <div className="flex flex-wrap gap-2">
               <Pill>
                 <ShieldCheck className="h-4 w-4 text-primary" /> Salle mixte

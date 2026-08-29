@@ -42,12 +42,6 @@ export default function RecoveryPage() {
         align="center"
       />
       <SectionShell tone="blue" className="!py-10 sm:!py-12 lg:!py-14">
-        <SectionTitle
-          eyebrow="Formules recovery"
-          title="Choisissez votre pack de récupération."
-          subtitle="Les offres actives configurées par l’équipe apparaissent ici automatiquement."
-          className="!mb-8"
-        />
         <MembershipPlansList serviceType="recovery" />
       </SectionShell>
       <SectionShell>

@@ -7,7 +7,7 @@ import {
   Leaf,
   Sparkles,
 } from "lucide-react";
-import { Pill, SectionTitle, buttonStyles } from "@masterz/ui";
+import { Pill, buttonStyles } from "@masterz/ui";
 import { FinalCTA } from "@/components/FinalCTA";
 import { PageHero } from "@/components/PageHero";
 import { SectionShell } from "@/components/SectionShell";
@@ -44,11 +44,6 @@ export default function HealthyCafePage() {
         description="Une pause nutrition pensée pour rester aligné avec votre rythme et vos objectifs."
       />
       <SectionShell tone="surface">
-        <SectionTitle
-          eyebrow="La sélection"
-          title="Des options simples, au bon moment."
-          subtitle="La carte évolue selon les produits et disponibilités du club. Les tarifs sont affichés directement au café."
-        />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {categories.map(({ icon: Icon, title, text }, index) => (
             <article

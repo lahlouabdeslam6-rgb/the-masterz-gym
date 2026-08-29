@@ -8,7 +8,7 @@ export function PageHero({
   description,
   image,
   compact = true,
-  align = "left",
+  align = "center",
 }: {
   eyebrow: string;
   title: string;
@@ -52,24 +52,24 @@ export function PageHero({
           <span className="text-gray-300">{eyebrow}</span>
         </div>
         <div
-          className={`${centered ? "mx-auto max-w-4xl text-center" : "max-w-3xl"}`}
+          className={`${centered ? "mx-auto max-w-3xl text-center" : "max-w-3xl"}`}
         >
           <p
-            className={`${compact ? "mb-3" : "mb-5"} text-xs font-black uppercase tracking-[0.3em] text-primary`}
+            className={`${compact ? "mb-2.5" : "mb-5"} text-[0.7rem] font-bold uppercase tracking-[0.28em] text-primary`}
           >
             {eyebrow}
           </p>
           <h1
-            className={`font-display font-black uppercase tracking-[-0.045em] text-white ${
+            className={`font-display font-bold uppercase tracking-[-0.035em] text-white ${
               compact
-                ? "text-3xl leading-[0.95] sm:text-4xl lg:text-[2.75rem]"
+                ? "text-3xl leading-[1] sm:text-4xl lg:text-[2.55rem]"
                 : "text-4xl leading-[0.9] sm:text-5xl md:text-6xl lg:text-7xl"
             }`}
           >
             {title}
           </h1>
           <p
-            className={`${centered ? "mx-auto" : ""} ${compact ? "mt-3" : "mt-7"} max-w-2xl text-sm leading-6 text-gray-300 sm:text-base`}
+            className={`${centered ? "mx-auto" : ""} ${compact ? "mt-3" : "mt-7"} max-w-2xl text-sm font-normal leading-6 text-gray-400 sm:text-[0.95rem]`}
           >
             {description}
           </p>
