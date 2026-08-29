@@ -32,9 +32,7 @@ def test_opening_notifications_marks_existing_items_read_but_keeps_new_items_unr
     db_session.flush()
     headers = _login(client, member.phone, "MemberLocal123!")
 
-    unread_before = client.get(
-        "/api/v1/notifications?unread_only=true&limit=100", headers=headers
-    )
+    unread_before = client.get("/api/v1/notifications?unread_only=true&limit=100", headers=headers)
     assert unread_before.status_code == 200, unread_before.text
     assert len(unread_before.json()) == 2
 
@@ -42,9 +40,7 @@ def test_opening_notifications_marks_existing_items_read_but_keeps_new_items_unr
     assert marked.status_code == 200, marked.text
     assert marked.json() == {"marked_read": 2}
 
-    unread_after = client.get(
-        "/api/v1/notifications?unread_only=true&limit=100", headers=headers
-    )
+    unread_after = client.get("/api/v1/notifications?unread_only=true&limit=100", headers=headers)
     assert unread_after.status_code == 200, unread_after.text
     assert unread_after.json() == []
 
@@ -58,8 +54,6 @@ def test_opening_notifications_marks_existing_items_read_but_keeps_new_items_unr
     db_session.add(new_notification)
     db_session.flush()
 
-    latest_unread = client.get(
-        "/api/v1/notifications?unread_only=true&limit=100", headers=headers
-    )
+    latest_unread = client.get("/api/v1/notifications?unread_only=true&limit=100", headers=headers)
     assert latest_unread.status_code == 200, latest_unread.text
     assert [item["id"] for item in latest_unread.json()] == [str(new_notification.id)]

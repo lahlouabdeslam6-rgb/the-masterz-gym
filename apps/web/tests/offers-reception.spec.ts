@@ -81,7 +81,9 @@ test("affiche chaque offre dans sa page publique", async ({ page }) => {
       contentType: "application/json",
       headers: { "access-control-allow-origin": "*" },
       body: JSON.stringify(
-        plans.filter((plan) => plan.service_type === serviceType),
+        serviceType
+          ? plans.filter((plan) => plan.service_type === serviceType)
+          : plans,
       ),
     });
   });
@@ -96,6 +98,9 @@ test("affiche chaque offre dans sa page publique", async ({ page }) => {
   await expect(
     page.getByText("Coaching Performance", { exact: true }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Demander" }).first(),
+  ).toHaveAttribute("href", `/inscription?plan=${plans[1].id}`);
   await expect(page.getByText("Salle 1 mois", { exact: true })).toHaveCount(0);
 
   await page.goto("/recovery");
@@ -107,6 +112,17 @@ test("affiche chaque offre dans sa page publique", async ({ page }) => {
   await expect(
     page.getByText("Coaching Performance", { exact: true }),
   ).toHaveCount(0);
+  await expect(
+    page.locator(`a[href="/inscription?plan=${plans[2].id}"]`),
+  ).toContainText("Demander");
+
+  await page.goto(`/inscription?plan=${plans[2].id}`);
+  const planSelect = page.getByLabel("Formule *");
+  await expect(planSelect).toHaveValue(plans[2].id);
+  await expect(planSelect).toContainText("Salle 1 mois");
+  await expect(planSelect).toContainText("Coaching Performance");
+  await expect(planSelect).toContainText("Pack Recovery");
+  await expect(planSelect).toContainText("10 seances");
 });
 
 test("separe les taches de la reception en pages", async ({ page }) => {
@@ -290,10 +306,15 @@ test("informe le membre de ses abonnements avant une nouvelle inscription", asyn
 
   await page.goto(`/inscription?plan=${plans[0].id}`);
   await expect(
-    page.getByRole("heading", {
-      name: "Votre abonnement salle est deja paye.",
-    }),
+    page.getByText("Vous avez deja paye cette categorie", { exact: true }),
   ).toBeVisible();
+  await page.getByLabel("Formule *").selectOption(plans[1].id);
+  await expect(
+    page.getByText("Vous avez deja paye cette categorie", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /Soumettre la demande/ }),
+  ).toBeEnabled();
 
   await page.goto("/recovery");
   await expect(

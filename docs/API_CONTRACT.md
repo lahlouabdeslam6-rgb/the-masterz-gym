@@ -38,6 +38,7 @@ sous `/api/v1` sont :
 | Abonnements | historique membre, changement de statut et événements |
 | Paiements | `POST /payments/memberships`, `GET /payments/receipts/{id}` |
 | Présences | recherche membre et `POST /attendance/check-ins` |
+| Analytique Admin | `GET /admin/analytics/dashboard` pour les KPI et graphes de pilotage |
 | Audit | `GET /audit-logs` pour l'admin |
 
 `packages/api-client/openapi.json` est un export du contrat FastAPI et
@@ -46,8 +47,8 @@ ne définit aucun DTO ou chemin manuellement.
 
 ## Hors périmètre
 
-Aucun endpoint coaching, recovery, café, finance, messagerie, notification, analytique
-ou IA n'est contracté dans cette phase.
+Aucun endpoint café, finance avancée ou intelligence artificielle n'est contracté
+dans cette phase.
 
 ## Compatibilité
 

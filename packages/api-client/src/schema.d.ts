@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/analytics/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Dashboard */
+        get: operations["get_admin_dashboard_api_v1_admin_analytics_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -1319,6 +1336,27 @@ export interface components {
          * @enum {string}
          */
         AccountStatus: "pending_activation" | "active" | "suspended" | "disabled";
+        /** AdminDashboardRead */
+        AdminDashboardRead: {
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Period Months */
+            period_months: number;
+            /** Currency */
+            currency: string | null;
+            metrics: components["schemas"]["DashboardMetrics"];
+            /** Monthly */
+            monthly: components["schemas"]["DashboardMonthlyPoint"][];
+            /** Service Revenue */
+            service_revenue: components["schemas"]["DashboardServiceRevenue"][];
+            /** Payment Methods */
+            payment_methods: components["schemas"]["DashboardPaymentMethod"][];
+            /** Subscription Statuses */
+            subscription_statuses: components["schemas"]["DashboardSubscriptionStatus"][];
+        };
         /** ApplicationCreate */
         ApplicationCreate: {
             /** Full Name */
@@ -2139,6 +2177,62 @@ export interface components {
         /** ComplaintStatusUpdate */
         ComplaintStatusUpdate: {
             status: components["schemas"]["ComplaintStatus"];
+        };
+        /** DashboardMetrics */
+        DashboardMetrics: {
+            /** Revenue */
+            revenue: string;
+            /** Previous Revenue */
+            previous_revenue: string;
+            /** Revenue Change Percent */
+            revenue_change_percent: number | null;
+            /** Payment Count */
+            payment_count: number;
+            /** Member Count */
+            member_count: number;
+            /** Active Member Count */
+            active_member_count: number;
+            /** Active Subscriptions */
+            active_subscriptions: number;
+            /** Expiring Subscriptions */
+            expiring_subscriptions: number;
+            /** Pending Applications */
+            pending_applications: number;
+            /** Check Ins */
+            check_ins: number;
+        };
+        /** DashboardMonthlyPoint */
+        DashboardMonthlyPoint: {
+            /** Month */
+            month: string;
+            /** Revenue */
+            revenue: string;
+            /** Payments */
+            payments: number;
+            /** New Members */
+            new_members: number;
+        };
+        /** DashboardPaymentMethod */
+        DashboardPaymentMethod: {
+            method: components["schemas"]["PaymentMethod"];
+            /** Amount */
+            amount: string;
+            /** Payments */
+            payments: number;
+        };
+        /** DashboardServiceRevenue */
+        DashboardServiceRevenue: {
+            service_type: components["schemas"]["ServiceType"];
+            /** Amount */
+            amount: string;
+            /** Payments */
+            payments: number;
+        };
+        /** DashboardSubscriptionStatus */
+        DashboardSubscriptionStatus: {
+            status: components["schemas"]["SubscriptionStatus"];
+            /** Count */
+            count: number;
         };
         /** ExistingMemberActivationConfirm */
         ExistingMemberActivationConfirm: {
@@ -3379,6 +3473,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    get_admin_dashboard_api_v1_admin_analytics_dashboard_get: {
+        parameters: {
+            query?: {
+                months?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDashboardRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

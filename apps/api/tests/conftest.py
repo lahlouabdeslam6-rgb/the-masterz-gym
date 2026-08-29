@@ -1,12 +1,16 @@
+import uuid
 from collections.abc import Generator
+from datetime import timedelta
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.database import engine, get_db
+from app.core.security import create_jwt
 from app.main import app
 from app.modules.auth.otp import OTPProvider, get_otp_provider
+from app.modules.users.repository import UserRepository
 
 
 class CapturingOTPProvider(OTPProvider):
@@ -49,17 +53,24 @@ def client(
     app.dependency_overrides.clear()
 
 
-def login_headers(client: TestClient, phone: str, password: str) -> dict[str, str]:
-    response = client.post("/api/v1/auth/login", json={"phone": phone, "password": password})
-    assert response.status_code == 200, response.text
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+def role_headers(db_session: Session, phone: str) -> dict[str, str]:
+    user = UserRepository(db_session).by_phone(phone)
+    assert user is not None
+    token = create_jwt(
+        subject=user.id,
+        role=user.role.value,
+        token_type="access",
+        lifetime=timedelta(hours=1),
+        session_id=uuid.uuid4(),
+    )
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
-def admin_headers(client: TestClient) -> dict[str, str]:
-    return login_headers(client, "+212600000001", "AdminLocal123!")
+def admin_headers(db_session: Session) -> dict[str, str]:
+    return role_headers(db_session, "+212600000001")
 
 
 @pytest.fixture
-def reception_headers(client: TestClient) -> dict[str, str]:
-    return login_headers(client, "+212600000002", "ReceptionLocal123!")
+def reception_headers(db_session: Session) -> dict[str, str]:
+    return role_headers(db_session, "+212600000002")

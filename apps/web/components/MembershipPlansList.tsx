@@ -353,11 +353,7 @@ export function MembershipPlansList({
                   href={
                     planIsCurrent
                       ? "/espace/membre"
-                      : currentSubscription
-                        ? `/contact?service=${serviceType}&plan=${plan.id}&change=1`
-                        : serviceType === "gym"
-                          ? `/inscription?plan=${plan.id}`
-                          : `/contact?service=${serviceType}&plan=${plan.id}`
+                      : `/inscription?plan=${plan.id}`
                   }
                   className={buttonStyles({
                     variant: planIsCurrent ? "outline" : "primary",
@@ -367,7 +363,7 @@ export function MembershipPlansList({
                   {planIsCurrent
                     ? "Deja paye"
                     : currentSubscription
-                      ? "Changer de formule"
+                      ? "Voir cette offre"
                       : memberIsRenewing
                         ? "Renouveler"
                         : content.buttonLabel}{" "}

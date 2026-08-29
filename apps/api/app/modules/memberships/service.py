@@ -110,7 +110,11 @@ class MembershipService:
         return plan
 
     def effective_status(
-        self, subscription: Subscription, today: date | None = None
+        self,
+        subscription: Subscription,
+        today: date | None = None,
+        *,
+        expiring_days: int | None = None,
     ) -> SubscriptionStatus:
         today = today or local_today()
         if subscription.status in {
@@ -122,7 +126,11 @@ class MembershipService:
         if today < subscription.starts_on:
             return SubscriptionStatus.ACTIVE
         if today <= subscription.ends_on:
-            expiring_days = self.get_setting_int("subscription_expiring_soon_days")
+            expiring_days = (
+                expiring_days
+                if expiring_days is not None
+                else self.get_setting_int("subscription_expiring_soon_days")
+            )
             if (subscription.ends_on - today).days <= expiring_days:
                 return SubscriptionStatus.EXPIRING_SOON
             return SubscriptionStatus.ACTIVE

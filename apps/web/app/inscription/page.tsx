@@ -20,14 +20,21 @@ import {
   useMemberSubscriptions,
 } from "@/lib/member-subscriptions";
 
-type PlanOption = {
-  id: string;
-  name: string;
-  price: number | string;
-  currency?: string;
-};
+type PlanOption = components["schemas"]["MembershipPlanRead"];
 
 type Promotion = components["schemas"]["PromotionRead"];
+
+const serviceLabels: Record<PlanOption["service_type"], string> = {
+  gym: "Salle musculation",
+  coaching: "Coaching",
+  recovery: "Recovery",
+};
+
+const serviceOrder: PlanOption["service_type"][] = [
+  "gym",
+  "coaching",
+  "recovery",
+];
 
 function InscriptionContent() {
   const searchParams = useSearchParams();
@@ -48,7 +55,12 @@ function InscriptionContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const { subscriptions } = useMemberSubscriptions();
-  const currentGymSubscription = currentSubscriptionFor(subscriptions, "gym");
+  const selectedPlan = plans.find(
+    (plan) => plan.id === formData.selected_plan_id,
+  );
+  const currentSelectedSubscription = selectedPlan
+    ? currentSubscriptionFor(subscriptions, selectedPlan.service_type)
+    : null;
 
   useEffect(() => {
     let active = true;
@@ -56,7 +68,7 @@ function InscriptionContent() {
       try {
         const [plansResult, promotionsResult] = await Promise.all([
           api.GET("/api/v1/membership-plans", {
-            params: { query: { active_only: true, service_type: "gym" } },
+            params: { query: { active_only: true } },
           }),
           promotionId
             ? api.GET("/api/v1/promotions")
@@ -64,9 +76,12 @@ function InscriptionContent() {
         ]);
         const data = plansResult.data;
         if (active && data) {
-          const sortedPlans = [...data].sort(
-            (a, b) => Number(a.price) - Number(b.price),
-          );
+          const sortedPlans = [...data].sort((a, b) => {
+            const serviceDifference =
+              serviceOrder.indexOf(a.service_type) -
+              serviceOrder.indexOf(b.service_type);
+            return serviceDifference || Number(a.price) - Number(b.price);
+          });
           const selectedPromotion =
             promotionsResult.data?.find((item) => item.id === promotionId) ??
             null;
@@ -77,10 +92,13 @@ function InscriptionContent() {
               ...current,
               selected_plan_id: selectedPromotion.base_plan_id,
             }));
-          } else if (!preselectedPlanId && sortedPlans.length > 0) {
+          } else if (
+            !preselectedPlanId ||
+            !sortedPlans.some((plan) => plan.id === preselectedPlanId)
+          ) {
             setFormData((current) => ({
               ...current,
-              selected_plan_id: sortedPlans[0].id,
+              selected_plan_id: sortedPlans[0]?.id ?? "",
             }));
           }
         }
@@ -154,44 +172,6 @@ function InscriptionContent() {
     );
   }
 
-  if (currentGymSubscription) {
-    return (
-      <AuthShell
-        eyebrow="Abonnement deja actif"
-        title="Votre abonnement salle est deja paye."
-        description="Vous ne devez pas envoyer une deuxieme demande tant que cette formule est encore valide."
-      >
-        <div className="rounded-lg border border-emerald-400/25 bg-emerald-400/[0.07] p-6">
-          <p className="text-sm font-black uppercase tracking-[0.12em] text-emerald-300">
-            {currentGymSubscription.plan_name}
-          </p>
-          <p className="mt-3 text-sm leading-6 text-gray-300">
-            Votre abonnement reste valable jusqu&apos;au{" "}
-            <strong className="text-white">
-              {currentGymSubscription.ends_on}
-            </strong>
-            .
-          </p>
-        </div>
-        <Link
-          href="/espace/membre"
-          className={buttonStyles({ className: "mt-6 w-full" })}
-        >
-          Voir mon abonnement
-        </Link>
-        <Link
-          href="/abonnements"
-          className={buttonStyles({
-            variant: "outline",
-            className: "mt-3 w-full",
-          })}
-        >
-          Retour aux formules
-        </Link>
-      </AuthShell>
-    );
-  }
-
   return (
     <AuthShell
       eyebrow="Inscription"
@@ -219,6 +199,29 @@ function InscriptionContent() {
               {promotion.price} {promotion.currency}
             </p>
           </div>
+        </div>
+      ) : null}
+      {currentSelectedSubscription ? (
+        <div className="mb-6 rounded-lg border border-emerald-400/25 bg-emerald-400/[0.07] p-5">
+          <p className="text-sm font-black uppercase tracking-[0.12em] text-emerald-300">
+            Vous avez deja paye cette categorie
+          </p>
+          <p className="mt-2 text-sm leading-6 text-gray-300">
+            {currentSelectedSubscription.plan_name} reste valable jusqu&apos;au{" "}
+            <strong className="text-white">
+              {currentSelectedSubscription.ends_on}
+            </strong>
+            . Choisissez une offre d&apos;une autre categorie pour continuer.
+          </p>
+          <Link
+            href="/espace/membre"
+            className={buttonStyles({
+              variant: "outline",
+              className: "mt-4",
+            })}
+          >
+            Voir mon abonnement
+          </Link>
         </div>
       ) : null}
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -281,11 +284,27 @@ function InscriptionContent() {
                 <option value="" disabled>
                   Sélectionnez une formule
                 </option>
-                {plans.map((plan) => (
-                  <option key={plan.id} value={plan.id}>
-                    {plan.name} — {plan.price} {plan.currency ?? "MAD"}
-                  </option>
-                ))}
+                {serviceOrder.map((serviceType) => {
+                  const servicePlans = plans.filter(
+                    (plan) => plan.service_type === serviceType,
+                  );
+                  return servicePlans.length ? (
+                    <optgroup
+                      key={serviceType}
+                      label={serviceLabels[serviceType]}
+                    >
+                      {servicePlans.map((plan) => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name} — {plan.price} {plan.currency}
+                          {plan.service_type === "recovery" &&
+                          plan.session_count
+                            ? ` — ${plan.session_count} seances`
+                            : ""}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null;
+                })}
               </select>
             )}
           </Field>
@@ -305,7 +324,12 @@ function InscriptionContent() {
           type="submit"
           size="lg"
           className="w-full"
-          disabled={loading || loadingPlans || plans.length === 0}
+          disabled={
+            loading ||
+            loadingPlans ||
+            plans.length === 0 ||
+            Boolean(currentSelectedSubscription)
+          }
         >
           {loading ? (
             <LoadingMessage message="Envoi…" className="p-0 text-black" />

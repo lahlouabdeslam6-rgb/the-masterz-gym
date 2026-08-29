@@ -242,6 +242,50 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
       return;
     }
     let body: unknown = [];
+    if (url.pathname === "/api/v1/admin/analytics/dashboard") {
+      const months = Number(url.searchParams.get("months") ?? 6);
+      body = {
+        generated_at: "2026-08-28T12:00:00+01:00",
+        period_months: months,
+        currency: "MAD",
+        metrics: {
+          revenue: "5200.00",
+          previous_revenue: "4000.00",
+          revenue_change_percent: 30,
+          payment_count: 7,
+          member_count: 12,
+          active_member_count: 10,
+          active_subscriptions: 9,
+          expiring_subscriptions: 2,
+          pending_applications: 1,
+          check_ins: 34,
+        },
+        monthly: Array.from({ length: months }, (_, index) => ({
+          month: `2026-${String(index + 1).padStart(2, "0")}`,
+          revenue: String((index + 1) * 200),
+          payments: index + 1,
+          new_members: index % 3,
+        })),
+        service_revenue: [
+          { service_type: "gym", amount: "3200.00", payments: 4 },
+          { service_type: "coaching", amount: "1400.00", payments: 2 },
+          { service_type: "recovery", amount: "600.00", payments: 1 },
+        ],
+        payment_methods: [
+          { method: "cash", amount: "3000.00", payments: 4 },
+          { method: "bank_card", amount: "2200.00", payments: 3 },
+          { method: "bank_transfer", amount: "0.00", payments: 0 },
+        ],
+        subscription_statuses: [
+          { status: "active", count: 7 },
+          { status: "expiring_soon", count: 2 },
+          { status: "grace_period", count: 0 },
+          { status: "suspended", count: 0 },
+          { status: "expired", count: 2 },
+          { status: "cancelled", count: 1 },
+        ],
+      };
+    }
     if (
       url.pathname === "/api/v1/auth/refresh" &&
       route.request().method() === "POST"
@@ -530,7 +574,13 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   await page.goto("/espace/admin");
 
   await expect(
-    page.getByRole("heading", { name: "Bonjour, Admin." }),
+    page.getByRole("heading", { name: "Tableau de bord" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Revenu par mois" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Etat des abonnements" }),
   ).toBeVisible();
   const navigation = page.getByRole("navigation", {
     name: "Navigation administration",
