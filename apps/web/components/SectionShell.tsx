@@ -20,7 +20,7 @@ export function SectionShell({
   return (
     <section
       id={id}
-      className={`relative overflow-hidden px-5 py-20 sm:px-8 lg:py-28 ${tones[tone]} ${className}`}
+      className={`relative overflow-hidden px-5 py-14 sm:px-8 lg:py-16 ${tones[tone]} ${className}`}
     >
       <div className="mx-auto w-full max-w-7xl">{children}</div>
     </section>

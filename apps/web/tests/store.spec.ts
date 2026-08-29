@@ -109,6 +109,15 @@ test("le visiteur consulte le catalogue Store public", async ({ page }) => {
   await expect(page.getByText("Whey Protein Masterz")).toHaveCount(0);
   await page.getByRole("button", { name: "Tous", exact: true }).click();
 
+  const directReservationLink = page
+    .getByRole("link", { name: "Reserver" })
+    .first();
+  await expect(directReservationLink).toHaveAttribute("href", "/connexion");
+  await directReservationLink.click();
+  await expect(page).toHaveURL(/\/connexion$/);
+  await page.goBack();
+  await expect(page.getByText("Whey Protein Masterz")).toBeVisible();
+
   await page.getByLabel("Trier par prix").selectOption("price-desc");
   await expect(page.locator("article h2").first()).toHaveText(
     "Whey Protein Masterz",
@@ -147,6 +156,10 @@ test("le visiteur consulte le catalogue Store public", async ({ page }) => {
   await expect(
     productDialog.getByRole("link", { name: "Se connecter pour reserver" }),
   ).toHaveAttribute("href", "/connexion");
+  const loginReservationButton = await productDialog
+    .getByRole("link", { name: "Se connecter pour reserver" })
+    .boundingBox();
+  expect(loginReservationButton?.height).toBeGreaterThanOrEqual(64);
 });
 
 test("le membre reserve un produit depuis son espace", async ({ page }) => {

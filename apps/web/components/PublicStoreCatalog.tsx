@@ -317,18 +317,36 @@ export function PublicStoreCatalog({
                       <Eye className="h-4 w-4" />
                       Voir
                     </button>
-                    <button
-                      type="button"
-                      disabled={!product.is_available}
-                      className={buttonStyles({
-                        className:
-                          "w-full px-3 disabled:cursor-not-allowed disabled:opacity-40",
-                      })}
-                      onClick={() => openProduct(product)}
-                    >
-                      <ShoppingBag className="h-4 w-4" />
-                      Reserver
-                    </button>
+                    {!product.is_available ? (
+                      <button
+                        type="button"
+                        disabled
+                        className={buttonStyles({
+                          className:
+                            "w-full px-3 disabled:cursor-not-allowed disabled:opacity-40",
+                        })}
+                      >
+                        <ShoppingBag className="h-4 w-4" />
+                        Reserver
+                      </button>
+                    ) : isMember ? (
+                      <button
+                        type="button"
+                        className={buttonStyles({ className: "w-full px-3" })}
+                        onClick={() => openProduct(product)}
+                      >
+                        <ShoppingBag className="h-4 w-4" />
+                        Reserver
+                      </button>
+                    ) : (
+                      <Link
+                        href="/connexion"
+                        className={buttonStyles({ className: "w-full px-3" })}
+                      >
+                        <LogIn className="h-4 w-4" />
+                        Reserver
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>
@@ -486,9 +504,12 @@ function ProductDetails({
               ) : (
                 <Link
                   href="/connexion"
-                  className={buttonStyles({ className: "mt-9 w-full" })}
+                  className={buttonStyles({
+                    className:
+                      "mt-9 min-h-16 w-full px-6 text-sm shadow-[0_14px_40px_rgba(0,212,255,0.2)] sm:text-base",
+                  })}
                 >
-                  <LogIn className="h-4 w-4" />
+                  <LogIn className="h-5 w-5" />
                   Se connecter pour reserver
                 </Link>
               )
