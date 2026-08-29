@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -61,6 +61,8 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMembershipMenuOpen, setIsMembershipMenuOpen] = useState(false);
   const [session, setSession] = useState<AuthSession | null>(null);
+  const membershipMenuRef = useRef<HTMLDivElement>(null);
+  const membershipMenuPinnedRef = useRef(false);
   const pathname = usePathname();
   const router = useRouter();
   const membershipActive = membershipPaths.includes(pathname);
@@ -75,6 +77,31 @@ export function Header() {
       window.removeEventListener("storage", syncSession);
     };
   }, [pathname]);
+
+  useEffect(() => {
+    const closePinnedMenu = (event: PointerEvent) => {
+      if (
+        membershipMenuRef.current &&
+        !membershipMenuRef.current.contains(event.target as Node)
+      ) {
+        membershipMenuPinnedRef.current = false;
+        setIsMembershipMenuOpen(false);
+      }
+    };
+    const closeMenuWithEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        membershipMenuPinnedRef.current = false;
+        setIsMembershipMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", closePinnedMenu);
+    document.addEventListener("keydown", closeMenuWithEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closePinnedMenu);
+      document.removeEventListener("keydown", closeMenuWithEscape);
+    };
+  }, []);
 
   async function handleLogout() {
     if (session) {
@@ -116,11 +143,19 @@ export function Header() {
           })}
 
           <div
+            ref={membershipMenuRef}
             className="relative"
             onMouseEnter={() => setIsMembershipMenuOpen(true)}
-            onMouseLeave={() => setIsMembershipMenuOpen(false)}
+            onMouseLeave={() => {
+              if (!membershipMenuPinnedRef.current) {
+                setIsMembershipMenuOpen(false);
+              }
+            }}
             onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) {
+              if (
+                !membershipMenuPinnedRef.current &&
+                !event.currentTarget.contains(event.relatedTarget)
+              ) {
                 setIsMembershipMenuOpen(false);
               }
             }}
@@ -129,7 +164,11 @@ export function Header() {
               type="button"
               aria-expanded={isMembershipMenuOpen}
               aria-controls="membership-navigation"
-              onClick={() => setIsMembershipMenuOpen((open) => !open)}
+              onClick={() => {
+                membershipMenuPinnedRef.current =
+                  !membershipMenuPinnedRef.current;
+                setIsMembershipMenuOpen(membershipMenuPinnedRef.current);
+              }}
               className={`flex cursor-pointer list-none items-center gap-1.5 border-b py-2 text-[0.68rem] font-extrabold uppercase tracking-[0.065em] transition-colors marker:content-none hover:text-primary 2xl:text-[0.73rem] [&::-webkit-details-marker]:hidden ${
                 membershipActive
                   ? "border-primary text-primary"
@@ -156,7 +195,10 @@ export function Header() {
                     <Link
                       key={link.href}
                       href={link.href}
-                      onClick={() => setIsMembershipMenuOpen(false)}
+                      onClick={() => {
+                        membershipMenuPinnedRef.current = false;
+                        setIsMembershipMenuOpen(false);
+                      }}
                       className={`group/item flex min-h-[92px] gap-3 border p-4 transition hover:border-primary/40 hover:bg-primary/[0.07] ${
                         active
                           ? "border-primary/50 bg-primary/[0.08]"

@@ -18,7 +18,20 @@ test("regroupe les univers dans le menu abonnements", async ({ page }) => {
 
   const menu = page.getByRole("button", { name: "Abonnements", exact: true });
   await expect(menu).toBeVisible();
+
+  await menu.hover();
+  await expect(
+    page.getByRole("link", { name: /Salle musculation/i }),
+  ).toBeVisible();
+  await page.mouse.move(5, 500);
+  await expect(
+    page.getByRole("link", { name: /Salle musculation/i }),
+  ).toBeHidden();
+
   await menu.click();
+  await expect(menu).toHaveAttribute("aria-expanded", "true");
+  await page.mouse.move(5, 500);
+  await expect(menu).toHaveAttribute("aria-expanded", "true");
 
   await expect(
     page.getByRole("link", { name: /Salle musculation/i }),
@@ -29,6 +42,11 @@ test("regroupe les univers dans le menu abonnements", async ({ page }) => {
   await expect(
     page.getByRole("link", { name: /Recovery/i }).first(),
   ).toBeVisible();
+
+  await page.locator("main").click({ position: { x: 10, y: 10 } });
+  await expect(
+    page.getByRole("link", { name: /Salle musculation/i }),
+  ).toBeHidden();
 });
 
 test("integre l'analyse corporelle au parcours coaching", async ({ page }) => {
