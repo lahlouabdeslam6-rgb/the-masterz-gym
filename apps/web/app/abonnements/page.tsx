@@ -9,10 +9,12 @@ export default function AbonnementsPage() {
     <>
       <PageHero
         eyebrow="Abonnements"
-        title="Votre formule. Votre rythme. Votre progression."
-        description="Comparez les abonnements actifs et transmettez votre demande d’adhésion en quelques étapes."
+        title="Trouvez facilement l’abonnement qui vous convient."
+        description="Comparez les formules actives et choisissez celle qui correspond à votre rythme, à votre objectif et à votre durée d’engagement."
+        compact
+        align="center"
       />
-      <SectionShell tone="blue">
+      <SectionShell tone="blue" className="!py-10 sm:!py-12 lg:!py-14">
         <MembershipPlansList serviceType="gym" />
       </SectionShell>
       <SectionShell>

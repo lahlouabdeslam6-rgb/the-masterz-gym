@@ -5,7 +5,6 @@ import {
   ArrowUpRight,
   BatteryCharging,
   Beef,
-  CircleGauge,
   Clock3,
   Coffee,
   Dumbbell,
@@ -13,7 +12,6 @@ import {
   MapPin,
   Medal,
   Phone,
-  ScanLine,
   ShieldCheck,
   Sparkles,
   Star,
@@ -21,13 +19,7 @@ import {
   Users,
   Waves,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  Pill,
-  SectionTitle,
-  buttonStyles,
-} from "@masterz/ui";
+import { Card, CardContent, SectionTitle, buttonStyles } from "@masterz/ui";
 import { ClubMediaShowcase } from "@/components/ClubMediaShowcase";
 import { FinalCTA } from "@/components/FinalCTA";
 import { MembershipPlansList } from "@/components/MembershipPlansList";
@@ -47,17 +39,9 @@ const services = [
     icon: Target,
     title: "Coaching",
     description:
-      "Un cadre clair, une technique maîtrisée et un suivi aligné sur votre objectif.",
+      "Coaching, analyse corporelle, tests et suivi réunis dans le même parcours.",
     href: "/coaching",
     code: "02",
-  },
-  {
-    icon: ScanLine,
-    title: "Analyse corporelle",
-    description:
-      "Des indicateurs concrets pour comprendre votre point de départ et mesurer vos progrès.",
-    href: "/analyse-corporelle",
-    code: "03",
   },
   {
     icon: HeartPulse,
@@ -65,7 +49,7 @@ const services = [
     description:
       "Un cycle dédié à la récupération pour mieux enchaîner vos entraînements.",
     href: "/recovery",
-    code: "04",
+    code: "03",
   },
   {
     icon: Coffee,
@@ -73,7 +57,7 @@ const services = [
     description:
       "Une pause nutrition pensée pour accompagner votre rythme avant ou après la séance.",
     href: "/healthy-cafe",
-    code: "05",
+    code: "04",
   },
 ];
 
@@ -102,6 +86,20 @@ export default function HomePage() {
   return (
     <div className="w-full">
       <HeroSection />
+
+      <SectionShell
+        id="abonnements"
+        tone="blue"
+        className="!py-12 sm:!py-14 lg:!py-16"
+      >
+        <SectionTitle
+          eyebrow="Abonnements"
+          title="Trouvez la formule qui suit votre rythme."
+          subtitle="Comparez les offres actives et choisissez simplement votre point de départ."
+          className="!mb-8"
+        />
+        <MembershipPlansList />
+      </SectionShell>
 
       <SectionShell id="experience" tone="surface">
         <div className="grid items-center gap-12 lg:grid-cols-[0.88fr_1.12fr] lg:gap-20">
@@ -146,12 +144,12 @@ export default function HomePage() {
           title="Un parcours complet autour de votre objectif."
           subtitle="Des services complémentaires, réunis pour transformer l’effort en progression durable."
         />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {services.map(({ icon: Icon, ...service }, index) => (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {services.map(({ icon: Icon, ...service }) => (
             <Link
               key={service.href}
               href={service.href}
-              className={`group relative min-h-[285px] overflow-hidden rounded-lg border border-white/10 bg-[#080e13] p-7 transition duration-300 hover:-translate-y-1 hover:border-primary/50 ${index === 0 ? "lg:col-span-2" : ""}`}
+              className="group relative min-h-[285px] overflow-hidden rounded-lg border border-white/10 bg-[#080e13] p-7 transition duration-300 hover:-translate-y-1 hover:border-primary/50"
             >
               <div className="absolute right-0 top-0 h-32 w-32 bg-[radial-gradient(circle_at_top_right,rgba(0,212,255,.16),transparent_65%)]" />
               <div className="flex items-start justify-between gap-4">
@@ -177,24 +175,8 @@ export default function HomePage() {
         </div>
       </SectionShell>
 
-      <SectionShell tone="blue">
-        <div className="mb-12 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-          <SectionTitle
-            eyebrow="Abonnements"
-            title="Choisissez votre rythme. Nous cadrons la suite."
-            subtitle="Les offres affichées ci-dessous proviennent directement du système d’abonnements Masterz."
-            align="left"
-            className="mb-0 max-w-3xl"
-          />
-          <Pill className="self-start border-primary/25 text-primary lg:self-end">
-            <ShieldCheck className="h-4 w-4" /> Données API en temps réel
-          </Pill>
-        </div>
-        <MembershipPlansList />
-      </SectionShell>
-
       <SectionShell>
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-5">
           <SpotlightCard
             eyebrow="Coaching"
             title="La bonne méthode change tout."
@@ -202,30 +184,19 @@ export default function HomePage() {
             href="/coaching"
             icon={<Medal className="h-8 w-8" />}
           >
-            <div className="mt-8 grid grid-cols-3 gap-2">
-              {["Bilan", "Plan", "Suivi"].map((item, index) => (
-                <div key={item} className="border-t border-primary/30 pt-3">
-                  <span className="text-[0.62rem] font-black text-primary">
-                    0{index + 1}
-                  </span>
-                  <p className="mt-1 text-xs font-bold uppercase tracking-[0.08em] text-gray-300">
-                    {item}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </SpotlightCard>
-          <SpotlightCard
-            eyebrow="Analyse corporelle"
-            title="Mesurez ce que vous voulez améliorer."
-            text="Une lecture structurée de vos indicateurs pour ajuster l’entraînement et donner du sens à chaque étape."
-            href="/analyse-corporelle"
-            icon={<CircleGauge className="h-8 w-8" />}
-          >
-            <div className="mt-8 flex flex-wrap gap-2">
-              {["Composition", "Évolution", "Objectifs"].map((item) => (
-                <Pill key={item}>{item}</Pill>
-              ))}
+            <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {["Bilan", "Analyse corporelle", "Plan", "Suivi"].map(
+                (item, index) => (
+                  <div key={item} className="border-t border-primary/30 pt-3">
+                    <span className="text-[0.62rem] font-black text-primary">
+                      0{index + 1}
+                    </span>
+                    <p className="mt-1 text-xs font-bold uppercase tracking-[0.08em] text-gray-300">
+                      {item}
+                    </p>
+                  </div>
+                ),
+              )}
             </div>
           </SpotlightCard>
         </div>

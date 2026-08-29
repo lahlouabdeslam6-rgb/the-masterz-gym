@@ -38,8 +38,19 @@ export default function RecoveryPage() {
         eyebrow="Recovery"
         title="La récupération fait partie de l’entraînement."
         description="Chaleur, froid et compression : un cycle complet pensé pour mieux redescendre après l’effort."
+        compact
+        align="center"
       />
-      <SectionShell tone="blue">
+      <SectionShell tone="blue" className="!py-10 sm:!py-12 lg:!py-14">
+        <SectionTitle
+          eyebrow="Formules recovery"
+          title="Choisissez votre pack de récupération."
+          subtitle="Les offres actives configurées par l’équipe apparaissent ici automatiquement."
+          className="!mb-8"
+        />
+        <MembershipPlansList serviceType="recovery" />
+      </SectionShell>
+      <SectionShell>
         <SectionTitle
           eyebrow="Le cycle"
           title="Trois temps. Une récupération maîtrisée."
@@ -69,14 +80,6 @@ export default function RecoveryPage() {
             </article>
           ))}
         </div>
-      </SectionShell>
-      <SectionShell>
-        <SectionTitle
-          eyebrow="Formules recovery"
-          title="Sauna, bain froid et compression."
-          subtitle="Les offres recovery actives configurees par l'administration sont affichees ici."
-        />
-        <MembershipPlansList serviceType="recovery" />
       </SectionShell>
       <SectionShell>
         <div className="grid items-center gap-10 lg:grid-cols-[0.7fr_1.3fr]">

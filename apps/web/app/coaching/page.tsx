@@ -5,6 +5,7 @@ import {
   Dumbbell,
   Radar,
   Route,
+  ScanLine,
   ShieldCheck,
 } from "lucide-react";
 import { Pill, SectionTitle, buttonStyles } from "@masterz/ui";
@@ -42,10 +43,42 @@ export default function CoachingPage() {
       <PageHero
         eyebrow="Coaching"
         title="Votre potentiel mérite une vraie méthode."
-        description="Un accompagnement structuré pour mieux bouger, mieux vous entraîner et progresser avec des repères clairs."
+        description="Un accompagnement structuré avec analyse corporelle, tests et suivi pour progresser avec des repères clairs."
         image="/media/masterz-hero.png"
+        compact
+        align="center"
       />
+      <SectionShell tone="blue" className="!py-10 sm:!py-12 lg:!py-14">
+        <SectionTitle
+          eyebrow="Formules coaching"
+          title="Choisissez votre accompagnement."
+          subtitle="Chaque formule coaching active inclut l’analyse corporelle dans le parcours de suivi."
+          className="!mb-8"
+        />
+        <MembershipPlansList serviceType="coaching" />
+      </SectionShell>
       <SectionShell>
+        <div
+          id="analyse-corporelle"
+          className="mb-10 grid items-center gap-5 rounded-lg border border-primary/25 bg-primary/[0.06] p-6 sm:grid-cols-[auto_1fr] sm:p-8"
+        >
+          <span className="flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary">
+            <ScanLine className="h-7 w-7" />
+          </span>
+          <div>
+            <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-primary">
+              Inclus avec le coaching
+            </p>
+            <h2 className="mt-2 font-display text-2xl font-black uppercase text-white sm:text-3xl">
+              Analyse corporelle et suivi des résultats
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-400">
+              Le membre qui dispose d’un abonnement coaching actif profite de
+              l’analyse corporelle dans le même parcours, sans créer une offre
+              séparée.
+            </p>
+          </div>
+        </div>
         <SectionTitle
           eyebrow="La méthode"
           title="Quatre étapes. Une direction claire."
@@ -70,14 +103,6 @@ export default function CoachingPage() {
             </article>
           ))}
         </div>
-      </SectionShell>
-      <SectionShell tone="blue">
-        <SectionTitle
-          eyebrow="Formules coaching"
-          title="Choisissez votre accompagnement."
-          subtitle="Les offres actives ajoutees par l'administration apparaissent ici automatiquement."
-        />
-        <MembershipPlansList serviceType="coaching" />
       </SectionShell>
       <SectionShell tone="surface">
         <div className="grid items-center gap-10 lg:grid-cols-2">

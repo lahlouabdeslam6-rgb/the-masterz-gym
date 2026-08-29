@@ -11,7 +11,7 @@ const exploreLinks = [
 ];
 
 const memberLinks = [
-  ["Analyse corporelle", "/analyse-corporelle"],
+  ["Analyse corporelle (Coaching)", "/coaching#analyse-corporelle"],
   ["Healthy Café", "/healthy-cafe"],
   ["Activation membre", "/activation-membre"],
   ["Connexion", "/connexion"],

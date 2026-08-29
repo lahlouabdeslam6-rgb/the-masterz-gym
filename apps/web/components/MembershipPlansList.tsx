@@ -45,7 +45,8 @@ const planContent: Record<
   coaching: {
     features: [
       "Accompagnement par un coach",
-      "Tests, programme et suivi personnalisé",
+      "Analyse corporelle et tests inclus",
+      "Programme et suivi personnalisé",
       "Progression mesurée dans le temps",
     ],
     buttonLabel: "Demander",
