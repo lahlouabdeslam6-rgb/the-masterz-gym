@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { ArrowUpRight, MapPin, MessageCircle, Phone } from "lucide-react";
+import {
+  ArrowUpRight,
+  Facebook,
+  Instagram,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+} from "lucide-react";
+import { contactLinks } from "@/lib/contact-links";
 import { BrandLogo } from "./BrandLogo";
 
 const exploreLinks = [
@@ -46,10 +55,15 @@ export function Footer() {
               Nous trouver
             </h4>
             <div className="space-y-4 text-sm leading-6">
-              <p className="flex items-start gap-3">
+              <a
+                href={contactLinks.googleMaps}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 transition hover:text-primary"
+              >
                 <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" /> Av.
                 Said Daoudi, Kénitra, Maroc
-              </p>
+              </a>
               <a
                 href="tel:+212764536280"
                 className="flex items-center gap-3 transition hover:text-primary"
@@ -62,6 +76,23 @@ export function Footer() {
               >
                 Contact <ArrowUpRight className="h-4 w-4" />
               </Link>
+              <div className="flex items-center gap-3 pt-1">
+                <FooterSocialLink
+                  href={contactLinks.instagram}
+                  label="Instagram Masterz Gym"
+                  icon={Instagram}
+                />
+                <FooterSocialLink
+                  href={contactLinks.facebook}
+                  label="Facebook Masterz Gym"
+                  icon={Facebook}
+                />
+                <FooterSocialLink
+                  href={contactLinks.email}
+                  label="Email Masterz Gym"
+                  icon={Mail}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -74,6 +105,30 @@ export function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+function FooterSocialLink({
+  href,
+  label,
+  icon: Icon,
+}: {
+  href: string;
+  label: string;
+  icon: typeof Instagram;
+}) {
+  const isEmail = href.startsWith("mailto:");
+
+  return (
+    <a
+      href={href}
+      target={isEmail ? undefined : "_blank"}
+      rel={isEmail ? undefined : "noopener noreferrer"}
+      aria-label={label}
+      className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-gray-400 transition hover:border-primary hover:bg-primary/10 hover:text-primary"
+    >
+      <Icon className="h-5 w-5" />
+    </a>
   );
 }
 

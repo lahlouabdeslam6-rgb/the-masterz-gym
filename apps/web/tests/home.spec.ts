@@ -59,3 +59,23 @@ test("integre l'analyse corporelle au parcours coaching", async ({ page }) => {
     }),
   ).toBeVisible();
 });
+
+test("affiche la carte et les contacts officiels", async ({ page }) => {
+  await page.goto("/contact");
+
+  await expect(page.getByTitle("Carte The Masterz Gym")).toBeAttached();
+  await expect(
+    page.getByRole("link", {
+      name: "Ouvrir The Masterz Gym dans Google Maps",
+    }),
+  ).toHaveAttribute("href", /google\.com\/maps\/place\/MasTerZ/);
+  await expect(
+    page.getByRole("link", { name: "Ouvrir Instagram" }),
+  ).toHaveAttribute("href", /instagram\.com\/the_masterz_gym/);
+  await expect(
+    page.getByRole("link", { name: "Ouvrir Facebook" }),
+  ).toHaveAttribute("href", /facebook\.com\/themasterzgym/);
+  await expect(
+    page.getByRole("link", { name: "Ouvrir Email" }),
+  ).toHaveAttribute("href", "mailto:masterzgym2023@gmail.com");
+});
