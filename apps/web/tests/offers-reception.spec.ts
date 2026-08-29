@@ -365,6 +365,7 @@ test("la reception accepte clairement une nouvelle demande", async ({
   };
   let applicationStatus = "pending";
   let reviewBody: Record<string, unknown> | null = null;
+  let paymentBody: Record<string, unknown> | null = null;
   const applicationId = "00000000-0000-0000-0000-000000000131";
 
   function application() {
@@ -399,6 +400,7 @@ test("la reception accepte clairement une nouvelle demande", async ({
     if (url.pathname === "/api/v1/membership-applications") {
       body = [application()];
     }
+    if (url.pathname === "/api/v1/membership-plans") body = plans;
     if (
       url.pathname ===
         `/api/v1/membership-applications/${applicationId}/review` &&
@@ -407,6 +409,37 @@ test("la reception accepte clairement une nouvelle demande", async ({
       reviewBody = route.request().postDataJSON();
       applicationStatus = "approved";
       body = application();
+    }
+    if (
+      url.pathname === "/api/v1/payments/memberships" &&
+      route.request().method() === "POST"
+    ) {
+      paymentBody = route.request().postDataJSON();
+      applicationStatus = "converted_to_member";
+      body = {
+        receipt_id: "00000000-0000-0000-0000-000000000132",
+        receipt_number: "TMG-20260829-TEST",
+        issued_at: "2026-08-29T10:00:00Z",
+        payment_id: "00000000-0000-0000-0000-000000000133",
+        member_id: "00000000-0000-0000-0000-000000000134",
+        member_name: "Nouveau Client",
+        member_number: "TMG-2026-TEST",
+        subscription_id: "00000000-0000-0000-0000-000000000135",
+        subscription_status: "active",
+        plan_name: plans[1].name,
+        service_type: plans[1].service_type,
+        total_sessions: null,
+        remaining_sessions: null,
+        starts_on: "2026-08-29",
+        ends_on: "2026-11-28",
+        amount: plans[1].price,
+        currency: plans[1].currency,
+        payment_method: "cash",
+        bank_transfer_reference: null,
+        recorded_by_id: receptionist.id,
+        recorded_by_name: receptionist.full_name,
+        paid_at: "2026-08-29T10:00:00Z",
+      };
     }
     await route.fulfill({
       status: 200,
@@ -443,6 +476,18 @@ test("la reception accepte clairement une nouvelle demande", async ({
   await expect(
     page.getByRole("button", { name: /Encaisser et générer le reçu/ }),
   ).toBeVisible();
+  const finalPlan = page.getByLabel("Formule finale a valider");
+  await expect(finalPlan).toHaveValue(plans[0].id);
+  await finalPlan.selectOption(plans[1].id);
+  await expect(page.getByText("900.00 MAD", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: /Encaisser et générer le reçu/ })
+    .click();
+  expect(paymentBody).toMatchObject({
+    application_id: applicationId,
+    plan_id: plans[1].id,
+    method: "cash",
+  });
   await expect(page.getByTestId("navigation-badge-applications")).toHaveCount(
     0,
   );

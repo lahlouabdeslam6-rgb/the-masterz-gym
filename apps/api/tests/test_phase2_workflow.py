@@ -1060,6 +1060,9 @@ def test_application_payment_attendance_and_audit_workflow(
     plan = next(
         item for item in plans if item["duration_months"] == 1 and item["service_type"] == "gym"
     )
+    final_plan = next(
+        item for item in plans if item["duration_months"] == 3 and item["service_type"] == "gym"
+    )
     phone = f"+21267{uuid.uuid4().int % 100_000_000:08d}"
 
     submitted = client.post(
@@ -1091,6 +1094,7 @@ def test_application_payment_attendance_and_audit_workflow(
     payment_payload = {
         "idempotency_key": idempotency_key,
         "application_id": application_id,
+        "plan_id": final_plan["id"],
         "method": "cash",
     }
     paid = client.post(
@@ -1100,8 +1104,9 @@ def test_application_payment_attendance_and_audit_workflow(
     )
     assert paid.status_code == 201, paid.text
     receipt = paid.json()
-    assert receipt["amount"] == "300.00"
+    assert receipt["amount"] == final_plan["price"]
     assert receipt["currency"] == "MAD"
+    assert receipt["plan_name"] == final_plan["name"]
     assert receipt["receipt_number"].startswith("TMG-")
 
     duplicate = client.post(

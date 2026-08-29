@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Check, CreditCard, Info, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, CreditCard, Info, UserRoundSearch, X } from "lucide-react";
 import { Alert, Button, Input, Pill } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
 import { notifyNavigationBadgesChanged } from "@/lib/navigation-badges";
 import {
   type Application,
+  type Plan,
   type Receipt,
   Field,
   EmptyState,
@@ -48,10 +49,29 @@ export function ApplicationManager({
     {},
   );
   const [startDates, setStartDates] = useState<Record<string, string>>({});
+  const [selectedPlans, setSelectedPlans] = useState<Record<string, string>>(
+    {},
+  );
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const headers = authorizationHeaders(session.accessToken);
+
+  useEffect(() => {
+    let active = true;
+    void api
+      .GET("/api/v1/membership-plans", {
+        params: { query: { active_only: true } },
+      })
+      .then((result) => {
+        if (active) setPlans(result.data ?? []);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function review(
     applicationId: string,
@@ -100,6 +120,7 @@ export function ApplicationManager({
       body: {
         idempotency_key: crypto.randomUUID(),
         application_id: applicationId,
+        plan_id: selectedPlans[applicationId] ?? null,
         starts_on: startDates[applicationId] ?? todayInputValue(),
         method,
         bank_transfer_reference: null,
@@ -130,6 +151,22 @@ export function ApplicationManager({
       ) : (
         applications.map((application) => {
           const method = methods[application.id] ?? "cash";
+          const selectedPlanId =
+            selectedPlans[application.id] ?? application.selected_plan_id;
+          const selectedPlan = plans.find((plan) => plan.id === selectedPlanId);
+          const requestedPlan = plans.find(
+            (plan) => plan.id === application.selected_plan_id,
+          );
+          const keepsRequestedPromotion =
+            selectedPlanId === application.selected_plan_id &&
+            application.promotion_price !== null;
+          const finalPrice = keepsRequestedPromotion
+            ? application.promotion_price
+            : selectedPlan?.price;
+          const finalCurrency = keepsRequestedPromotion
+            ? application.promotion_currency
+            : selectedPlan?.currency;
+          const isExpanded = expandedId === application.id;
           return (
             <article
               key={application.id}
@@ -173,6 +210,65 @@ export function ApplicationManager({
                 </div>
               ) : null}
 
+              <button
+                type="button"
+                aria-expanded={isExpanded}
+                onClick={() =>
+                  setExpandedId((current) =>
+                    current === application.id ? null : application.id,
+                  )
+                }
+                className="mt-4 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-primary transition hover:text-white"
+              >
+                <UserRoundSearch className="h-4 w-4" />
+                {isExpanded
+                  ? "Masquer les informations"
+                  : "Voir les informations"}
+              </button>
+
+              {isExpanded ? (
+                <dl className="mt-4 grid gap-3 rounded-sm border border-white/10 bg-black/25 p-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                  <ApplicationInfo
+                    label="Nom complet"
+                    value={application.full_name}
+                  />
+                  <ApplicationInfo
+                    label="Telephone"
+                    value={application.phone}
+                  />
+                  <ApplicationInfo
+                    label="Email"
+                    value={application.email ?? "Non renseigne"}
+                  />
+                  <ApplicationInfo
+                    label="Date de naissance"
+                    value={
+                      application.date_of_birth
+                        ? formatDate(application.date_of_birth)
+                        : "Non renseignee"
+                    }
+                  />
+                  <ApplicationInfo
+                    label="Genre"
+                    value={application.gender === "female" ? "Femme" : "Homme"}
+                  />
+                  <ApplicationInfo
+                    label="Formule demandee"
+                    value={requestedPlan?.name ?? "Chargement..."}
+                  />
+                  <ApplicationInfo
+                    label="Objectif"
+                    value={application.fitness_objective ?? "Non renseigne"}
+                    wide
+                  />
+                  <ApplicationInfo
+                    label="Message"
+                    value={application.message ?? "Aucun message"}
+                    wide
+                  />
+                </dl>
+              ) : null}
+
               {application.status === "pending" ||
               application.status === "more_information_required" ? (
                 <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
@@ -202,7 +298,7 @@ export function ApplicationManager({
                       }
                       disabled={busyId === application.id}
                     >
-                      <Info className="h-4 w-4" /> Plus d’infos
+                      <Info className="h-4 w-4" /> Demander des infos
                     </Button>
                     <Button
                       size="sm"
@@ -228,6 +324,38 @@ export function ApplicationManager({
                     </p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Formule finale a valider">
+                      <select
+                        className={selectClass}
+                        value={selectedPlanId}
+                        onChange={(event) =>
+                          setSelectedPlans((current) => ({
+                            ...current,
+                            [application.id]: event.target.value,
+                          }))
+                        }
+                      >
+                        {plans.map((plan) => (
+                          <option key={plan.id} value={plan.id}>
+                            [{serviceTypeLabel(plan.service_type)}] {plan.name}{" "}
+                            · {plan.price} {plan.currency}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="block pt-1 text-[0.68rem] normal-case tracking-normal text-gray-500">
+                        Choix initial : {requestedPlan?.name ?? "Chargement..."}
+                      </span>
+                    </Field>
+                    <div className="rounded-sm border border-primary/20 bg-primary/[0.06] p-4">
+                      <p className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-primary">
+                        Montant a encaisser
+                      </p>
+                      <p className="mt-2 text-xl font-black text-white">
+                        {finalPrice
+                          ? `${finalPrice} ${finalCurrency ?? "MAD"}`
+                          : "Chargement..."}
+                      </p>
+                    </div>
                     <Field label="Mode de paiement">
                       <select
                         className={selectClass}
@@ -273,6 +401,33 @@ export function ApplicationManager({
       )}
     </div>
   );
+}
+
+function ApplicationInfo({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  wide?: boolean;
+}) {
+  return (
+    <div className={wide ? "sm:col-span-2 lg:col-span-3" : ""}>
+      <dt className="text-[0.65rem] font-black uppercase tracking-[0.12em] text-gray-500">
+        {label}
+      </dt>
+      <dd className="mt-1 leading-6 text-white">{value}</dd>
+    </div>
+  );
+}
+
+function serviceTypeLabel(serviceType: Plan["service_type"]) {
+  return {
+    gym: "Salle musculation",
+    coaching: "Coaching",
+    recovery: "Recovery",
+  }[serviceType];
 }
 
 export function ReceiptSummary({ receipt }: { receipt: Receipt }) {

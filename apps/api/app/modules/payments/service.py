@@ -48,6 +48,7 @@ class PaymentService:
             return self.printable_receipt(receipt.id)
 
         application: MembershipApplication | None = None
+        application_plan_changed = False
         if data.application_id:
             application = self.applications.get(data.application_id)
             if not application:
@@ -62,7 +63,10 @@ class PaymentService:
                     "application_not_approved",
                     "La demande doit être approuvée avant paiement.",
                 )
-            plan = self.memberships.get_plan(application.selected_plan_id)
+            original_plan_id = application.selected_plan_id
+            final_plan_id = data.plan_id or original_plan_id
+            plan = self.memberships.get_plan(final_plan_id)
+            application_plan_changed = final_plan_id != original_plan_id
             member = self._member_from_application(application)
         else:
             member = self.users.get(data.member_id) if data.member_id else None
@@ -86,12 +90,14 @@ class PaymentService:
 
         charged_price = (
             application.promotion_price
-            if application and application.promotion_price is not None
+            if application
+            and not application_plan_changed
+            and application.promotion_price is not None
             else plan.price
         )
         charged_plan_name = (
             f"{plan.name} · {application.promotion_title}"
-            if application and application.promotion_title
+            if application and not application_plan_changed and application.promotion_title
             else plan.name
         )
 
@@ -153,6 +159,13 @@ class PaymentService:
             )
         )
         if application:
+            if application_plan_changed:
+                application.selected_plan_id = plan.id
+                application.promotion_id = None
+                application.promotion_title = None
+                application.promotion_price = None
+                application.promotion_currency = None
+                application.promotion_participant_count = None
             application.status = ApplicationStatus.CONVERTED_TO_MEMBER
             application.converted_member_id = member.id
         self.session.flush()
@@ -199,6 +212,8 @@ class PaymentService:
                 new_value={
                     "status": ApplicationStatus.CONVERTED_TO_MEMBER.value,
                     "member_id": str(member.id),
+                    "plan_id": str(plan.id),
+                    "plan_name": plan.name,
                 },
             )
         return self.printable_receipt(receipt.id)
