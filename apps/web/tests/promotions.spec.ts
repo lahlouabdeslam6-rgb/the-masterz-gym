@@ -187,3 +187,27 @@ test("affiche l'offre au visiteur et la joint a sa demande", async ({
     promotion_id: promotion.id,
   });
 });
+
+test("permet au visiteur de masquer le bandeau promotionnel", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/promotions/featured", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify(promotion),
+    });
+  });
+
+  await page.goto("/");
+  await expect(page.getByTestId("top-promotion-banner")).toBeVisible();
+
+  await page
+    .getByRole("button", { name: "Fermer l'offre promotionnelle" })
+    .click();
+
+  await expect(page.getByTestId("top-promotion-banner")).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByTestId("top-promotion-banner")).toHaveCount(0);
+});
