@@ -2,27 +2,23 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ArrowRight, Megaphone, X, Zap } from "lucide-react";
 import type { components } from "@masterz/api-client";
 import { api } from "@/lib/api";
 
 type Promotion = components["schemas"]["PromotionRead"];
 
-const dismissedPromotionKey = "masterz.dismissed-featured-promotion";
-
 export function TopBanner() {
+  const pathname = usePathname();
   const [promotion, setPromotion] = useState<Promotion | null>(null);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissedOnPath, setDismissedOnPath] = useState<string | null>(null);
+  const dismissed = dismissedOnPath === pathname;
 
   useEffect(() => {
     let active = true;
     void api.GET("/api/v1/promotions/featured").then(({ data }) => {
-      if (!active || !data || Array.isArray(data)) return;
-      if (sessionStorage.getItem(dismissedPromotionKey) === data.id) {
-        setDismissed(true);
-        return;
-      }
-      setPromotion(data);
+      if (active && data && !Array.isArray(data)) setPromotion(data);
     });
     return () => {
       active = false;
@@ -55,10 +51,7 @@ export function TopBanner() {
           type="button"
           aria-label="Fermer l'offre promotionnelle"
           className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black sm:right-4"
-          onClick={() => {
-            sessionStorage.setItem(dismissedPromotionKey, promotion.id);
-            setDismissed(true);
-          }}
+          onClick={() => setDismissedOnPath(pathname)}
         >
           <X className="h-5 w-5" aria-hidden="true" />
         </button>

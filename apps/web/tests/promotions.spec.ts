@@ -208,6 +208,7 @@ test("permet au visiteur de masquer le bandeau promotionnel", async ({
     .click();
 
   await expect(page.getByTestId("top-promotion-banner")).toHaveCount(0);
-  await page.reload();
-  await expect(page.getByTestId("top-promotion-banner")).toHaveCount(0);
+  await page.getByRole("link", { name: "Store", exact: true }).first().click();
+  await expect(page).toHaveURL(/\/store$/);
+  await expect(page.getByTestId("top-promotion-banner")).toBeVisible();
 });
