@@ -308,21 +308,19 @@ function KpiCard({
         ? "text-[#ffd166]"
         : "text-gray-500";
   return (
-    <Card className="relative overflow-hidden p-5">
+    <Card data-testid="admin-kpi-card" className="relative overflow-hidden p-5">
       <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/[0.06] blur-xl" />
-      <div className="relative flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-gray-500">
-            {label}
-          </p>
-          <p className="mt-4 text-3xl font-black tracking-tight text-white">
-            {value}
-          </p>
-        </div>
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-primary">
-          <Icon className="h-5 w-5" />
-        </span>
+      <div className="relative min-w-0 pr-14">
+        <p className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-gray-500">
+          {label}
+        </p>
+        <p className="mt-4 break-words text-3xl font-black leading-none tracking-tight text-white">
+          {value}
+        </p>
       </div>
+      <span className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-sm bg-primary/10 text-primary">
+        <Icon className="h-5 w-5" />
+      </span>
       <p className={`relative mt-4 text-xs font-bold ${detailColor}`}>
         {detail}
       </p>

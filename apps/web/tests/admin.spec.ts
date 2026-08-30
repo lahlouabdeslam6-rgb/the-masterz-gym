@@ -582,6 +582,20 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Etat des abonnements" }),
   ).toBeVisible();
+  const revenueCard = page
+    .getByTestId("admin-kpi-card")
+    .filter({ hasText: "Revenu sur 6 mois" });
+  const revenueCardBox = await revenueCard.boundingBox();
+  const revenueIconBox = await revenueCard
+    .locator("span")
+    .first()
+    .boundingBox();
+  expect(revenueCardBox).not.toBeNull();
+  expect(revenueIconBox).not.toBeNull();
+  expect(revenueIconBox!.x).toBeGreaterThanOrEqual(revenueCardBox!.x);
+  expect(revenueIconBox!.x + revenueIconBox!.width).toBeLessThanOrEqual(
+    revenueCardBox!.x + revenueCardBox!.width,
+  );
   const navigation = page.getByRole("navigation", {
     name: "Navigation administration",
   });
