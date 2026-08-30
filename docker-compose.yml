@@ -35,6 +35,7 @@ services:
       API_HOST: 0.0.0.0
       API_PORT: 8000
       STORE_MEDIA_ROOT: /data/store-products
+      CAFE_MEDIA_ROOT: /data/cafe-menu
       MEMBER_PHOTO_ROOT: /data/member-photos
       COACHING_MEDIA_ROOT: /data/coaching-media
     ports:
@@ -42,6 +43,7 @@ services:
     volumes:
       - ./apps/api:/app
       - store_media:/data/store-products
+      - cafe_media:/data/cafe-menu
       - member_photos:/data/member-photos
       - coaching_media:/data/coaching-media
     depends_on:
@@ -84,5 +86,6 @@ volumes:
   web_next:
   web_next_dev:
   store_media:
+  cafe_media:
   member_photos:
   coaching_media:

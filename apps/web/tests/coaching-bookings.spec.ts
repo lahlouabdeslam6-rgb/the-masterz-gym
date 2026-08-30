@@ -1,5 +1,21 @@
 import { expect, test } from "@playwright/test";
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+function dateAtOffset(days: number, hour: number) {
+  const date = new Date(Date.now() + days * DAY_IN_MS);
+  date.setHours(hour, 0, 0, 0);
+  return date;
+}
+
+function toDateTimeLocal(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+const availabilityStart = dateAtOffset(7, 9);
+const availabilityEnd = new Date(availabilityStart.getTime() + 3 * 60 * 60_000);
+
 const coach = {
   id: "00000000-0000-0000-0000-000000000501",
   full_name: "Coach Planning",
@@ -56,8 +72,8 @@ const availability = {
   id: "00000000-0000-0000-0000-000000000505",
   coach_id: coach.id,
   coach_name: coach.full_name,
-  starts_at: "2026-08-30T09:00:00Z",
-  ends_at: "2026-08-30T12:00:00Z",
+  starts_at: availabilityStart.toISOString(),
+  ends_at: availabilityEnd.toISOString(),
   session_duration_minutes: 60,
   note: "Seance individuelle",
   is_active: true,
@@ -79,7 +95,7 @@ function booking(status: "requested" | "confirmed" = "requested") {
     member_name: member.full_name,
     member_number: member.member_number,
     starts_at: availability.starts_at,
-    ends_at: "2026-08-30T10:00:00Z",
+    ends_at: new Date(availabilityStart.getTime() + 60 * 60_000).toISOString(),
     status,
     member_note: "Travail de force",
     decision_note: status === "confirmed" ? "Confirmee" : null,
@@ -108,11 +124,12 @@ async function storeSession(
 test("coach ajoute un creneau et confirme explicitement un conflit", async ({
   page,
 }) => {
+  const pastStart = dateAtOffset(-2, 9);
   const pastAvailability = {
     ...availability,
     id: "00000000-0000-0000-0000-000000000509",
-    starts_at: "2026-08-25T09:00:00Z",
-    ends_at: "2026-08-25T12:00:00Z",
+    starts_at: pastStart.toISOString(),
+    ends_at: new Date(pastStart.getTime() + 3 * 60 * 60_000).toISOString(),
     requested_booking_count: 0,
     confirmed_booking_count: 0,
   };
@@ -120,8 +137,8 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
     ...booking("confirmed"),
     id: "00000000-0000-0000-0000-000000000510",
     availability_id: pastAvailability.id,
-    starts_at: "2026-08-25T09:00:00Z",
-    ends_at: "2026-08-25T10:00:00Z",
+    starts_at: pastStart.toISOString(),
+    ends_at: new Date(pastStart.getTime() + 60 * 60_000).toISOString(),
     status: "completed" as const,
     decision_note: "Seance terminee",
   };
@@ -247,7 +264,10 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
   await page
     .getByRole("button", { name: "Planning actuel", exact: true })
     .click();
-  await page.getByLabel("Debut du creneau coaching").fill("2026-08-31T14:00");
+  const newPlanningStart = dateAtOffset(8, 14);
+  await page
+    .getByLabel("Debut du creneau coaching")
+    .fill(toDateTimeLocal(newPlanningStart));
   await page.getByLabel("Duree totale du planning coaching").fill("1");
   await page.getByLabel("Duree d'une seance coaching").fill("60");
   await expect(

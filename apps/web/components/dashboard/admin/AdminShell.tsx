@@ -9,6 +9,7 @@ import {
   Bell,
   ChevronRight,
   ClipboardCheck,
+  Coffee,
   CreditCard,
   Dumbbell,
   FileClock,
@@ -80,6 +81,7 @@ const navigation: AdminNavigationItem[] = [
   },
   { label: "Entrees", href: "/espace/admin/acces", icon: ShieldCheck },
   { label: "Recovery", href: "/espace/admin/recovery", icon: Waves },
+  { label: "Healthy Cafe", href: "/espace/admin/cafe", icon: Coffee },
   {
     label: "Reclamations",
     href: "/espace/admin/reclamations",

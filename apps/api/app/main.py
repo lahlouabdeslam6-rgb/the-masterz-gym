@@ -8,6 +8,7 @@ from app.core.config import settings
 
 def create_app() -> FastAPI:
     settings.store_media_root.mkdir(parents=True, exist_ok=True)
+    settings.cafe_media_root.mkdir(parents=True, exist_ok=True)
     settings.member_photo_root.mkdir(parents=True, exist_ok=True)
     settings.coaching_media_root.mkdir(parents=True, exist_ok=True)
     application = FastAPI(
@@ -17,6 +18,11 @@ def create_app() -> FastAPI:
             "Phase 2 du monolithe modulaire The Masterz Gym : authentification, membres, "
             "abonnements, paiements, présences et audit."
         ),
+    )
+    application.mount(
+        "/media/cafe-menu",
+        StaticFiles(directory=settings.cafe_media_root),
+        name="cafe-menu-images",
     )
     application.mount(
         "/media/store-products",

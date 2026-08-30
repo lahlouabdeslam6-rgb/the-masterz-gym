@@ -191,6 +191,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cafe/menu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Public Menu */
+        get: operations["list_public_menu_api_v1_cafe_menu_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cafe/menu-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Menu */
+        get: operations["list_admin_menu_api_v1_cafe_menu_items_get"];
+        put?: never;
+        /** Create Menu Item */
+        post: operations["create_menu_item_api_v1_cafe_menu_items_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cafe/menu-items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Menu Item */
+        patch: operations["update_menu_item_api_v1_cafe_menu_items__item_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/cafe/menu-media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Menu Media */
+        post: operations["upload_menu_media_api_v1_cafe_menu_media_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me": {
         parameters: {
             query?: never;
@@ -1545,10 +1614,105 @@ export interface components {
             /** Photo */
             photo: string;
         };
+        /** Body_upload_menu_media_api_v1_cafe_menu_media_post */
+        Body_upload_menu_media_api_v1_cafe_menu_media_post: {
+            /** Media */
+            media: string;
+        };
         /** Body_upload_product_media_api_v1_store_product_media_post */
         Body_upload_product_media_api_v1_store_product_media_post: {
             /** Media */
             media: string;
+        };
+        /** CafeMenuItemCreate */
+        CafeMenuItemCreate: {
+            /** Name */
+            name: string;
+            /** Category */
+            category: string;
+            /** Description */
+            description?: string | null;
+            /** Image Url */
+            image_url?: string | null;
+            /** Price */
+            price: number | string;
+            /**
+             * Currency
+             * @default MAD
+             */
+            currency: string;
+            /**
+             * Display Order
+             * @default 0
+             */
+            display_order: number;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+        };
+        /** CafeMenuItemRead */
+        CafeMenuItemRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Category */
+            category: string;
+            /** Description */
+            description: string | null;
+            /** Image Url */
+            image_url: string | null;
+            /** Price */
+            price: string;
+            /** Currency */
+            currency: string;
+            /** Display Order */
+            display_order: number;
+            /** Is Active */
+            is_active: boolean;
+            /** Created By Id */
+            created_by_id: string | null;
+            /** Updated By Id */
+            updated_by_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CafeMenuItemUpdate */
+        CafeMenuItemUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Image Url */
+            image_url?: string | null;
+            /** Price */
+            price?: number | string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Display Order */
+            display_order?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
+        /** CafeMenuMediaRead */
+        CafeMenuMediaRead: {
+            /** Media Url */
+            media_url: string;
         };
         /** CoachAvailabilityCreate */
         CoachAvailabilityCreate: {
@@ -3792,6 +3956,147 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_public_menu_api_v1_cafe_menu_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CafeMenuItemRead"][];
+                };
+            };
+        };
+    };
+    list_admin_menu_api_v1_cafe_menu_items_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CafeMenuItemRead"][];
+                };
+            };
+        };
+    };
+    create_menu_item_api_v1_cafe_menu_items_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CafeMenuItemCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CafeMenuItemRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_menu_item_api_v1_cafe_menu_items__item_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CafeMenuItemUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CafeMenuItemRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_menu_media_api_v1_cafe_menu_media_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_menu_media_api_v1_cafe_menu_media_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CafeMenuMediaRead"];
                 };
             };
             /** @description Validation Error */

@@ -6,6 +6,7 @@ import {
   CalendarDays,
   CircleDollarSign,
   ClipboardCheck,
+  Coffee,
   Dumbbell,
   Footprints,
   MessageCircleMore,
@@ -25,6 +26,7 @@ import {
   AdminUserManager,
 } from "../AdminManagement";
 import { ApplicationManager } from "../ApplicationManager";
+import { CafeMenuManager } from "../CafeMenuManager";
 import { CoachingManager } from "../CoachingManager";
 import { StaffCoachingAssignmentRequests } from "../CoachingAssignmentRequests";
 import { CoachingScheduleManager } from "../CoachingScheduleManager";
@@ -422,6 +424,24 @@ export function AdminStoreSection() {
   );
 }
 
+export function AdminCafeSection() {
+  const { session } = useAdminSession();
+  return (
+    <AdminPage
+      eyebrow="Carte et tarifs"
+      title="Healthy Cafe"
+      description="Ajoutez les repas, leurs photos et leurs prix. La carte publique se met a jour automatiquement, sans reservation en ligne."
+    >
+      <Panel
+        title="Gestion de la carte"
+        subtitle="L'Admin choisit tout le contenu. Aucun repas ni prix n'est impose par le site."
+      >
+        <CafeMenuManager session={session} />
+      </Panel>
+    </AdminPage>
+  );
+}
+
 export function AdminSettingsSection() {
   const { session } = useAdminSession();
   const [settings, setSettings] = useState<Setting[]>([]);
@@ -589,6 +609,7 @@ type AuditCategory =
   | "payments"
   | "coaching"
   | "recovery"
+  | "cafe"
   | "store"
   | "access"
   | "administration";
@@ -602,6 +623,7 @@ const auditCategories: Array<{
   { id: "payments", label: "Paiements", icon: CircleDollarSign },
   { id: "coaching", label: "Coaching", icon: Dumbbell },
   { id: "recovery", label: "Recovery", icon: Waves },
+  { id: "cafe", label: "Healthy Cafe", icon: Coffee },
   { id: "store", label: "Store", icon: Package },
   { id: "access", label: "Entrees", icon: Footprints },
   { id: "administration", label: "Gestion", icon: Settings2 },
@@ -636,6 +658,8 @@ const auditTitles: Record<string, string> = {
   "coaching.objective_updated": "Objectif coaching modifie",
   "coaching.assessment_recorded": "Test coaching enregistre",
   "recovery.visit_recorded": "Passage Recovery enregistre",
+  "cafe.menu_item.created": "Repas Healthy Cafe ajoute",
+  "cafe.menu_item.updated": "Carte Healthy Cafe modifiee",
   "store.product.created": "Produit Store ajoute",
   "store.product.updated": "Produit Store modifie",
   "store.reservation.created": "Produit reserve par un client",
@@ -693,6 +717,7 @@ function auditCategory(action: string): AuditCategory {
     return "payments";
   if (action.startsWith("coaching.")) return "coaching";
   if (action.startsWith("recovery.")) return "recovery";
+  if (action.startsWith("cafe.")) return "cafe";
   if (action.startsWith("store.")) return "store";
   if (action.startsWith("attendance.")) return "access";
   return "administration";
@@ -743,6 +768,7 @@ function auditEntity(entityType: string) {
       coaching_assessment: "Test coaching",
       coaching_client_profile: "Suivi coaching",
       recovery_visit: "Passage Recovery",
+      cafe_menu_item: "Article Healthy Cafe",
       store_product: "Produit Store",
       store_reservation: "Reservation Store",
       store_sale: "Vente Store",
