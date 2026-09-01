@@ -5,10 +5,12 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.modules.clubs.constants import SALLE_1_ID
 from app.shared.enums import AccountStatus, Gender, ServiceType, SubscriptionStatus
 
 
 class MembershipPlanBase(BaseModel):
+    club_id: uuid.UUID = SALLE_1_ID
     name: str = Field(min_length=2, max_length=120)
     duration_months: int = Field(ge=1, le=120)
     price: Decimal = Field(gt=0, decimal_places=2)
@@ -53,6 +55,7 @@ class SubscriptionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    club_id: uuid.UUID
     member_id: uuid.UUID
     plan_id: uuid.UUID
     status: SubscriptionStatus
@@ -84,6 +87,7 @@ class MemberSubscriptionSummary(BaseModel):
     profile_photo_url: str | None = None
     profile_photo_verified_at: datetime | None = None
     created_at: datetime
+    club_id: uuid.UUID | None = None
     subscription_id: uuid.UUID | None = None
     plan_name: str | None = None
     starts_on: date | None = None

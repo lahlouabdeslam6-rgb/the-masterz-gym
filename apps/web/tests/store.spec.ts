@@ -255,6 +255,7 @@ test("le membre reserve un produit depuis son espace", async ({ page }) => {
 
 test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
   let createdBody: Record<string, unknown> | null = null;
+  let deleted = false;
   const uploadedMediaUrls = [
     "/media/store-products/ceinture-front.png",
     "/media/store-products/ceinture-back.webp",
@@ -283,6 +284,15 @@ test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
           uploadedMediaUrls[uploadedMediaIndex++] ?? uploadedMediaUrls[0],
       };
       status = 201;
+    }
+    if (
+      url.pathname === `/api/v1/store/products/${productId}` &&
+      route.request().method() === "DELETE"
+    ) {
+      products.length = 0;
+      deleted = true;
+      status = 204;
+      body = null;
     }
     if (url.pathname === "/api/v1/store/products") {
       if (route.request().method() === "POST") {
@@ -353,6 +363,10 @@ test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
     image_url: uploadedMediaUrls[1],
     media_urls: [uploadedMediaUrls[1], uploadedMediaUrls[0]],
   });
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Supprimer", exact: true }).click();
+  await expect(page.getByText("Aucun produit dans le Store.")).toBeVisible();
+  expect(deleted).toBe(true);
 });
 
 test("la reception valide une reservation et le stock se met a jour", async ({

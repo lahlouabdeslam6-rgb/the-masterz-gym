@@ -92,7 +92,21 @@ export function PromotionManager({ session }: { session: AuthSession }) {
       }),
     ]);
     const nextPlans = plansResult.data ?? [];
-    setPromotions(promotionsResult.data ?? []);
+    setPromotions(
+      [...(promotionsResult.data ?? [])].sort((first, second) => {
+        const featuredDifference =
+          Number(second.is_featured) - Number(first.is_featured);
+        if (featuredDifference) return featuredDifference;
+        const activeDifference =
+          Number(second.is_active) - Number(first.is_active);
+        if (activeDifference) return activeDifference;
+        return (
+          new Date(first.ends_at).getTime() -
+            new Date(second.ends_at).getTime() ||
+          first.title.localeCompare(second.title)
+        );
+      }),
+    );
     setPlans(nextPlans);
     setForm((current) => ({
       ...current,
@@ -199,7 +213,7 @@ export function PromotionManager({ session }: { session: AuthSession }) {
               placeholder="Ex. Offre Duo Masterz"
             />
           </Field>
-          <Field label="Formule de base">
+          <Field label="Abonnement applique apres paiement">
             <select
               className={selectClass}
               required

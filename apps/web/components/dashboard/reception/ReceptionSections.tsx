@@ -29,6 +29,7 @@ import {
 } from "../dashboard-shared";
 import { ReceptionPage } from "./ReceptionPage";
 import { useReceptionSession } from "./ReceptionShell";
+import { ClubBadge, SALLE_1_ID } from "../ClubSwitcher";
 
 const shortcuts = [
   {
@@ -67,9 +68,12 @@ export function ReceptionOverview() {
   const load = useCallback(async () => {
     const headers = authorizationHeaders(session.accessToken);
     const [applicationsResult, plansResult] = await Promise.all([
-      api.GET("/api/v1/membership-applications", { headers }),
+      api.GET("/api/v1/membership-applications", {
+        headers,
+        params: { query: { club_id: SALLE_1_ID } },
+      }),
       api.GET("/api/v1/membership-plans", {
-        params: { query: { active_only: true } },
+        params: { query: { active_only: true, club_id: SALLE_1_ID } },
       }),
     ]);
     setApplications(applicationsResult.data ?? []);
@@ -100,6 +104,9 @@ export function ReceptionOverview() {
       description="Chaque travail de la reception a maintenant sa propre page pour aller vite sans melanger les dossiers."
     >
       {error ? <Alert type="error" message={error} className="mb-6" /> : null}
+      <div className="mb-6">
+        <ClubBadge clubId={SALLE_1_ID} />
+      </div>
       {loading ? (
         <LoadingMessage message="Chargement des indicateurs..." />
       ) : (
@@ -170,6 +177,7 @@ export function ReceptionApplicationsSection() {
   const load = useCallback(async () => {
     const result = await api.GET("/api/v1/membership-applications", {
       headers: authorizationHeaders(session.accessToken),
+      params: { query: { club_id: SALLE_1_ID } },
     });
     setApplications(result.data ?? []);
     setError(result.error ? "Impossible de charger les demandes." : null);
@@ -215,7 +223,12 @@ export function ReceptionMembersSection() {
         title="Dossier membre"
         subtitle="La liste complete apparait avant la recherche."
       >
-        <StaffMemberManager session={session} plans={[]} mode="profile" />
+        <StaffMemberManager
+          session={session}
+          plans={[]}
+          mode="profile"
+          clubId={SALLE_1_ID}
+        />
       </Panel>
     </ReceptionPage>
   );
@@ -229,7 +242,7 @@ export function ReceptionPaymentsSection() {
 
   const load = useCallback(async () => {
     const result = await api.GET("/api/v1/membership-plans", {
-      params: { query: { active_only: true } },
+      params: { query: { active_only: true, club_id: SALLE_1_ID } },
     });
     setPlans(result.data ?? []);
     setError(result.error ? "Impossible de charger les formules." : null);
@@ -252,7 +265,12 @@ export function ReceptionPaymentsSection() {
           title="Paiement membre"
           subtitle="Les offres salle, coaching et recovery sont classees par categorie."
         >
-          <StaffMemberManager session={session} plans={plans} mode="payments" />
+          <StaffMemberManager
+            session={session}
+            plans={plans}
+            mode="payments"
+            clubId={SALLE_1_ID}
+          />
         </Panel>
       </PageState>
     </ReceptionPage>
@@ -271,7 +289,12 @@ export function ReceptionAccessSection() {
         title="Enregistrer une entree"
         subtitle="Cette page ne contient ni paiement ni modification de formule."
       >
-        <StaffMemberManager session={session} plans={[]} mode="access" />
+        <StaffMemberManager
+          session={session}
+          plans={[]}
+          mode="access"
+          clubId={SALLE_1_ID}
+        />
       </Panel>
     </ReceptionPage>
   );

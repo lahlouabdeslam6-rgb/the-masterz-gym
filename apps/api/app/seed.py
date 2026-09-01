@@ -4,6 +4,8 @@ from sqlalchemy import select
 
 from app.core.database import SessionLocal
 from app.core.security import hash_password
+from app.modules.clubs.constants import SALLE_1_ID, SALLE_2_ID
+from app.modules.clubs.models import UserClubAssignment
 from app.modules.memberships.models import MembershipPlan, SystemSetting
 from app.modules.users.models import User
 from app.shared.enums import AccountStatus, ServiceType, UserRole
@@ -74,16 +76,28 @@ def seed() -> None:
         for account in DEVELOPMENT_ACCOUNTS:
             user = session.scalar(select(User).where(User.phone == account["phone"]))
             if not user:
-                session.add(
-                    User(
-                        full_name=account["full_name"],
-                        phone=account["phone"],
-                        password_hash=hash_password(account["password"]),
-                        role=account["role"],
-                        status=AccountStatus.ACTIVE,
-                        member_number=account["member_number"],
+                user = User(
+                    full_name=account["full_name"],
+                    phone=account["phone"],
+                    password_hash=hash_password(account["password"]),
+                    role=account["role"],
+                    status=AccountStatus.ACTIVE,
+                    member_number=account["member_number"],
+                )
+                session.add(user)
+                session.flush()
+            club_ids = [SALLE_1_ID]
+            if user.role == UserRole.ADMIN:
+                club_ids.append(SALLE_2_ID)
+            for club_id in club_ids:
+                assignment = session.scalar(
+                    select(UserClubAssignment).where(
+                        UserClubAssignment.user_id == user.id,
+                        UserClubAssignment.club_id == club_id,
                     )
                 )
+                if not assignment:
+                    session.add(UserClubAssignment(user_id=user.id, club_id=club_id))
         for name, months, price in DEMO_PLANS:
             plan = session.scalar(
                 select(MembershipPlan).where(

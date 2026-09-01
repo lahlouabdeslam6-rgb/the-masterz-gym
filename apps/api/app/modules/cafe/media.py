@@ -8,13 +8,17 @@ from app.core.config import settings
 from app.core.errors import api_error
 
 
-def _image_extension(content: bytes) -> str | None:
+def _media_extension(content: bytes) -> str | None:
     if content.startswith(b"\xff\xd8\xff"):
         return ".jpg"
     if content.startswith(b"\x89PNG\r\n\x1a\n"):
         return ".png"
     if len(content) >= 12 and content.startswith(b"RIFF") and content[8:12] == b"WEBP":
         return ".webp"
+    if len(content) >= 12 and content[4:8] == b"ftyp":
+        return ".mp4"
+    if content.startswith(b"\x1aE\xdf\xa3"):
+        return ".webm"
     return None
 
 
@@ -23,7 +27,7 @@ class CafeMediaService:
         self.media_root = media_root or settings.cafe_media_root
         self.max_bytes = max_bytes or settings.cafe_media_max_bytes
 
-    async def save_menu_image(self, media: UploadFile) -> str:
+    async def save_menu_media(self, media: UploadFile) -> str:
         content = await media.read(self.max_bytes + 1)
         await media.close()
         if not content:
@@ -35,12 +39,12 @@ class CafeMediaService:
                 "Le fichier depasse la taille autorisee.",
                 {"max_bytes": self.max_bytes},
             )
-        extension = _image_extension(content)
+        extension = _media_extension(content)
         if not extension:
             raise api_error(
                 status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
                 "cafe_media_invalid_format",
-                "Choisissez une photo JPG, PNG ou WEBP.",
+                "Choisissez une photo JPG, PNG, WEBP ou une video MP4, WEBM.",
             )
 
         self.media_root.mkdir(parents=True, exist_ok=True)

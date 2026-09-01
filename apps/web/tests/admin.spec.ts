@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+const SALLE_2_ID = "22222222-2222-4222-8222-222222222222";
+
 function dateAfterToday(days: number) {
   const date = new Date();
   date.setDate(date.getDate() + days);
@@ -451,7 +453,9 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
     }
     if (url.pathname === "/api/v1/members/subscription-summaries") {
       const query = url.searchParams.get("query")?.toLocaleLowerCase() ?? "";
-      body = priorityMembers
+      const clubMembers =
+        url.searchParams.get("club_id") === SALLE_2_ID ? [] : priorityMembers;
+      body = clubMembers
         .map((member) => {
           if (urgentCancelled && member.id === priorityMembers[0].id) {
             return {
@@ -599,6 +603,11 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   const navigation = page.getByRole("navigation", {
     name: "Navigation administration",
   });
+  await navigation.getByRole("button", { name: "Equipe & membres" }).click();
+  await navigation
+    .getByRole("button", { name: "Abonnements & caisse" })
+    .click();
+  await navigation.getByRole("button", { name: "Administration" }).click();
   await expect(
     navigation.getByRole("link", { name: "Utilisateurs" }),
   ).toBeVisible();
@@ -703,7 +712,7 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
     page.getByText("Informations du membre mises a jour."),
   ).toBeVisible();
   expect(profilePatchCalls).toBe(1);
-  await page.getByRole("button", { name: "Abonnements" }).click();
+  await page.getByRole("button", { name: "Abonnements", exact: true }).click();
   await expect(
     page.getByRole("heading", {
       name: "Abonnements · Salle musculation",
@@ -725,6 +734,19 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   await page.getByRole("button", { name: "Entrees" }).click();
   await expect(
     page.getByRole("heading", { name: "Historique des entrees" }),
+  ).toBeVisible();
+
+  const memberClubSwitcher = page
+    .getByText("Membres par salle", { exact: true })
+    .locator("..");
+  await memberClubSwitcher.getByRole("button", { name: /Salle 2/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Informations personnelles" }),
+  ).toHaveCount(0);
+  await expect(page.getByText("Membre Urgent", { exact: true })).toHaveCount(0);
+  await memberClubSwitcher.getByRole("button", { name: /Salle 1/ }).click();
+  await expect(
+    page.getByRole("button", { name: /Membre Urgent TMG-URGENT/ }),
   ).toBeVisible();
 
   const memberSearch = page.getByRole("textbox", {
@@ -824,6 +846,27 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
     page.getByRole("heading", { name: "Nouveau paiement / renouvellement" }),
   ).toBeVisible();
   await expect(page.getByLabel("Formule")).toContainText(recoveryPlan.name);
+
+  const paymentClubSwitcher = page
+    .getByText("Caisse par salle", { exact: true })
+    .locator("..");
+  await paymentClubSwitcher.getByRole("button", { name: /Salle 2/ }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Abonnements · Salle musculation",
+    }),
+  ).toHaveCount(0);
+  await expect(page.getByText("Membre Urgent", { exact: true })).toHaveCount(0);
+  await paymentClubSwitcher.getByRole("button", { name: /Salle 1/ }).click();
+  await expect(
+    page.getByRole("button", { name: /Membre Urgent TMG-URGENT/ }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: /Membre Urgent TMG-URGENT/ }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Abonnements · Salle musculation",
+    }),
+  ).toBeVisible();
 
   const gymSubscriptions = page.getByTestId("subscription-category-gym");
   await expect(gymSubscriptions).toContainText(activePlan.name);

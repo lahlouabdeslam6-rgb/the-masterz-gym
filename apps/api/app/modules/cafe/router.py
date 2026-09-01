@@ -49,11 +49,19 @@ def update_menu_item(
     return CafeService(session).update(item_id, data, actor)
 
 
+@router.delete(
+    "/menu-items/{item_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_menu_item(item_id: uuid.UUID, session: DbSession, actor: Admin) -> None:
+    CafeService(session).delete(item_id, actor)
+
+
 @router.post("/menu-media", response_model=CafeMenuMediaRead)
 async def upload_menu_media(
     actor: Admin,
     media: Annotated[UploadFile, File(...)],
 ):
     del actor
-    media_url = await CafeMediaService().save_menu_image(media)
+    media_url = await CafeMediaService().save_menu_media(media)
     return CafeMenuMediaRead(media_url=media_url)

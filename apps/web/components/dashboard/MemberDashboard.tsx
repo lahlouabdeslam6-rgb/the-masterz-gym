@@ -7,6 +7,8 @@ import {
   Camera,
   CalendarCheck,
   CalendarDays,
+  CalendarRange,
+  ChevronDown,
   CreditCard,
   Dumbbell,
   History,
@@ -35,6 +37,7 @@ import { ReceiptSummary } from "./ApplicationManager";
 import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 import { CoachingScheduleManager } from "./CoachingScheduleManager";
 import { CoachingConversationPanel } from "./CoachingConversationPanel";
+import { CollectiveClassesManager } from "./CollectiveClassesManager";
 import { MemberCoachingAssignmentRequest } from "./CoachingAssignmentRequests";
 import { MemberRecoveryPanel } from "./RecoveryManager";
 import { MemberNotifications } from "./MemberNotifications";
@@ -64,6 +67,7 @@ type MemberSection =
   | "receipts"
   | "attendance"
   | "coaching"
+  | "collective"
   | "recovery"
   | "store"
   | "complaints";
@@ -117,6 +121,12 @@ const memberSections: Array<{
     icon: Dumbbell,
   },
   {
+    id: "collective",
+    label: "Cours Salle 2",
+    description: "Planning et reservations",
+    icon: CalendarRange,
+  },
+  {
     id: "recovery",
     label: "Recovery",
     description: "Seances et passages",
@@ -144,6 +154,38 @@ const memberBadgeKeys: Partial<Record<MemberSection, NavigationBadgeKey>> = {
   complaints: "complaints",
 };
 
+const memberNavigationGroups: Array<{
+  id: "account" | "services" | "support";
+  label: string;
+  icon: LucideIcon;
+  sections: MemberSection[];
+}> = [
+  {
+    id: "account",
+    label: "Compte et abonnements",
+    icon: UserRound,
+    sections: [
+      "notifications",
+      "profile",
+      "subscriptions",
+      "receipts",
+      "attendance",
+    ],
+  },
+  {
+    id: "services",
+    label: "Services et suivi",
+    icon: Dumbbell,
+    sections: ["coaching", "collective", "recovery"],
+  },
+  {
+    id: "support",
+    label: "Achats et assistance",
+    icon: ShoppingBag,
+    sections: ["store", "complaints"],
+  },
+];
+
 export function MemberDashboard({
   session,
   user,
@@ -163,6 +205,9 @@ export function MemberDashboard({
   const [coachingView, setCoachingView] = useState<
     "schedule" | "progress" | "messages"
   >("schedule");
+  const [openNavigationGroups, setOpenNavigationGroups] = useState(
+    () => new Set(memberNavigationGroups.map((group) => group.id)),
+  );
   const [currentUser, setCurrentUser] = useState(user);
   const { badges, clearBadge, notifications } = useNavigationBadges(
     session,
@@ -171,6 +216,16 @@ export function MemberDashboard({
   const openSection = (nextSection: MemberSection) => {
     const badgeKey = memberBadgeKeys[nextSection];
     if (badgeKey) clearBadge(badgeKey);
+    const parentGroup = memberNavigationGroups.find((group) =>
+      group.sections.includes(nextSection),
+    );
+    if (parentGroup) {
+      setOpenNavigationGroups((current) => {
+        const next = new Set(current);
+        next.add(parentGroup.id);
+        return next;
+      });
+    }
     setActiveSection(nextSection);
   };
   const section =
@@ -185,8 +240,53 @@ export function MemberDashboard({
       ),
   );
 
+  const renderNavigationItem = (
+    item: (typeof memberSections)[number],
+    nested = false,
+  ) => {
+    const Icon = item.icon;
+    const isActive = activeSection === item.id;
+    const badgeKey = memberBadgeKeys[item.id];
+    const badgeCount = badgeKey ? badges[badgeKey] : undefined;
+    return (
+      <button
+        key={item.id}
+        type="button"
+        aria-label={item.label}
+        aria-current={isActive ? "page" : undefined}
+        className={`flex w-full items-center gap-3 rounded-sm border py-2 text-left transition ${
+          nested ? "px-3 pl-7" : "px-3"
+        } ${
+          isActive
+            ? "border-primary/35 bg-primary/[0.1] text-white"
+            : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
+        }`}
+        onClick={() => openSection(item.id)}
+      >
+        <Icon
+          className={`h-5 w-5 shrink-0 ${
+            isActive ? "text-primary" : "text-gray-600"
+          }`}
+        />
+        <span className="block min-w-0 flex-1 truncate text-sm font-black">
+          {item.label}
+        </span>
+        {badgeCount ? (
+          <span
+            data-testid={`navigation-badge-${item.id}`}
+            className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[0.65rem] font-black text-black"
+          >
+            {badgeCount > 99 ? "99+" : badgeCount}
+          </span>
+        ) : null}
+      </button>
+    );
+  };
+
   const openNotification = (kind: string) => {
-    if (kind.startsWith("coaching_")) {
+    if (kind.startsWith("collective_class_")) {
+      openSection("collective");
+    } else if (kind.startsWith("coaching_")) {
       setCoachingView(
         kind === "coaching_message_received" ? "messages" : "schedule",
       );
@@ -227,41 +327,58 @@ export function MemberDashboard({
           aria-label="Navigation espace membre"
           className="hidden min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2.5 lg:block"
         >
-          {memberSections.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
-            const badgeKey = memberBadgeKeys[item.id];
-            const badgeCount = badgeKey ? badges[badgeKey] : undefined;
+          {renderNavigationItem(memberSections[0])}
+          {memberNavigationGroups.map((group) => {
+            const GroupIcon = group.icon;
+            const isOpen = openNavigationGroups.has(group.id);
+            const groupBadgeCount = group.sections.reduce(
+              (total, sectionId) => {
+                const badgeKey = memberBadgeKeys[sectionId];
+                return total + (badgeKey ? (badges[badgeKey] ?? 0) : 0);
+              },
+              0,
+            );
             return (
-              <button
-                key={item.id}
-                type="button"
-                aria-label={item.label}
-                aria-current={isActive ? "page" : undefined}
-                className={`flex w-full items-center gap-3 rounded-sm border px-3 py-2 text-left transition ${
-                  isActive
-                    ? "border-primary/35 bg-primary/[0.1] text-white"
-                    : "border-transparent text-gray-500 hover:bg-white/[0.04] hover:text-white"
-                }`}
-                onClick={() => openSection(item.id)}
-              >
-                <Icon
-                  className={`h-5 w-5 shrink-0 ${
-                    isActive ? "text-primary" : "text-gray-600"
-                  }`}
-                />
-                <span className="block min-w-0 flex-1 truncate text-sm font-black">
-                  {item.label}
-                </span>
-                {badgeCount ? (
-                  <span
-                    data-testid={`navigation-badge-${item.id}`}
-                    className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[0.65rem] font-black text-black"
-                  >
-                    {badgeCount > 99 ? "99+" : badgeCount}
+              <div key={group.id} className="border-t border-white/[0.06] pt-1">
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  className="flex w-full items-center gap-3 rounded-sm px-3 py-2.5 text-left text-gray-400 transition hover:bg-white/[0.04] hover:text-white"
+                  onClick={() =>
+                    setOpenNavigationGroups((current) => {
+                      const next = new Set(current);
+                      if (next.has(group.id)) next.delete(group.id);
+                      else next.add(group.id);
+                      return next;
+                    })
+                  }
+                >
+                  <GroupIcon className="h-5 w-5 shrink-0 text-primary" />
+                  <span className="min-w-0 flex-1 truncate text-[0.68rem] font-black uppercase tracking-[0.08em]">
+                    {group.label}
                   </span>
+                  {groupBadgeCount ? (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[0.58rem] font-black text-black">
+                      {groupBadgeCount > 99 ? "99+" : groupBadgeCount}
+                    </span>
+                  ) : null}
+                  <ChevronDown
+                    className={`h-4 w-4 shrink-0 transition-transform ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+                {isOpen ? (
+                  <div className="space-y-0.5 pb-1">
+                    {group.sections.map((sectionId) => {
+                      const item = memberSections.find(
+                        (candidate) => candidate.id === sectionId,
+                      );
+                      return item ? renderNavigationItem(item, true) : null;
+                    })}
+                  </div>
                 ) : null}
-              </button>
+              </div>
             );
           })}
         </nav>
@@ -383,6 +500,14 @@ export function MemberDashboard({
               activeView={coachingView}
               onViewChange={setCoachingView}
             />
+          ) : null}
+          {activeSection === "collective" ? (
+            <Panel
+              title="Cours collectifs · Salle 2"
+              subtitle="Reservez votre place. Si le cours est complet, votre position dans la liste d'attente apparait immediatement."
+            >
+              <CollectiveClassesManager session={session} mode="member" />
+            </Panel>
           ) : null}
           {activeSection === "recovery" ? (
             <Panel
@@ -663,7 +788,9 @@ function SubscriptionsPanel({
 }: {
   subscriptions: Subscription[];
 }) {
-  const [activeView, setActiveView] = useState<"offers" | "history">("offers");
+  const [activeView, setActiveView] = useState<
+    "offers" | "promotions" | "history"
+  >("offers");
   const [activeService, setActiveService] = useState<
     "gym" | "coaching" | "recovery"
   >("gym");
@@ -688,6 +815,11 @@ function SubscriptionsPanel({
         onChange={setActiveView}
         tabs={[
           { id: "offers", label: "Offres disponibles", icon: ListChecks },
+          {
+            id: "promotions",
+            label: "Promotions",
+            icon: Bell,
+          },
           {
             id: "history",
             label: "Historique des abonnements",
@@ -749,10 +881,15 @@ function SubscriptionsPanel({
           <div className="mt-6 border-t border-white/10 pt-6">
             <MembershipPlansList
               serviceType={activeService}
-              showPromotions
               onViewSubscription={() => setActiveView("history")}
             />
           </div>
+        </div>
+      ) : null}
+
+      {activeView === "promotions" ? (
+        <div className="mt-6">
+          <MembershipPlansList serviceType="gym" promotionsOnly />
         </div>
       ) : null}
 

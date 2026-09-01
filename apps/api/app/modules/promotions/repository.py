@@ -30,7 +30,13 @@ class PromotionRepository:
     def list_admin(self) -> list[Promotion]:
         return list(
             self.session.scalars(
-                select(Promotion).order_by(Promotion.created_at.desc(), Promotion.title)
+                select(Promotion).order_by(
+                    Promotion.is_featured.desc(),
+                    Promotion.is_active.desc(),
+                    Promotion.ends_at,
+                    Promotion.created_at.desc(),
+                    Promotion.title,
+                )
             )
         )
 

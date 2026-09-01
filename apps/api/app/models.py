@@ -5,6 +5,7 @@ from app.modules.attendance.models import Attendance
 from app.modules.audit.models import AuditLog
 from app.modules.auth.models import OTPChallenge, RefreshSession
 from app.modules.cafe.models import CafeMenuItem
+from app.modules.clubs.models import Club, UserClubAssignment
 from app.modules.coaching.models import (
     CoachAvailability,
     CoachingAssessment,
@@ -12,6 +13,11 @@ from app.modules.coaching.models import (
     CoachingBooking,
     CoachingClientProfile,
     CoachMemberAssignment,
+)
+from app.modules.collective_classes.models import (
+    CollectiveClassReservation,
+    CollectiveClassSession,
+    CollectiveClassType,
 )
 from app.modules.complaints.models import Complaint, ComplaintMessage
 from app.modules.memberships.models import (
@@ -31,6 +37,10 @@ __all__ = [
     "Attendance",
     "AuditLog",
     "CafeMenuItem",
+    "Club",
+    "CollectiveClassReservation",
+    "CollectiveClassSession",
+    "CollectiveClassType",
     "CoachAvailability",
     "CoachMemberAssignment",
     "CoachingAssignmentRequest",
@@ -55,4 +65,5 @@ __all__ = [
     "StoreReservation",
     "StoreSale",
     "User",
+    "UserClubAssignment",
 ]

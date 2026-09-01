@@ -16,6 +16,7 @@ import type { components } from "@masterz/api-client";
 import { Alert, Button, Card, Input, LoadingMessage, Pill } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import { SALLE_1_ID } from "./ClubSwitcher";
 import { notifyNavigationBadgesChanged } from "@/lib/navigation-badges";
 import {
   EmptyState,
@@ -162,7 +163,7 @@ export function CoachingScheduleManager({
         ["completed", "cancelled"].includes(booking.status) ||
         new Date(booking.ends_at).getTime() <= referenceTime;
       const matchesCoachView =
-        mode !== "coach" ||
+        mode === "member" ||
         (coachScheduleView === "history"
           ? belongsToHistory
           : !belongsToHistory);
@@ -251,6 +252,7 @@ export function CoachingScheduleManager({
     const result = await api.POST("/api/v1/coaching/availability", {
       headers,
       body: {
+        club_id: SALLE_1_ID,
         starts_at: start.toISOString(),
         ends_at: end.toISOString(),
         session_duration_minutes: duration,
@@ -289,6 +291,7 @@ export function CoachingScheduleManager({
         headers,
         params: { path: { availability_id: availability.id } },
         body: {
+          club_id: availability.club_id,
           starts_at: availability.starts_at,
           ends_at: availability.ends_at,
           session_duration_minutes: availability.session_duration_minutes,
@@ -508,7 +511,7 @@ export function CoachingScheduleManager({
         </div>
       ) : null}
 
-      {mode === "coach" ? (
+      {mode !== "member" ? (
         <DashboardTabs
           eyebrow="Organisation du planning"
           ariaLabel="Rubriques planning coach"
@@ -563,7 +566,7 @@ export function CoachingScheduleManager({
             void reserve(availability, slotStart)
           }
         />
-      ) : mode === "coach" && coachScheduleView === "history" ? (
+      ) : coachScheduleView === "history" ? (
         <CoachAvailabilityHistory
           availabilities={pastAvailabilities}
           bookings={bookings}
@@ -571,15 +574,13 @@ export function CoachingScheduleManager({
       ) : (
         <AvailabilityOverview
           mode={mode}
-          availabilities={
-            mode === "coach" ? futureAvailabilities : availabilities
-          }
+          availabilities={futureAvailabilities}
           busy={busy}
           onDisable={(availability) => void disableAvailability(availability)}
         />
       )}
 
-      {mode !== "coach" || coachScheduleView === "current" ? (
+      {mode === "member" || coachScheduleView === "current" ? (
         <section>
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>

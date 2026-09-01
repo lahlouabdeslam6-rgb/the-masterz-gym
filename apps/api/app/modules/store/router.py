@@ -89,6 +89,14 @@ def update_product(
     return StoreService(session).update_product(product_id, data, actor)
 
 
+@router.delete(
+    "/products/{product_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_product(product_id: uuid.UUID, session: DbSession, actor: Admin) -> None:
+    StoreService(session).delete_product(product_id, actor)
+
+
 @router.get("/reservations", response_model=list[StoreReservationRead])
 def list_reservations(
     session: DbSession,

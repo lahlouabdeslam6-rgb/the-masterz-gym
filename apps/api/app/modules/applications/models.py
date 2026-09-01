@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.modules.clubs.constants import SALLE_1_ID
 from app.shared.enums import ApplicationStatus, Gender
 from app.shared.models import TimestampMixin, UUIDPrimaryKeyMixin
 
@@ -21,6 +22,14 @@ class MembershipApplication(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
     full_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    club_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("clubs.id"),
+        nullable=False,
+        default=SALLE_1_ID,
+        server_default=str(SALLE_1_ID),
+        index=True,
+    )
     phone: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)

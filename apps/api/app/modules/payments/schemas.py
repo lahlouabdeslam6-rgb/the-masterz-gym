@@ -29,6 +29,8 @@ class MembershipPaymentCreate(BaseModel):
 
 class PrintableReceiptData(BaseModel):
     receipt_id: uuid.UUID
+    club_id: uuid.UUID
+    club_label: str
     receipt_number: str
     issued_at: datetime
     payment_id: uuid.UUID

@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.core.errors import api_error
 from app.core.security import hash_password
 from app.modules.audit.service import AuditService
+from app.modules.clubs.constants import SALLE_1_ID, SALLE_2_ID
+from app.modules.clubs.repository import ClubRepository
 from app.modules.users.models import User
 from app.modules.users.photo import MemberPhotoService
 from app.modules.users.repository import UserRepository
@@ -25,6 +27,7 @@ class UserService:
         self.session = session
         self.users = UserRepository(session)
         self.audit = AuditService(session)
+        self.clubs = ClubRepository(session)
 
     async def upload_member_photo(self, user_id: uuid.UUID, photo: UploadFile, actor: User) -> User:
         member = self.users.get(user_id)
@@ -79,6 +82,9 @@ class UserService:
             raise api_error(
                 status.HTTP_409_CONFLICT, "user_conflict", "Utilisateur déjà existant."
             ) from exc
+        self.clubs.ensure_assignment(user.id, SALLE_1_ID, actor.id)
+        if user.role == UserRole.ADMIN:
+            self.clubs.ensure_assignment(user.id, SALLE_2_ID, actor.id)
         self.audit.record(
             actor=actor,
             action="user.created",

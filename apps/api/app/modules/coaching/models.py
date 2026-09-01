@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.modules.clubs.constants import SALLE_1_ID
 from app.shared.enums import (
     CoachingAssignmentRequestStatus,
     CoachingBookingStatus,
@@ -149,6 +150,14 @@ class CoachAvailability(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     coach_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
+    club_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("clubs.id"),
+        nullable=False,
+        default=SALLE_1_ID,
+        server_default=str(SALLE_1_ID),
+        index=True,
+    )
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     session_duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -173,6 +182,14 @@ class CoachingBooking(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     availability_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("coach_availabilities.id"), nullable=False, index=True
+    )
+    club_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("clubs.id"),
+        nullable=False,
+        default=SALLE_1_ID,
+        server_default=str(SALLE_1_ID),
+        index=True,
     )
     assignment_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("coach_member_assignments.id"), nullable=False, index=True

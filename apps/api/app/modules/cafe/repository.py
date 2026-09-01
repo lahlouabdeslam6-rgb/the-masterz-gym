@@ -35,3 +35,7 @@ class CafeRepository:
         self.session.add(item)
         self.session.flush()
         return item
+
+    def delete(self, item: CafeMenuItem) -> None:
+        self.session.delete(item)
+        self.session.flush()

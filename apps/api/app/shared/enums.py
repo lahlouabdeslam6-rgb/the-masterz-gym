@@ -122,3 +122,17 @@ class AttendanceDecision(StrEnum):
     ALLOWED_WITH_WARNING = "allowed_with_warning"
     EXCEPTIONAL_ACCESS = "exceptional_access"
     DENIED = "denied"
+
+
+class CollectiveClassSessionStatus(StrEnum):
+    SCHEDULED = "scheduled"
+    CANCELLED = "cancelled"
+    COMPLETED = "completed"
+
+
+class CollectiveClassReservationStatus(StrEnum):
+    CONFIRMED = "confirmed"
+    WAITLISTED = "waitlisted"
+    CANCELLED = "cancelled"
+    ATTENDED = "attended"
+    NO_SHOW = "no_show"

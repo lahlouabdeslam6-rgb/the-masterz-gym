@@ -8,6 +8,7 @@ from app.modules.attendance.models import Attendance
 from app.modules.attendance.repository import AttendanceRepository
 from app.modules.attendance.schemas import AttendanceCreate, AttendanceRead
 from app.modules.audit.service import AuditService
+from app.modules.clubs.service import ClubService
 from app.modules.memberships.repository import MembershipRepository
 from app.modules.memberships.service import MembershipService
 from app.modules.users.models import User
@@ -26,6 +27,7 @@ class AttendanceService:
         self.audit = AuditService(session)
 
     def check_in(self, data: AttendanceCreate, actor: User) -> AttendanceRead:
+        ClubService(self.session).require_access(actor, data.club_id)
         member = self.users.get(data.member_id)
         if not member or member.role != UserRole.MEMBER:
             raise api_error(status.HTTP_404_NOT_FOUND, "member_not_found", "Membre introuvable.")
@@ -41,7 +43,7 @@ class AttendanceService:
         )
         now = datetime.now(UTC)
         duplicate = self.attendances.recent_accepted(
-            member.id, now - timedelta(minutes=duplicate_minutes)
+            member.id, now - timedelta(minutes=duplicate_minutes), data.club_id
         )
         if duplicate:
             raise api_error(
@@ -51,7 +53,7 @@ class AttendanceService:
                 {"attendance_id": str(duplicate.id)},
             )
 
-        subscription = self.memberships.access_subscription(member.id, local_today())
+        subscription = self.memberships.access_subscription(member.id, local_today(), data.club_id)
         subscription_status = (
             self.membership_service.synchronize_status(subscription, actor)
             if subscription
@@ -78,6 +80,7 @@ class AttendanceService:
 
         attendance = self.attendances.add(
             Attendance(
+                club_id=data.club_id,
                 member_id=member.id,
                 receptionist_id=actor.id,
                 subscription_id=subscription.id if subscription else None,

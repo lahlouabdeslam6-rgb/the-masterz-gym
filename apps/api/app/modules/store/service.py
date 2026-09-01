@@ -67,6 +67,7 @@ class StoreService:
         return [
             StoreCatalogProductRead(
                 id=product.id,
+                club_id=product.club_id,
                 name=product.name,
                 description=product.description,
                 image_url=product.image_url,
@@ -115,6 +116,7 @@ class StoreService:
         media_urls = self._media_urls(data.image_url, data.media_urls)
         product = self.store.add_product(
             StoreProduct(
+                club_id=data.club_id,
                 name=data.name.strip(),
                 description=(data.description or "").strip() or None,
                 image_url=media_urls[0] if media_urls else None,
@@ -190,6 +192,39 @@ class StoreService:
         )
         return StoreProductRead.model_validate(product)
 
+    def delete_product(self, product_id: uuid.UUID, actor: User) -> None:
+        product = self.store.get_product_for_update(product_id)
+        if not product:
+            raise api_error(
+                status.HTTP_404_NOT_FOUND,
+                "store_product_not_found",
+                "Produit introuvable.",
+            )
+        if self.store.product_has_history(product.id):
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "store_product_has_history",
+                (
+                    "Ce produit a deja des ventes ou reservations. "
+                    "Masquez-le pour conserver l'historique."
+                ),
+            )
+        previous = {
+            "name": product.name,
+            "price": str(product.price),
+            "currency": product.currency,
+            "stock_quantity": product.stock_quantity,
+            "is_active": product.is_active,
+        }
+        self.audit.record(
+            actor=actor,
+            action="store.product.deleted",
+            entity_type="store_product",
+            entity_id=product.id,
+            previous_value=previous,
+        )
+        self.store.delete_product(product)
+
     def create_reservation(self, data: StoreReservationCreate, actor: User) -> StoreReservationRead:
         product = self.store.get_product(data.product_id)
         if not product or not product.is_active:
@@ -206,6 +241,7 @@ class StoreService:
             )
         reservation = self.store.add_reservation(
             StoreReservation(
+                club_id=product.club_id,
                 product_id=product.id,
                 member_id=actor.id,
                 quantity=data.quantity,
@@ -280,6 +316,7 @@ class StoreService:
             if not existing_sale:
                 self.store.add_sale(
                     StoreSale(
+                        club_id=reservation.club_id,
                         idempotency_key=f"store-reservation:{reservation.id}",
                         product_id=product.id,
                         reservation_id=reservation.id,
@@ -350,6 +387,7 @@ class StoreService:
         product.stock_quantity -= data.quantity
         sale = self.store.add_sale(
             StoreSale(
+                club_id=product.club_id,
                 idempotency_key=data.idempotency_key,
                 product_id=product.id,
                 reservation_id=None,
@@ -474,6 +512,7 @@ class StoreService:
             raise RuntimeError("Reservation Store incomplete.")
         return StoreReservationRead(
             id=reservation.id,
+            club_id=reservation.club_id,
             product_id=product.id,
             product_name=product.name,
             product_image_url=product.image_url,
@@ -501,6 +540,7 @@ class StoreService:
             raise RuntimeError("Vente Store incomplete.")
         return StoreSaleRead(
             id=sale.id,
+            club_id=sale.club_id,
             product_id=product.id,
             reservation_id=sale.reservation_id,
             product_name=product.name,

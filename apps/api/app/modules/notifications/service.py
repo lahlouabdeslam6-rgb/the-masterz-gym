@@ -12,6 +12,7 @@ from app.modules.users.models import User
 from app.shared.enums import (
     CoachingAssignmentRequestStatus,
     CoachingBookingStatus,
+    CollectiveClassReservationStatus,
     StoreReservationStatus,
 )
 
@@ -301,6 +302,86 @@ class NotificationService:
                 body=(
                     f"{sender.full_name} vous a envoye un message. "
                     "Ouvrez votre espace Coaching pour consulter la conversation."
+                ),
+                deduplication_key=deduplication_key,
+            )
+        )
+
+    def collective_class_reservation_update(
+        self,
+        member: User,
+        *,
+        reservation_id: uuid.UUID,
+        reservation_status: CollectiveClassReservationStatus,
+        class_name: str,
+        starts_at: datetime,
+        waitlist_position: int | None = None,
+        promoted: bool = False,
+    ) -> Notification:
+        if promoted:
+            title = "Votre place est confirmee"
+            body = (
+                f"Une place s'est liberee pour {class_name} le {starts_at.isoformat()}. "
+                "Votre reservation est maintenant confirmee."
+            )
+            event = "promoted"
+        elif reservation_status == CollectiveClassReservationStatus.CONFIRMED:
+            title = "Cours collectif confirme"
+            body = f"Votre place pour {class_name} le {starts_at.isoformat()} est confirmee."
+            event = "confirmed"
+        elif reservation_status == CollectiveClassReservationStatus.WAITLISTED:
+            title = "Ajoute a la liste d'attente"
+            body = (
+                f"Le cours {class_name} du {starts_at.isoformat()} est complet. "
+                f"Votre position actuelle est {waitlist_position or 1}."
+            )
+            event = "waitlisted"
+        elif reservation_status == CollectiveClassReservationStatus.CANCELLED:
+            title = "Reservation de cours annulee"
+            body = f"Votre reservation pour {class_name} le {starts_at.isoformat()} est annulee."
+            event = "cancelled"
+        else:
+            title = "Cours collectif mis a jour"
+            body = (
+                f"Votre reservation pour {class_name} le {starts_at.isoformat()} a ete mise a jour."
+            )
+            event = reservation_status.value
+        deduplication_key = f"collective_class:{reservation_id}:{event}"
+        existing = self.repository.by_deduplication_key(deduplication_key)
+        if existing:
+            return existing
+        return self.repository.add(
+            Notification(
+                user_id=member.id,
+                kind="collective_class_reservation_update",
+                title=title,
+                body=body,
+                deduplication_key=deduplication_key,
+            )
+        )
+
+    def collective_class_new_reservation(
+        self,
+        coach: User,
+        *,
+        reservation_id: uuid.UUID,
+        member: User,
+        class_name: str,
+        starts_at: datetime,
+        reservation_status: CollectiveClassReservationStatus,
+    ) -> Notification:
+        deduplication_key = f"collective_class_coach:{reservation_id}:{reservation_status.value}"
+        existing = self.repository.by_deduplication_key(deduplication_key)
+        if existing:
+            return existing
+        return self.repository.add(
+            Notification(
+                user_id=coach.id,
+                kind="collective_class_new_reservation",
+                title="Nouvelle reservation de cours",
+                body=(
+                    f"{member.full_name} a reserve {class_name} le {starts_at.isoformat()}. "
+                    f"Statut: {reservation_status.value}."
                 ),
                 deduplication_key=deduplication_key,
             )

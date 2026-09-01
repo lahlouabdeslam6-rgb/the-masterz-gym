@@ -23,11 +23,15 @@ class ApplicationRepository:
         return self.session.get(MembershipApplication, application_id)
 
     def list(
-        self, application_status: ApplicationStatus | None = None
+        self,
+        application_status: ApplicationStatus | None = None,
+        club_id: uuid.UUID | None = None,
     ) -> list[MembershipApplication]:
         statement = select(MembershipApplication).order_by(MembershipApplication.created_at.desc())
         if application_status:
             statement = statement.where(MembershipApplication.status == application_status)
+        if club_id:
+            statement = statement.where(MembershipApplication.club_id == club_id)
         return list(self.session.scalars(statement))
 
     def stale_pending(self, cutoff: datetime) -> list[MembershipApplication]:

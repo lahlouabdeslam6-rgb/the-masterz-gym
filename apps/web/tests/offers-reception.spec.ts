@@ -168,6 +168,7 @@ test("separe les taches de la reception en pages", async ({ page }) => {
   const navigation = page.getByRole("navigation", {
     name: "Navigation reception",
   });
+  await navigation.getByRole("button", { name: "Membres & caisse" }).click();
   await expect(
     navigation.getByRole("link", { name: "Demandes" }),
   ).toBeVisible();
@@ -332,17 +333,24 @@ test("informe le membre de ses abonnements avant une nouvelle inscription", asyn
   await expect(
     page.getByRole("button", { name: "Historique des abonnements" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Promotions", exact: true }),
+  ).toBeVisible();
   await expect(page.getByText("Salle 1 mois", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Deja paye" })).toBeVisible();
+  await expect(page.getByTestId("member-service-recovery")).toContainText(
+    "Seances terminees",
+  );
+
+  await page.getByRole("button", { name: "Promotions", exact: true }).click();
   await expect(
     page.getByText(memberPromotion.title, { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: /Decouvrir l'offre/ }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Deja paye" })).toBeVisible();
-  await expect(page.getByTestId("member-service-recovery")).toContainText(
-    "Seances terminees",
-  );
+
+  await page.getByRole("button", { name: "Offres disponibles" }).click();
   await page.getByRole("button", { name: "Voir mon abonnement" }).click();
   await expect(page.getByText("Pack Recovery", { exact: true })).toBeVisible();
 });
@@ -460,6 +468,10 @@ test("la reception accepte clairement une nouvelle demande", async ({
   await expect(page.getByTestId("navigation-badge-applications")).toHaveText(
     "1",
   );
+  await page
+    .getByRole("navigation", { name: "Navigation reception" })
+    .getByRole("button", { name: /Membres & caisse/ })
+    .click();
   await page.getByRole("link", { name: /^Demandes/ }).click();
   await expect(page).toHaveURL(/\/espace\/reception\/demandes$/);
   await expect(page.getByTestId("navigation-badge-applications")).toHaveCount(

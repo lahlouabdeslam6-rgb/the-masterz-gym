@@ -324,6 +324,7 @@ class CoachingService:
             )
         availability = self.coaching.add_availability(
             CoachAvailability(
+                club_id=data.club_id,
                 coach_id=actor.id,
                 starts_at=starts_at,
                 ends_at=ends_at,
@@ -498,6 +499,7 @@ class CoachingService:
         )
         simultaneous_booking_count = len(coach_conflicts) + 1
         booking = CoachingBooking(
+            club_id=availability.club_id,
             availability_id=availability.id,
             assignment_id=assignment.id,
             coach_id=assignment.coach_id,
@@ -787,6 +789,7 @@ class CoachingService:
                     body=normalized_body,
                     media_url=media_url,
                     media_type=media_type,
+                    created_at=datetime.now(UTC),
                 )
             )
             self.audit.record(
@@ -1172,6 +1175,7 @@ class CoachingService:
             raise RuntimeError("Disponibilite coaching incoherente.")
         return CoachAvailabilityRead(
             id=availability.id,
+            club_id=availability.club_id,
             coach_id=availability.coach_id,
             coach_name=coach.full_name,
             starts_at=availability.starts_at,
@@ -1315,6 +1319,7 @@ class CoachingService:
         )
         return CoachingBookingRead(
             id=booking.id,
+            club_id=booking.club_id,
             availability_id=booking.availability_id,
             assignment_id=booking.assignment_id,
             coach_id=booking.coach_id,

@@ -32,9 +32,10 @@ def list_plans(
     session: DbSession,
     active_only: Annotated[bool, Query()] = True,
     service_type: Annotated[ServiceType | None, Query()] = None,
+    club_id: Annotated[uuid.UUID | None, Query()] = None,
 ):
     return MembershipRepository(session).list_plans(
-        active_only=active_only, service_type=service_type
+        active_only=active_only, service_type=service_type, club_id=club_id
     )
 
 
@@ -54,12 +55,20 @@ def list_member_subscription_summaries(
     actor: Reception,
     query: Annotated[str | None, Query(max_length=160)] = None,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    club_id: Annotated[uuid.UUID | None, Query()] = None,
 ):
-    return MembershipService(session).list_member_subscription_summaries(query=query, limit=limit)
+    return MembershipService(session).list_member_subscription_summaries(
+        query=query, limit=limit, club_id=club_id
+    )
 
 
 @router.get("/members/{member_id}/subscriptions", response_model=list[SubscriptionRead])
-def list_member_subscriptions(member_id: uuid.UUID, session: DbSession, actor: CurrentUser):
+def list_member_subscriptions(
+    member_id: uuid.UUID,
+    session: DbSession,
+    actor: CurrentUser,
+    club_id: Annotated[uuid.UUID | None, Query()] = None,
+):
     if actor.role == UserRole.MEMBER and actor.id != member_id:
         raise api_error(403, "permission_denied", "Accès interdit.")
     if actor.role not in {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.MEMBER}:
@@ -70,7 +79,7 @@ def list_member_subscriptions(member_id: uuid.UUID, session: DbSession, actor: C
         SubscriptionRead.model_validate(item).model_copy(
             update={"effective_status": service.effective_status(item)}
         )
-        for item in memberships.list_member_subscriptions(member_id)
+        for item in memberships.list_member_subscriptions(member_id, club_id)
     ]
 
 

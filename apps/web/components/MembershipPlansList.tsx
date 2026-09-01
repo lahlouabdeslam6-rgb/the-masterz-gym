@@ -66,10 +66,12 @@ const planContent: Record<
 export function MembershipPlansList({
   serviceType = "gym",
   showPromotions = false,
+  promotionsOnly = false,
   onViewSubscription,
 }: {
   serviceType?: ServiceType;
   showPromotions?: boolean;
+  promotionsOnly?: boolean;
   onViewSubscription?: () => void;
 }) {
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
@@ -87,13 +89,15 @@ export function MembershipPlansList({
       setError(null);
 
       try {
+        const promotionsRequest =
+          showPromotions || promotionsOnly
+            ? api.GET("/api/v1/promotions").catch(() => null)
+            : Promise.resolve(null);
         const [plansResult, promotionsResult] = await Promise.all([
           api.GET("/api/v1/membership-plans", {
             params: { query: { active_only: true, service_type: serviceType } },
           }),
-          showPromotions
-            ? api.GET("/api/v1/promotions")
-            : Promise.resolve(null),
+          promotionsRequest,
         ]);
 
         if (!active) return;
@@ -108,9 +112,17 @@ export function MembershipPlansList({
         const planIds = new Set(loadedPlans.map((plan) => plan.id));
         setPlans(loadedPlans);
         setPromotions(
-          (promotionsResult?.data ?? []).filter((promotion) =>
-            planIds.has(promotion.base_plan_id),
-          ),
+          (promotionsResult?.data ?? [])
+            .filter((promotion) => planIds.has(promotion.base_plan_id))
+            .sort((first, second) => {
+              const featuredDifference =
+                Number(second.is_featured) - Number(first.is_featured);
+              if (featuredDifference) return featuredDifference;
+              const endDifference =
+                new Date(first.ends_at).getTime() -
+                new Date(second.ends_at).getTime();
+              return endDifference || first.title.localeCompare(second.title);
+            }),
         );
       } catch {
         if (active)
@@ -124,7 +136,7 @@ export function MembershipPlansList({
     return () => {
       active = false;
     };
-  }, [requestKey, serviceType, showPromotions]);
+  }, [promotionsOnly, requestKey, serviceType, showPromotions]);
 
   const content = planContent[serviceType];
   const currentSubscription = currentSubscriptionFor(
@@ -196,7 +208,7 @@ export function MembershipPlansList({
 
   return (
     <div className="space-y-6">
-      {currentSubscription ? (
+      {!promotionsOnly && currentSubscription ? (
         <div className="flex flex-col gap-5 rounded-lg border border-emerald-300/30 bg-emerald-300/[0.07] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="flex gap-4">
             <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-300" />
@@ -227,7 +239,7 @@ export function MembershipPlansList({
             </Link>
           )}
         </div>
-      ) : memberIsRenewing ? (
+      ) : !promotionsOnly && memberIsRenewing ? (
         <div className="rounded-lg border border-amber-300/25 bg-amber-300/[0.06] p-5 text-sm leading-6 text-amber-100">
           Votre ancienne formule {latestSubscription?.plan_name} est terminee.
           Vous pouvez choisir une nouvelle offre ci-dessous.
@@ -258,9 +270,16 @@ export function MembershipPlansList({
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-lg font-black text-white group-hover:text-primary">
-                      {promotion.title}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-lg font-black text-white group-hover:text-primary">
+                        {promotion.title}
+                      </p>
+                      {promotion.is_featured ? (
+                        <span className="rounded-full bg-primary px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.12em] text-black">
+                          Offre du banner
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="mt-2 text-sm leading-6 text-gray-400">
                       {promotion.short_description}
                     </p>
@@ -282,99 +301,111 @@ export function MembershipPlansList({
             ))}
           </div>
         </section>
+      ) : promotionsOnly ? (
+        <div className="flex min-h-56 flex-col items-center justify-center rounded-lg border border-white/10 bg-white/[0.025] px-6 text-center">
+          <Megaphone className="h-7 w-7 text-gray-600" />
+          <p className="mt-4 font-black text-white">
+            Aucune promotion active pour le moment.
+          </p>
+          <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">
+            Les nouvelles offres speciales apparaitront ici automatiquement.
+          </p>
+        </div>
       ) : null}
 
-      <div
-        className={`grid gap-5 ${plans.length >= 4 ? "md:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-2 xl:grid-cols-3"}`}
-      >
-        {plans.map((plan, index) => {
-          const planIsCurrent = currentSubscription?.plan_id === plan.id;
-          const highlighted =
-            !planIsCurrent &&
-            plans.length > 2 &&
-            index === Math.floor(plans.length / 2);
-          return (
-            <Card
-              key={plan.id}
-              className={`relative flex min-h-[410px] flex-col overflow-hidden transition duration-300 hover:-translate-y-1 ${
-                planIsCurrent
-                  ? "border-emerald-300/45 bg-emerald-300/[0.06]"
-                  : highlighted
-                    ? "border-primary/55 bg-[linear-gradient(180deg,rgba(0,212,255,.11),#0a0f14_38%)]"
-                    : "hover:border-primary/35"
-              }`}
-            >
-              {planIsCurrent ? (
-                <span className="absolute right-0 top-0 bg-emerald-300 px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-black">
-                  Deja paye
-                </span>
-              ) : highlighted ? (
-                <span className="absolute right-0 top-0 bg-primary px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-black">
-                  Le choix Masterz
-                </span>
-              ) : null}
-              <CardHeader className="border-b border-white/10 pb-6">
-                <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-primary">
-                  Formule {String(index + 1).padStart(2, "0")}
-                </p>
-                <CardTitle className="mt-4 pr-8 text-2xl">
-                  {plan.name}
-                </CardTitle>
-                <p className="mt-2 text-sm text-gray-500">
-                  Valable {plan.duration_months} mois
-                  {serviceType === "recovery"
-                    ? ` · ${plan.session_count ?? "Nombre a confirmer"} seance(s)`
-                    : ""}
-                </p>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col pt-6">
-                <div className="flex items-end gap-2">
-                  <span className="font-display text-5xl font-black tracking-[-0.04em] text-white">
-                    {formatPrice(plan.price)}
+      {!promotionsOnly ? (
+        <div
+          className={`grid gap-5 ${plans.length >= 4 ? "md:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-2 xl:grid-cols-3"}`}
+        >
+          {plans.map((plan, index) => {
+            const planIsCurrent = currentSubscription?.plan_id === plan.id;
+            const highlighted =
+              !planIsCurrent &&
+              plans.length > 2 &&
+              index === Math.floor(plans.length / 2);
+            return (
+              <Card
+                key={plan.id}
+                className={`relative flex min-h-[410px] flex-col overflow-hidden transition duration-300 hover:-translate-y-1 ${
+                  planIsCurrent
+                    ? "border-emerald-300/45 bg-emerald-300/[0.06]"
+                    : highlighted
+                      ? "border-primary/55 bg-[linear-gradient(180deg,rgba(0,212,255,.11),#0a0f14_38%)]"
+                      : "hover:border-primary/35"
+                }`}
+              >
+                {planIsCurrent ? (
+                  <span className="absolute right-0 top-0 bg-emerald-300 px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-black">
+                    Deja paye
                   </span>
-                  <span className="mb-1 text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
-                    {plan.currency}
+                ) : highlighted ? (
+                  <span className="absolute right-0 top-0 bg-primary px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-black">
+                    Le choix Masterz
                   </span>
-                </div>
-                <ul className="mt-8 flex-1 space-y-3 text-sm text-gray-300">
-                  {(serviceType === "recovery" && plan.session_count
-                    ? [
-                        `${plan.session_count} séances à utiliser pendant la validité du pack`,
-                        ...content.features,
-                      ]
-                    : content.features
-                  ).map((feature) => (
-                    <li key={feature} className="flex gap-3">
-                      <Check className="h-5 w-5 shrink-0 text-primary" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href={
-                    planIsCurrent
-                      ? "/espace/membre"
-                      : `/inscription?plan=${plan.id}`
-                  }
-                  className={buttonStyles({
-                    variant: planIsCurrent ? "outline" : "primary",
-                    className: "mt-8 w-full",
-                  })}
-                >
-                  {planIsCurrent
-                    ? "Deja paye"
-                    : currentSubscription
-                      ? "Voir cette offre"
-                      : memberIsRenewing
-                        ? "Renouveler"
-                        : content.buttonLabel}{" "}
-                  <ArrowUpRight className="h-4 w-4" />
-                </Link>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                ) : null}
+                <CardHeader className="border-b border-white/10 pb-6">
+                  <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-primary">
+                    Formule {String(index + 1).padStart(2, "0")}
+                  </p>
+                  <CardTitle className="mt-4 pr-8 text-2xl">
+                    {plan.name}
+                  </CardTitle>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Valable {plan.duration_months} mois
+                    {serviceType === "recovery"
+                      ? ` · ${plan.session_count ?? "Nombre a confirmer"} seance(s)`
+                      : ""}
+                  </p>
+                </CardHeader>
+                <CardContent className="flex flex-1 flex-col pt-6">
+                  <div className="flex items-end gap-2">
+                    <span className="font-display text-5xl font-black tracking-[-0.04em] text-white">
+                      {formatPrice(plan.price)}
+                    </span>
+                    <span className="mb-1 text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
+                      {plan.currency}
+                    </span>
+                  </div>
+                  <ul className="mt-8 flex-1 space-y-3 text-sm text-gray-300">
+                    {(serviceType === "recovery" && plan.session_count
+                      ? [
+                          `${plan.session_count} séances à utiliser pendant la validité du pack`,
+                          ...content.features,
+                        ]
+                      : content.features
+                    ).map((feature) => (
+                      <li key={feature} className="flex gap-3">
+                        <Check className="h-5 w-5 shrink-0 text-primary" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href={
+                      planIsCurrent
+                        ? "/espace/membre"
+                        : `/inscription?plan=${plan.id}`
+                    }
+                    className={buttonStyles({
+                      variant: planIsCurrent ? "outline" : "primary",
+                      className: "mt-8 w-full",
+                    })}
+                  >
+                    {planIsCurrent
+                      ? "Deja paye"
+                      : currentSubscription
+                        ? "Voir cette offre"
+                        : memberIsRenewing
+                          ? "Renouveler"
+                          : content.buttonLabel}{" "}
+                    <ArrowUpRight className="h-4 w-4" />
+                  </Link>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }

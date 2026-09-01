@@ -137,18 +137,22 @@ class MembershipService:
         return SubscriptionStatus.EXPIRED
 
     def list_member_subscription_summaries(
-        self, *, query: str | None = None, limit: int = 100
+        self,
+        *,
+        query: str | None = None,
+        limit: int = 100,
+        club_id: uuid.UUID | None = None,
     ) -> list[MemberSubscriptionSummary]:
         today = local_today()
         summaries: list[MemberSubscriptionSummary] = []
         for member, subscription in self.repository.list_members_with_latest_subscription(
-            today, query
+            today, query, club_id
         ):
             coaching_subscription = self.repository.current_subscription(
-                member.id, today, ServiceType.COACHING
+                member.id, today, ServiceType.COACHING, club_id
             )
             recovery_subscription = self.repository.current_subscription(
-                member.id, today, ServiceType.RECOVERY
+                member.id, today, ServiceType.RECOVERY, club_id
             )
 
             def has_active_service(candidate: Subscription | None) -> bool:
@@ -183,6 +187,7 @@ class MembershipService:
                     profile_photo_url=member.profile_photo_url,
                     profile_photo_verified_at=member.profile_photo_verified_at,
                     created_at=member.created_at,
+                    club_id=subscription.club_id if subscription else club_id,
                     subscription_id=subscription.id if subscription else None,
                     plan_name=subscription.plan_name if subscription else None,
                     starts_on=subscription.starts_on if subscription else None,

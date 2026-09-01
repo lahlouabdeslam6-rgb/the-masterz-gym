@@ -44,6 +44,13 @@ def test_admin_creates_featured_promotion_and_application_uses_special_price(
     assert featured.status_code == 200
     assert featured.json()["id"] == promotion["id"]
 
+    admin_promotions = client.get(
+        "/api/v1/admin/promotions",
+        headers=admin_headers,
+    )
+    assert admin_promotions.status_code == 200
+    assert admin_promotions.json()[0]["id"] == promotion["id"]
+
     public_offer = client.get(f"/api/v1/promotions/{promotion['slug']}")
     assert public_offer.status_code == 200
     assert public_offer.json()["participant_count"] == 2

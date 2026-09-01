@@ -7,6 +7,8 @@ import type { LucideIcon } from "lucide-react";
 import {
   BadgeDollarSign,
   Bell,
+  CalendarRange,
+  ChevronDown,
   ChevronRight,
   ClipboardCheck,
   Coffee,
@@ -52,50 +54,114 @@ type AdminNavigationItem = {
   badgeKey?: NavigationBadgeKey;
 };
 
-const navigation: AdminNavigationItem[] = [
-  { label: "Vue d'ensemble", href: "/espace/admin", icon: Gauge },
+type AdminNavigationGroup = {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  items: AdminNavigationItem[];
+};
+
+const adminOverview: AdminNavigationItem = {
+  label: "Vue d'ensemble",
+  href: "/espace/admin",
+  icon: Gauge,
+};
+
+const navigationGroups: AdminNavigationGroup[] = [
   {
-    label: "Utilisateurs",
-    href: "/espace/admin/utilisateurs",
-    icon: UserRoundCog,
-  },
-  { label: "Membres", href: "/espace/admin/membres", icon: UsersRound },
-  {
-    label: "Coachs",
-    href: "/espace/admin/coachs",
-    icon: Dumbbell,
-    badgeKey: "coaching",
-  },
-  {
-    label: "Demandes",
-    href: "/espace/admin/demandes",
-    icon: ClipboardCheck,
-    badgeKey: "applications",
-  },
-  { label: "Formules", href: "/espace/admin/formules", icon: CreditCard },
-  { label: "Promotions", href: "/espace/admin/promotions", icon: Megaphone },
-  {
-    label: "Paiements",
-    href: "/espace/admin/paiements",
-    icon: BadgeDollarSign,
-  },
-  { label: "Entrees", href: "/espace/admin/acces", icon: ShieldCheck },
-  { label: "Recovery", href: "/espace/admin/recovery", icon: Waves },
-  { label: "Healthy Cafe", href: "/espace/admin/cafe", icon: Coffee },
-  {
-    label: "Reclamations",
-    href: "/espace/admin/reclamations",
-    icon: MessageSquareWarning,
-    badgeKey: "complaints",
+    id: "people",
+    label: "Equipe & membres",
+    icon: UsersRound,
+    items: [
+      {
+        label: "Utilisateurs",
+        href: "/espace/admin/utilisateurs",
+        icon: UserRoundCog,
+      },
+      { label: "Membres", href: "/espace/admin/membres", icon: UsersRound },
+      {
+        label: "Coachs",
+        href: "/espace/admin/coachs",
+        icon: Dumbbell,
+        badgeKey: "coaching",
+      },
+    ],
   },
   {
-    label: "Store",
-    href: "/espace/admin/store",
+    id: "memberships",
+    label: "Abonnements & caisse",
+    icon: CreditCard,
+    items: [
+      {
+        label: "Demandes",
+        href: "/espace/admin/demandes",
+        icon: ClipboardCheck,
+        badgeKey: "applications",
+      },
+      { label: "Formules", href: "/espace/admin/formules", icon: CreditCard },
+      {
+        label: "Promotions",
+        href: "/espace/admin/promotions",
+        icon: Megaphone,
+      },
+      {
+        label: "Paiements",
+        href: "/espace/admin/paiements",
+        icon: BadgeDollarSign,
+      },
+      { label: "Entrees", href: "/espace/admin/acces", icon: ShieldCheck },
+    ],
+  },
+  {
+    id: "services",
+    label: "Services & suivi",
+    icon: Waves,
+    items: [
+      {
+        label: "Cours Salle 2",
+        href: "/espace/admin/cours-collectifs",
+        icon: CalendarRange,
+      },
+      { label: "Recovery", href: "/espace/admin/recovery", icon: Waves },
+      {
+        label: "Reclamations",
+        href: "/espace/admin/reclamations",
+        icon: MessageSquareWarning,
+        badgeKey: "complaints",
+      },
+    ],
+  },
+  {
+    id: "purchases",
+    label: "Achats",
     icon: ShoppingBag,
-    badgeKey: "store",
+    items: [
+      {
+        label: "Store",
+        href: "/espace/admin/store",
+        icon: ShoppingBag,
+        badgeKey: "store",
+      },
+      { label: "Healthy Cafe", href: "/espace/admin/cafe", icon: Coffee },
+    ],
   },
-  { label: "Parametres", href: "/espace/admin/parametres", icon: Settings2 },
-  { label: "Journal d'audit", href: "/espace/admin/audit", icon: FileClock },
+  {
+    id: "administration",
+    label: "Administration",
+    icon: Settings2,
+    items: [
+      {
+        label: "Parametres",
+        href: "/espace/admin/parametres",
+        icon: Settings2,
+      },
+      {
+        label: "Journal d'audit",
+        href: "/espace/admin/audit",
+        icon: FileClock,
+      },
+    ],
+  },
 ];
 
 type AdminSessionContextValue = {
@@ -433,42 +499,128 @@ function AdminNavigation({
   onBadgeOpen: (key: NavigationBadgeKey) => void;
   onNavigate?: () => void;
 }) {
+  const [openGroups, setOpenGroups] = useState<
+    Record<string, boolean | undefined>
+  >({});
+
+  const overviewActive = pathname === adminOverview.href;
+
   return (
     <nav
-      className="mt-4 grid gap-0.5 pb-2"
+      className="mt-4 grid gap-1.5 pb-2"
       aria-label="Navigation administration"
     >
-      {navigation.map(({ label, href, icon: Icon, badgeKey }) => {
-        const active =
-          href === "/espace/admin"
-            ? pathname === href
-            : pathname.startsWith(href);
+      <Link
+        href={adminOverview.href}
+        onClick={onNavigate}
+        aria-current={overviewActive ? "page" : undefined}
+        className={`flex items-center gap-3 rounded-sm border-l-2 px-3 py-2.5 text-sm font-bold transition ${
+          overviewActive
+            ? "border-primary bg-primary/10 text-primary"
+            : "border-transparent text-gray-400 hover:border-white/20 hover:bg-white/[0.04] hover:text-white"
+        }`}
+      >
+        <Gauge className="h-4 w-4 shrink-0" />
+        <span className="min-w-0 flex-1 truncate">{adminOverview.label}</span>
+      </Link>
+
+      {navigationGroups.map((group) => {
+        const groupActive = group.items.some((item) =>
+          pathname.startsWith(item.href),
+        );
+        const expanded = openGroups[group.id] ?? groupActive;
+        const groupBadgeCount = group.items.reduce(
+          (total, item) =>
+            total + (item.badgeKey ? (badges[item.badgeKey] ?? 0) : 0),
+          0,
+        );
+        const groupBadgeKeys = group.items.flatMap((item) =>
+          item.badgeKey ? [item.badgeKey] : [],
+        );
+        const GroupIcon = group.icon;
+
         return (
-          <Link
-            key={href}
-            href={href}
-            onClick={() => {
-              if (badgeKey) onBadgeOpen(badgeKey);
-              onNavigate?.();
-            }}
-            aria-current={active ? "page" : undefined}
-            className={`flex items-center gap-3 rounded-sm border-l-2 px-3 py-2.5 text-sm font-bold transition ${
-              active
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-transparent text-gray-400 hover:border-white/20 hover:bg-white/[0.04] hover:text-white"
+          <div
+            key={group.id}
+            className={`overflow-hidden rounded-sm border ${
+              groupActive
+                ? "border-primary/25 bg-primary/[0.035]"
+                : "border-white/[0.06] bg-white/[0.015]"
             }`}
           >
-            <Icon className="h-4 w-4 shrink-0" />
-            <span className="min-w-0 flex-1 truncate">{label}</span>
-            {badgeKey && badges[badgeKey] ? (
-              <span
-                data-testid={`navigation-badge-${badgeKey}`}
-                className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[0.62rem] font-black text-black"
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-controls={`admin-navigation-${group.id}`}
+              onClick={() =>
+                setOpenGroups((current) => ({
+                  ...current,
+                  [group.id]: !current[group.id],
+                }))
+              }
+              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-black transition hover:bg-white/[0.04] hover:text-white ${
+                groupActive ? "text-primary" : "text-gray-300"
+              }`}
+            >
+              <GroupIcon className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 flex-1 truncate">{group.label}</span>
+              {groupBadgeCount ? (
+                <span
+                  data-testid={
+                    groupBadgeKeys.length === 1 && !expanded
+                      ? `navigation-badge-${groupBadgeKeys[0]}`
+                      : `navigation-group-badge-${group.id}`
+                  }
+                  className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[0.58rem] font-black text-black"
+                >
+                  {groupBadgeCount > 99 ? "99+" : groupBadgeCount}
+                </span>
+              ) : null}
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
+                  expanded ? "rotate-180 text-primary" : "text-gray-500"
+                }`}
+              />
+            </button>
+
+            {expanded ? (
+              <div
+                id={`admin-navigation-${group.id}`}
+                className="grid gap-0.5 border-t border-white/[0.06] p-1.5"
               >
-                {badges[badgeKey]! > 99 ? "99+" : badges[badgeKey]}
-              </span>
+                {group.items.map(({ label, href, icon: Icon, badgeKey }) => {
+                  const active = pathname.startsWith(href);
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => {
+                        if (badgeKey) onBadgeOpen(badgeKey);
+                        onNavigate?.();
+                      }}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex items-center gap-3 rounded-sm border-l-2 px-3 py-2 text-[0.82rem] font-bold transition ${
+                        active
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-transparent text-gray-400 hover:border-white/20 hover:bg-white/[0.04] hover:text-white"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="min-w-0 flex-1 truncate">{label}</span>
+                      {badgeKey && badges[badgeKey] ? (
+                        <span
+                          data-testid={`navigation-badge-${badgeKey}`}
+                          className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[0.58rem] font-black text-black"
+                        >
+                          {badges[badgeKey]! > 99 ? "99+" : badges[badgeKey]}
+                        </span>
+                      ) : null}
+                    </Link>
+                  );
+                })}
+              </div>
             ) : null}
-          </Link>
+          </div>
         );
       })}
     </nav>

@@ -37,7 +37,14 @@ def list_member_attendance(
     session: DbSession,
     actor: CurrentUser,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    club_id: Annotated[uuid.UUID | None, Query()] = None,
 ):
     if actor.role not in {UserRole.ADMIN, UserRole.RECEPTIONIST} and actor.id != member_id:
         raise api_error(403, "permission_denied", "Accès interdit.")
-    return AttendanceRepository(session).list_member_attendance(member_id, limit=limit)
+    if club_id and actor.role in {UserRole.ADMIN, UserRole.RECEPTIONIST}:
+        from app.modules.clubs.service import ClubService
+
+        ClubService(session).require_access(actor, club_id)
+    return AttendanceRepository(session).list_member_attendance(
+        member_id, limit=limit, club_id=club_id
+    )

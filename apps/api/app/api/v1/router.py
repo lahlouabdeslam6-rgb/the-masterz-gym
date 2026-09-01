@@ -6,7 +6,9 @@ from app.modules.attendance.router import router as attendance_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
 from app.modules.cafe.router import router as cafe_router
+from app.modules.clubs.router import router as clubs_router
 from app.modules.coaching.router import router as coaching_router
+from app.modules.collective_classes.router import router as collective_classes_router
 from app.modules.complaints.router import router as complaints_router
 from app.modules.health.router import router as health_router
 from app.modules.memberships.router import router as memberships_router
@@ -22,6 +24,7 @@ api_router.include_router(health_router)
 api_router.include_router(analytics_router)
 api_router.include_router(auth_router)
 api_router.include_router(cafe_router)
+api_router.include_router(clubs_router)
 api_router.include_router(users_router)
 api_router.include_router(applications_router)
 api_router.include_router(memberships_router)
@@ -29,6 +32,7 @@ api_router.include_router(promotions_router)
 api_router.include_router(payments_router)
 api_router.include_router(attendance_router)
 api_router.include_router(coaching_router)
+api_router.include_router(collective_classes_router)
 api_router.include_router(complaints_router)
 api_router.include_router(recovery_router)
 api_router.include_router(notifications_router)

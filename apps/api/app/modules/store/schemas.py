@@ -4,10 +4,12 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.modules.clubs.constants import SALLE_1_ID
 from app.shared.enums import StorePaymentMethod, StoreReservationStatus
 
 
 class StoreProductCreate(BaseModel):
+    club_id: uuid.UUID = SALLE_1_ID
     name: str = Field(min_length=2, max_length=160)
     description: str | None = Field(default=None, max_length=4000)
     image_url: str | None = Field(default=None, max_length=500)
@@ -78,6 +80,7 @@ class StoreProductRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    club_id: uuid.UUID
     name: str
     description: str | None
     image_url: str | None
@@ -102,6 +105,7 @@ class StoreInventorySummaryRead(BaseModel):
 
 class StoreCatalogProductRead(BaseModel):
     id: uuid.UUID
+    club_id: uuid.UUID
     name: str
     description: str | None
     image_url: str | None
@@ -141,6 +145,7 @@ class StoreReservationStatusUpdate(BaseModel):
 
 class StoreReservationRead(BaseModel):
     id: uuid.UUID
+    club_id: uuid.UUID
     product_id: uuid.UUID
     product_name: str
     product_image_url: str | None
@@ -178,6 +183,7 @@ class StoreSaleCreate(BaseModel):
 
 class StoreSaleRead(BaseModel):
     id: uuid.UUID
+    club_id: uuid.UUID
     product_id: uuid.UUID
     reservation_id: uuid.UUID | None
     product_name: str

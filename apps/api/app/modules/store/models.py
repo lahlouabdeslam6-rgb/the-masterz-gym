@@ -18,6 +18,7 @@ from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.modules.clubs.constants import SALLE_1_ID
 from app.shared.enums import StorePaymentMethod, StoreReservationStatus
 from app.shared.models import TimestampMixin, UUIDPrimaryKeyMixin
 
@@ -30,6 +31,14 @@ class StoreProduct(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
     name: Mapped[str] = mapped_column(String(160), nullable=False, index=True)
+    club_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("clubs.id"),
+        nullable=False,
+        default=SALLE_1_ID,
+        server_default=str(SALLE_1_ID),
+        index=True,
+    )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     media_urls: Mapped[list[str]] = mapped_column(
@@ -51,6 +60,14 @@ class StoreReservation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     product_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("store_products.id"), nullable=False, index=True
+    )
+    club_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("clubs.id"),
+        nullable=False,
+        default=SALLE_1_ID,
+        server_default=str(SALLE_1_ID),
+        index=True,
     )
     member_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
@@ -85,6 +102,14 @@ class StoreSale(UUIDPrimaryKeyMixin, Base):
 
     idempotency_key: Mapped[str] = mapped_column(
         String(160), nullable=False, unique=True, index=True
+    )
+    club_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("clubs.id"),
+        nullable=False,
+        default=SALLE_1_ID,
+        server_default=str(SALLE_1_ID),
+        index=True,
     )
     product_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("store_products.id"), nullable=False, index=True

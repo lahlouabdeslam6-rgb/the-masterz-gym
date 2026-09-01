@@ -22,6 +22,10 @@ const menuItem = {
   category: "Repas",
   description: "Composition choisie par l'equipe.",
   image_url: "/media/cafe-menu/bowl.png",
+  media_urls: [
+    "/media/cafe-menu/bowl.png",
+    "/media/cafe-menu/bowl.mp4",
+  ],
   price: "49.00",
   currency: "MAD",
   display_order: 1,
@@ -53,6 +57,11 @@ test("affiche la carte Healthy Cafe publique sans reservation", async ({
   ).toBeVisible();
   await expect(page.getByText("Bowl Test", { exact: true })).toBeVisible();
   await expect(page.getByText("49")).toBeVisible();
+  await page.getByRole("button", { name: "Voir", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Voir Bowl Test" })).toBeVisible();
+  await expect(
+    page.getByText("Composition choisie par l'equipe."),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: /reserver/i })).toHaveCount(0);
   await expect(page.getByRole("link", { name: /reserver/i })).toHaveCount(0);
 });
@@ -62,6 +71,8 @@ test("permet a l'Admin d'ajouter un repas avec prix et photo", async ({
 }) => {
   let items: (typeof menuItem)[] = [];
   let submitted: Record<string, unknown> | null = null;
+  let deleted = false;
+  let uploadedMediaCount = 0;
 
   await page.route("**/api/v1/**", async (route) => {
     const url = new URL(route.request().url());
@@ -81,7 +92,22 @@ test("permet a l'Admin d'ajouter un repas avec prix et photo", async ({
     let status = 200;
     if (url.pathname === "/api/v1/users/me") body = admin;
     if (url.pathname === "/api/v1/cafe/menu-media") {
-      body = { media_url: "/media/cafe-menu/bowl.png" };
+      uploadedMediaCount += 1;
+      body = {
+        media_url:
+          uploadedMediaCount === 1
+            ? "/media/cafe-menu/bowl.png"
+            : "/media/cafe-menu/bowl.mp4",
+      };
+    }
+    if (
+      url.pathname === `/api/v1/cafe/menu-items/${menuItem.id}` &&
+      route.request().method() === "DELETE"
+    ) {
+      items = [];
+      deleted = true;
+      status = 204;
+      body = null;
     }
     if (url.pathname === "/api/v1/cafe/menu-items") {
       if (route.request().method() === "POST") {
@@ -115,11 +141,18 @@ test("permet a l'Admin d'ajouter un repas avec prix et photo", async ({
   await page.getByLabel("Nom du repas *").fill("Bowl Test");
   await page.getByLabel("Categorie *").fill("Repas");
   await page.getByLabel("Prix *").fill("49");
-  await page.getByLabel("Ajouter une photo").setInputFiles({
-    name: "bowl.png",
-    mimeType: "image/png",
-    buffer: Buffer.from("89504e470d0a1a0a", "hex"),
-  });
+  await page.getByLabel("Ajouter photos ou videos").setInputFiles([
+    {
+      name: "bowl.png",
+      mimeType: "image/png",
+      buffer: Buffer.from("89504e470d0a1a0a", "hex"),
+    },
+    {
+      name: "bowl.mp4",
+      mimeType: "video/mp4",
+      buffer: Buffer.from("000000186674797069736f6d", "hex"),
+    },
+  ]);
   await page.getByRole("button", { name: "Ajouter le repas" }).click();
 
   await expect(
@@ -131,5 +164,18 @@ test("permet a l'Admin d'ajouter un repas avec prix et photo", async ({
     price: "49",
     currency: "MAD",
     image_url: "/media/cafe-menu/bowl.png",
+    media_urls: [
+      "/media/cafe-menu/bowl.png",
+      "/media/cafe-menu/bowl.mp4",
+    ],
   });
+  page.once("dialog", (dialog) => dialog.accept());
+  await page
+    .getByRole("button", { name: "Supprimer", exact: true })
+    .last()
+    .click();
+  await expect(
+    page.getByText("Le repas a ete supprime de la carte."),
+  ).toBeVisible();
+  expect(deleted).toBe(true);
 });

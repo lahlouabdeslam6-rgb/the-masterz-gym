@@ -33,6 +33,7 @@ import {
   statusLabels,
 } from "./dashboard-shared";
 import { MemberAvatar, MemberPhotoCapture } from "./MemberPhotoCapture";
+import { ClubBadge, SALLE_1_ID, clubLabel } from "./ClubSwitcher";
 
 type PaymentMethod = "cash" | "bank_card";
 export type StaffMemberMode = "full" | "profile" | "payments" | "access";
@@ -196,10 +197,12 @@ export function StaffMemberManager({
   session,
   plans,
   mode = "full",
+  clubId = SALLE_1_ID,
 }: {
   session: AuthSession;
   plans: Plan[];
   mode?: StaffMemberMode;
+  clubId?: string;
 }) {
   const [query, setQuery] = useState("");
   const [members, setMembers] = useState<MemberSubscriptionSummary[]>([]);
@@ -320,15 +323,24 @@ export function StaffMemberManager({
         await Promise.all([
           api.GET("/api/v1/members/{member_id}/subscriptions", {
             headers: requestHeaders,
-            params: { path: { member_id: member.id } },
+            params: {
+              path: { member_id: member.id },
+              query: { club_id: clubId },
+            },
           }),
           api.GET("/api/v1/payments/members/{member_id}/receipts", {
             headers: requestHeaders,
-            params: { path: { member_id: member.id } },
+            params: {
+              path: { member_id: member.id },
+              query: { club_id: clubId },
+            },
           }),
           api.GET("/api/v1/attendance/members/{member_id}", {
             headers: requestHeaders,
-            params: { path: { member_id: member.id }, query: { limit: 100 } },
+            params: {
+              path: { member_id: member.id },
+              query: { limit: 100, club_id: clubId },
+            },
           }),
         ]);
       setSubscriptions(subscriptionResult.data ?? []);
@@ -336,7 +348,7 @@ export function StaffMemberManager({
       setAttendance(attendanceResult.data ?? []);
       setBusy(false);
     },
-    [plans, profileMode, session.accessToken],
+    [clubId, plans, profileMode, session.accessToken],
   );
 
   const loadMembers = useCallback(
@@ -348,6 +360,7 @@ export function StaffMemberManager({
           query: {
             query: searchQuery.trim() || undefined,
             limit: 500,
+            club_id: clubId,
           },
         },
       });
@@ -375,9 +388,7 @@ export function StaffMemberManager({
       }
       setSelected((current) => {
         if (!current) return current;
-        return (
-          loadedMembers.find((member) => member.id === current.id) ?? current
-        );
+        return loadedMembers.find((member) => member.id === current.id) ?? null;
       });
       setFeedback(
         result.error ? "Impossible de charger la liste des membres." : null,
@@ -389,6 +400,7 @@ export function StaffMemberManager({
       mode,
       requestedMemberId,
       requestedServiceType,
+      clubId,
       session.accessToken,
     ],
   );
@@ -455,6 +467,7 @@ export function StaffMemberManager({
     const result = await api.POST("/api/v1/attendance/check-ins", {
       headers,
       body: {
+        club_id: clubId,
         member_id: selected.id,
         exceptional_access_reason: null,
       },
@@ -631,7 +644,9 @@ export function StaffMemberManager({
       : mode === "access"
         ? "Membres classes par nom. Choisissez un membre pour enregistrer son entree."
         : "La liste est affichee directement. Filtrez-la ou choisissez un membre pour ouvrir son dossier.";
-  const activePlans = plans.filter((plan) => plan.is_active);
+  const activePlans = plans.filter(
+    (plan) => plan.is_active && (plan.club_id ?? SALLE_1_ID) === clubId,
+  );
   const selectedPlan =
     activePlans.find((plan) => plan.id === planId) ?? activePlans[0];
   const selectedPlanNeedsRecoverySetup = Boolean(
@@ -641,6 +656,7 @@ export function StaffMemberManager({
     ? subscriptions.find(
         (subscription) =>
           subscription.service_type === selectedPlan.service_type &&
+          (subscription.club_id ?? SALLE_1_ID) === clubId &&
           !(
             subscription.service_type === "recovery" &&
             subscription.remaining_sessions === 0
@@ -797,6 +813,9 @@ export function StaffMemberManager({
                     : memberStatusLabel(member)}
                 </span>
               </div>
+              <div className="mt-3">
+                <ClubBadge clubId={member.club_id ?? clubId} />
+              </div>
               <div className="mt-4 grid gap-3 border-t border-white/10 pt-3 text-xs sm:grid-cols-2">
                 <div>
                   <p className="uppercase tracking-[0.08em] text-gray-600">
@@ -852,6 +871,7 @@ export function StaffMemberManager({
               >
                 {memberStatusLabel(selected)}
               </span>
+              <ClubBadge clubId={clubId} />
               <Pill>Dossier membre</Pill>
             </div>
           </div>
@@ -874,7 +894,7 @@ export function StaffMemberManager({
             >
               <div className="border-b border-white/10 pb-4">
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">
-                  Encaissement
+                  Encaissement · {clubLabel(clubId)}
                 </p>
                 <h3 className="mt-2 text-xl font-black uppercase text-white">
                   Nouveau paiement / renouvellement
@@ -1337,6 +1357,11 @@ export function StaffMemberManager({
                                         ]
                                       }
                                     </Pill>
+                                    <div className="mt-2">
+                                      <ClubBadge
+                                        clubId={subscription.club_id}
+                                      />
+                                    </div>
                                     <p className="font-black text-white">
                                       {subscription.plan_name}
                                     </p>

@@ -39,10 +39,12 @@ class ApplicationService:
         self.audit = AuditService(session)
 
     def list(
-        self, application_status: ApplicationStatus | None = None
+        self,
+        application_status: ApplicationStatus | None = None,
+        club_id: uuid.UUID | None = None,
     ) -> list[MembershipApplication]:
         self.purge_stale_pending()
-        return self.applications.list(application_status)
+        return self.applications.list(application_status, club_id)
 
     def get(self, application_id: uuid.UUID) -> MembershipApplication | None:
         self.purge_stale_pending()
@@ -87,6 +89,7 @@ class ApplicationService:
                 existing_member.id,
                 local_today(),
                 ServiceType.GYM,
+                plan.club_id,
             )
             if current and self.membership_service.effective_status(current) not in {
                 SubscriptionStatus.SUSPENDED,
@@ -110,6 +113,7 @@ class ApplicationService:
         application = self.applications.add(
             MembershipApplication(
                 **data.model_dump(exclude={"promotion_id"}),
+                club_id=plan.club_id,
                 promotion_id=promotion.id if promotion else None,
                 promotion_title=promotion.title if promotion else None,
                 promotion_price=promotion.price if promotion else None,

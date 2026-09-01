@@ -558,7 +558,7 @@ function ProductGallery({ product }: { product: CatalogProduct }) {
   return (
     <div
       data-testid="product-gallery"
-      className={`relative overflow-hidden bg-[#f4f4f2] lg:h-full ${
+      className={`relative overflow-hidden bg-[#071827] lg:h-full ${
         mediaUrls.length > 1
           ? "lg:grid lg:grid-cols-[minmax(0,1fr)_6.5rem]"
           : ""
@@ -605,7 +605,7 @@ function ProductGallery({ product }: { product: CatalogProduct }) {
               key={`${mediaUrl}-${index}`}
               aria-label={`Afficher media ${index + 1}`}
               aria-current={index === activeIndex}
-              className={`flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border-2 bg-white bg-contain bg-center bg-no-repeat transition sm:h-16 sm:w-16 lg:h-20 lg:w-full ${
+              className={`flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border-2 bg-[#071827] bg-contain bg-center bg-no-repeat transition sm:h-16 sm:w-16 lg:h-20 lg:w-full ${
                 index === activeIndex
                   ? "border-primary"
                   : "border-transparent opacity-70 hover:opacity-100"
@@ -650,7 +650,11 @@ function CatalogMedia({
   if (resolvedMediaUrl && isMediaVideo(resolvedMediaUrl)) {
     return (
       <video
-        className={`${sizeClasses} w-full bg-black object-contain`}
+        className={`${sizeClasses} w-full ${
+          size === "card" ? "bg-black" : "bg-[#071827]"
+        } ${
+          size === "card" ? "object-cover" : "object-contain"
+        }`}
         src={resolvedMediaUrl}
         controls
         preload="metadata"
@@ -662,14 +666,18 @@ function CatalogMedia({
     <div
       role="img"
       aria-label={"Photo " + product.name}
-      className={`${sizeClasses} flex w-full items-center justify-center bg-[#f4f4f2] bg-contain bg-center bg-no-repeat transition duration-500 group-hover:brightness-[0.97]`}
+      className={`${sizeClasses} flex w-full items-center justify-center bg-center bg-no-repeat transition duration-500 group-hover:brightness-[0.97] ${
+        size === "card"
+          ? "bg-[#f4f4f2] bg-cover"
+          : "bg-[#071827] bg-contain"
+      }`}
       style={
         resolvedMediaUrl
           ? {
               backgroundImage: 'url("' + resolvedMediaUrl + '")',
               backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
-              backgroundSize: "contain",
+              backgroundSize: size === "card" ? "cover" : "contain",
             }
           : undefined
       }

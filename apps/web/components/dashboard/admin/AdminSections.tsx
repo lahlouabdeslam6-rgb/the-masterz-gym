@@ -31,6 +31,7 @@ import { CoachingManager } from "../CoachingManager";
 import { StaffCoachingAssignmentRequests } from "../CoachingAssignmentRequests";
 import { CoachingScheduleManager } from "../CoachingScheduleManager";
 import { CoachingConversationPanel } from "../CoachingConversationPanel";
+import { CollectiveClassesManager } from "../CollectiveClassesManager";
 import { ComplaintCenter } from "../ComplaintCenter";
 import { PromotionManager } from "../PromotionManager";
 import { RecoveryManager } from "../RecoveryManager";
@@ -49,6 +50,7 @@ import {
 } from "../dashboard-shared";
 import { AdminPage } from "./AdminPage";
 import { useAdminSession } from "./AdminShell";
+import { ClubSwitcher, SALLE_1_ID, defaultClubs } from "../ClubSwitcher";
 
 export function AdminUsersSection() {
   const { session } = useAdminSession();
@@ -91,6 +93,7 @@ export function AdminUsersSection() {
 
 export function AdminApplicationsSection() {
   const { session } = useAdminSession();
+  const [clubId, setClubId] = useState(SALLE_1_ID);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,13 +101,14 @@ export function AdminApplicationsSection() {
   const load = useCallback(async () => {
     const result = await api.GET("/api/v1/membership-applications", {
       headers: authorizationHeaders(session.accessToken),
+      params: { query: { club_id: clubId } },
     });
     setApplications(result.data ?? []);
     setError(
       result.error ? "Impossible de charger les demandes d'adhesion." : null,
     );
     setLoading(false);
-  }, [session.accessToken]);
+  }, [clubId, session.accessToken]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => void load(), 0);
@@ -123,6 +127,14 @@ export function AdminApplicationsSection() {
       title="Demandes"
       description="Traitez les nouvelles inscriptions sans melanger cette file avec les dossiers membres."
     >
+      <div className="mb-6">
+        <ClubSwitcher
+          clubs={defaultClubs}
+          selectedClubId={clubId}
+          onChange={setClubId}
+          title="Demandes par salle"
+        />
+      </div>
       <PageState loading={loading} error={error}>
         <Panel
           title="Demandes d'adhesion"
@@ -141,18 +153,19 @@ export function AdminApplicationsSection() {
 
 export function AdminPlansSection() {
   const { session } = useAdminSession();
+  const [clubId, setClubId] = useState(SALLE_1_ID);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const result = await api.GET("/api/v1/membership-plans", {
-      params: { query: { active_only: false } },
+      params: { query: { active_only: false, club_id: clubId } },
     });
     setPlans(result.data ?? []);
     setError(result.error ? "Impossible de charger les formules." : null);
     setLoading(false);
-  }, []);
+  }, [clubId]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => void load(), 0);
@@ -165,12 +178,24 @@ export function AdminPlansSection() {
       title="Formules"
       description="Creez et modifiez les abonnements visibles. Les futures offres deux-clubs seront configurees ici sans prix code en dur."
     >
+      <div className="mb-6">
+        <ClubSwitcher
+          selectedClubId={clubId}
+          onChange={setClubId}
+          title="Formules par salle"
+        />
+      </div>
       <PageState loading={loading} error={error}>
         <Panel
           title="Formules d'abonnement"
           subtitle={`${plans.filter((plan) => plan.is_active).length} formule(s) active(s).`}
         >
-          <AdminPlanManager session={session} plans={plans} onReload={load} />
+          <AdminPlanManager
+            session={session}
+            plans={plans}
+            clubId={clubId}
+            onReload={load}
+          />
         </Panel>
       </PageState>
     </AdminPage>
@@ -197,17 +222,31 @@ export function AdminPromotionsSection() {
 
 export function AdminMembersSection() {
   const { session } = useAdminSession();
+  const [clubId, setClubId] = useState(SALLE_1_ID);
   return (
     <AdminPage
       eyebrow="Base clients"
       title="Membres"
       description="Consultez la liste complete, filtrez les statuts puis ouvrez un dossier membre clairement separe en informations, abonnements, recus et entrees."
     >
+      <div className="mb-6">
+        <ClubSwitcher
+          selectedClubId={clubId}
+          onChange={setClubId}
+          title="Membres par salle"
+        />
+      </div>
       <Panel
         title="Dossier membre"
         subtitle="Les renouvellements urgents apparaissent en premier. Vous pouvez aussi classer la liste par nom ou par date d'inscription."
       >
-        <StaffMemberManager session={session} plans={[]} mode="profile" />
+        <StaffMemberManager
+          key={clubId}
+          session={session}
+          plans={[]}
+          mode="profile"
+          clubId={clubId}
+        />
       </Panel>
     </AdminPage>
   );
@@ -288,22 +327,36 @@ export function AdminCoachesSection() {
   );
 }
 
+export function AdminCollectiveClassesSection() {
+  const { session } = useAdminSession();
+  return (
+    <AdminPage
+      eyebrow="Cours collectifs · Salle 2"
+      title="Planning Salle 2"
+      description="Configurez les cours, affectez les coachs, publiez le planning et suivez les places confirmees ainsi que la liste d'attente."
+    >
+      <CollectiveClassesManager session={session} mode="admin" />
+    </AdminPage>
+  );
+}
+
 export function AdminPaymentsSection() {
   const { session } = useAdminSession();
+  const [clubId, setClubId] = useState(SALLE_1_ID);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const result = await api.GET("/api/v1/membership-plans", {
-      params: { query: { active_only: true } },
+      params: { query: { active_only: true, club_id: clubId } },
     });
     setPlans(result.data ?? []);
     setError(
       result.error ? "Impossible de charger les formules de paiement." : null,
     );
     setLoading(false);
-  }, []);
+  }, [clubId]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => void load(), 0);
@@ -316,12 +369,25 @@ export function AdminPaymentsSection() {
       title="Paiements"
       description="Consultez les renouvellements prioritaires, ouvrez le dossier du membre puis encaissez son abonnement."
     >
+      <div className="mb-6">
+        <ClubSwitcher
+          selectedClubId={clubId}
+          onChange={setClubId}
+          title="Caisse par salle"
+        />
+      </div>
       <PageState loading={loading} error={error}>
         <Panel
           title="Paiement membre"
           subtitle="Les abonnements expires ou proches de leur echeance apparaissent en premier."
         >
-          <StaffMemberManager session={session} plans={plans} mode="payments" />
+          <StaffMemberManager
+            key={clubId}
+            session={session}
+            plans={plans}
+            mode="payments"
+            clubId={clubId}
+          />
         </Panel>
       </PageState>
     </AdminPage>
@@ -330,17 +396,31 @@ export function AdminPaymentsSection() {
 
 export function AdminAccessSection() {
   const { session } = useAdminSession();
+  const [clubId, setClubId] = useState(SALLE_1_ID);
   return (
     <AdminPage
       eyebrow="Accueil salle"
       title="Entrees des membres"
       description="Choisissez le membre puis enregistrez son entree. Si son abonnement commence plus tard, vous pouvez le demarrer aujourd'hui."
     >
+      <div className="mb-6">
+        <ClubSwitcher
+          selectedClubId={clubId}
+          onChange={setClubId}
+          title="Entrees par salle"
+        />
+      </div>
       <Panel
         title="Enregistrer une entree"
         subtitle="La date de debut choisie au paiement determine le premier jour d'entree et lance le calcul de l'abonnement."
       >
-        <StaffMemberManager session={session} plans={[]} mode="access" />
+        <StaffMemberManager
+          key={clubId}
+          session={session}
+          plans={[]}
+          mode="access"
+          clubId={clubId}
+        />
       </Panel>
     </AdminPage>
   );
@@ -660,6 +740,8 @@ const auditTitles: Record<string, string> = {
   "recovery.visit_recorded": "Passage Recovery enregistre",
   "cafe.menu_item.created": "Repas Healthy Cafe ajoute",
   "cafe.menu_item.updated": "Carte Healthy Cafe modifiee",
+  "cafe.menu_item.deleted": "Repas Healthy Cafe supprime",
+  "store.product.deleted": "Produit Store supprime",
   "store.product.created": "Produit Store ajoute",
   "store.product.updated": "Produit Store modifie",
   "store.reservation.created": "Produit reserve par un client",

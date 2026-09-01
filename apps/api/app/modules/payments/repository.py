@@ -37,12 +37,14 @@ class PaymentRepository:
     def get_receipt(self, receipt_id: uuid.UUID) -> Receipt | None:
         return self.session.get(Receipt, receipt_id)
 
-    def list_member_receipts(self, member_id: uuid.UUID) -> list[Receipt]:
-        return list(
-            self.session.scalars(
-                select(Receipt)
-                .join(Payment, Payment.id == Receipt.payment_id)
-                .where(Payment.member_id == member_id)
-                .order_by(Receipt.issued_at.desc())
-            )
+    def list_member_receipts(
+        self, member_id: uuid.UUID, club_id: uuid.UUID | None = None
+    ) -> list[Receipt]:
+        statement = (
+            select(Receipt)
+            .join(Payment, Payment.id == Receipt.payment_id)
+            .where(Payment.member_id == member_id)
         )
+        if club_id:
+            statement = statement.where(Payment.club_id == club_id)
+        return list(self.session.scalars(statement.order_by(Receipt.issued_at.desc())))

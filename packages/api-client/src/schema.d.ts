@@ -236,7 +236,8 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Menu Item */
+        delete: operations["delete_menu_item_api_v1_cafe_menu_items__item_id__delete"];
         options?: never;
         head?: never;
         /** Update Menu Item */
@@ -254,6 +255,75 @@ export interface paths {
         put?: never;
         /** Upload Menu Media */
         post: operations["upload_menu_media_api_v1_cafe_menu_media_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clubs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Clubs */
+        get: operations["list_clubs_api_v1_clubs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clubs/my-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Club Access */
+        get: operations["my_club_access_api_v1_clubs_my_access_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clubs/{club_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Club */
+        patch: operations["update_club_api_v1_clubs__club_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/clubs/users/{user_id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** User Club Assignments */
+        get: operations["user_club_assignments_api_v1_clubs_users__user_id__assignments_get"];
+        /** Replace User Club Assignments */
+        put: operations["replace_user_club_assignments_api_v1_clubs_users__user_id__assignments_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1069,6 +1139,145 @@ export interface paths {
         patch: operations["reschedule_booking_api_v1_coaching_bookings__booking_id__schedule_patch"];
         trace?: never;
     };
+    "/api/v1/collective-classes/types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Class Types */
+        get: operations["list_class_types_api_v1_collective_classes_types_get"];
+        put?: never;
+        /** Create Class Type */
+        post: operations["create_class_type_api_v1_collective_classes_types_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/collective-classes/types/{class_type_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Class Type */
+        patch: operations["update_class_type_api_v1_collective_classes_types__class_type_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/collective-classes/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sessions */
+        get: operations["list_sessions_api_v1_collective_classes_sessions_get"];
+        put?: never;
+        /** Create Session */
+        post: operations["create_session_api_v1_collective_classes_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/collective-classes/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Session */
+        patch: operations["update_session_api_v1_collective_classes_sessions__session_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/collective-classes/sessions/{session_id}/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Session Reservations */
+        get: operations["list_session_reservations_api_v1_collective_classes_sessions__session_id__reservations_get"];
+        put?: never;
+        /** Reserve Session */
+        post: operations["reserve_session_api_v1_collective_classes_sessions__session_id__reservations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/collective-classes/my-reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List My Reservations */
+        get: operations["list_my_reservations_api_v1_collective_classes_my_reservations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/collective-classes/reservations/{reservation_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Cancel Reservation */
+        patch: operations["cancel_reservation_api_v1_collective_classes_reservations__reservation_id__cancel_patch"];
+        trace?: never;
+    };
+    "/api/v1/collective-classes/reservations/{reservation_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Reservation Status */
+        patch: operations["update_reservation_status_api_v1_collective_classes_reservations__reservation_id__status_patch"];
+        trace?: never;
+    };
     "/api/v1/complaints": {
         parameters: {
             query?: never;
@@ -1319,7 +1528,8 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Product */
+        delete: operations["delete_product_api_v1_store_products__product_id__delete"];
         options?: never;
         head?: never;
         /** Update Product */
@@ -1456,6 +1666,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
             /** Full Name */
             full_name: string;
             /** Phone */
@@ -1520,6 +1735,12 @@ export interface components {
              * Format: uuid
              */
             member_id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             * @default 11111111-1111-4111-8111-111111111111
+             */
+            club_id: string;
             /** Exceptional Access Reason */
             exceptional_access_reason?: string | null;
         };
@@ -1535,6 +1756,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
             /**
              * Member Id
              * Format: uuid
@@ -1626,6 +1852,12 @@ export interface components {
         };
         /** CafeMenuItemCreate */
         CafeMenuItemCreate: {
+            /**
+             * Club Id
+             * Format: uuid
+             * @default 11111111-1111-4111-8111-111111111111
+             */
+            club_id: string;
             /** Name */
             name: string;
             /** Category */
@@ -1634,6 +1866,8 @@ export interface components {
             description?: string | null;
             /** Image Url */
             image_url?: string | null;
+            /** Media Urls */
+            media_urls?: string[];
             /** Price */
             price: number | string;
             /**
@@ -1659,6 +1893,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
             /** Name */
             name: string;
             /** Category */
@@ -1667,6 +1906,8 @@ export interface components {
             description: string | null;
             /** Image Url */
             image_url: string | null;
+            /** Media Urls */
+            media_urls: string[];
             /** Price */
             price: string;
             /** Currency */
@@ -1700,6 +1941,8 @@ export interface components {
             description?: string | null;
             /** Image Url */
             image_url?: string | null;
+            /** Media Urls */
+            media_urls?: string[] | null;
             /** Price */
             price?: number | string | null;
             /** Currency */
@@ -1714,8 +1957,45 @@ export interface components {
             /** Media Url */
             media_url: string;
         };
+        /** ClubRead */
+        ClubRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Label */
+            label: string;
+            /** Slug */
+            slug: string;
+            /** Address */
+            address: string | null;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /** ClubUpdate */
+        ClubUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Label */
+            label?: string | null;
+            /** Address */
+            address?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Reason */
+            reason: string;
+        };
         /** CoachAvailabilityCreate */
         CoachAvailabilityCreate: {
+            /**
+             * Club Id
+             * Format: uuid
+             * @default 11111111-1111-4111-8111-111111111111
+             */
+            club_id: string;
             /**
              * Starts At
              * Format: date-time
@@ -1738,6 +2018,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
             /**
              * Coach Id
              * Format: uuid
@@ -1780,6 +2065,12 @@ export interface components {
         };
         /** CoachAvailabilityUpdate */
         CoachAvailabilityUpdate: {
+            /**
+             * Club Id
+             * Format: uuid
+             * @default 11111111-1111-4111-8111-111111111111
+             */
+            club_id: string;
             /**
              * Starts At
              * Format: date-time
@@ -2045,6 +2336,11 @@ export interface components {
              */
             id: string;
             /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
+            /**
              * Availability Id
              * Format: uuid
              */
@@ -2260,6 +2556,243 @@ export interface components {
             objective: components["schemas"]["CoachingObjectiveRead"] | null;
             /** Assessments */
             assessments: components["schemas"]["CoachingAssessmentRead"][];
+        };
+        /** CollectiveClassReservationCancel */
+        CollectiveClassReservationCancel: {
+            /** Reason */
+            reason: string;
+        };
+        /** CollectiveClassReservationRead */
+        CollectiveClassReservationRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Session Id
+             * Format: uuid
+             */
+            session_id: string;
+            /**
+             * Member Id
+             * Format: uuid
+             */
+            member_id: string;
+            /** Member Name */
+            member_name: string;
+            /** Member Number */
+            member_number: string | null;
+            /** Class Name */
+            class_name: string;
+            /** Coach Name */
+            coach_name: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            status: components["schemas"]["CollectiveClassReservationStatus"];
+            /** Waitlist Position */
+            waitlist_position: number | null;
+            /** Cancellation Reason */
+            cancellation_reason: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * CollectiveClassReservationStatus
+         * @enum {string}
+         */
+        CollectiveClassReservationStatus: "confirmed" | "waitlisted" | "cancelled" | "attended" | "no_show";
+        /** CollectiveClassReservationStatusUpdate */
+        CollectiveClassReservationStatusUpdate: {
+            status: components["schemas"]["CollectiveClassReservationStatus"];
+            /** Reason */
+            reason: string;
+        };
+        /** CollectiveClassSessionCreate */
+        CollectiveClassSessionCreate: {
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
+            /**
+             * Class Type Id
+             * Format: uuid
+             */
+            class_type_id: string;
+            /** Coach Id */
+            coach_id?: string | null;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Duration Minutes */
+            duration_minutes?: number | null;
+            /** Capacity */
+            capacity?: number | null;
+            /** Note */
+            note?: string | null;
+        };
+        /** CollectiveClassSessionRead */
+        CollectiveClassSessionRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
+            /**
+             * Class Type Id
+             * Format: uuid
+             */
+            class_type_id: string;
+            /** Class Name */
+            class_name: string;
+            /**
+             * Coach Id
+             * Format: uuid
+             */
+            coach_id: string;
+            /** Coach Name */
+            coach_name: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Capacity */
+            capacity: number;
+            /** Confirmed Count */
+            confirmed_count: number;
+            /** Waitlist Count */
+            waitlist_count: number;
+            /** Available Spots */
+            available_spots: number;
+            /** Note */
+            note: string | null;
+            status: components["schemas"]["CollectiveClassSessionStatus"];
+            /** My Reservation Id */
+            my_reservation_id?: string | null;
+            my_reservation_status?: components["schemas"]["CollectiveClassReservationStatus"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * CollectiveClassSessionStatus
+         * @enum {string}
+         */
+        CollectiveClassSessionStatus: "scheduled" | "cancelled" | "completed";
+        /** CollectiveClassSessionUpdate */
+        CollectiveClassSessionUpdate: {
+            /** Starts At */
+            starts_at?: string | null;
+            /** Duration Minutes */
+            duration_minutes?: number | null;
+            /** Capacity */
+            capacity?: number | null;
+            /** Note */
+            note?: string | null;
+            status?: components["schemas"]["CollectiveClassSessionStatus"] | null;
+            /** Reason */
+            reason: string;
+        };
+        /** CollectiveClassTypeCreate */
+        CollectiveClassTypeCreate: {
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Default Duration Minutes */
+            default_duration_minutes: number;
+            /** Default Capacity */
+            default_capacity: number;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+        };
+        /** CollectiveClassTypeRead */
+        CollectiveClassTypeRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string | null;
+            /** Default Duration Minutes */
+            default_duration_minutes: number;
+            /** Default Capacity */
+            default_capacity: number;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CollectiveClassTypeUpdate */
+        CollectiveClassTypeUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Default Duration Minutes */
+            default_duration_minutes?: number | null;
+            /** Default Capacity */
+            default_capacity?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Reason */
+            reason: string;
         };
         /**
          * ComplaintCategory
@@ -2525,6 +3058,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Club Id */
+            club_id?: string | null;
             /** Subscription Id */
             subscription_id?: string | null;
             /** Plan Name */
@@ -2566,6 +3101,12 @@ export interface components {
         };
         /** MembershipPlanCreate */
         MembershipPlanCreate: {
+            /**
+             * Club Id
+             * Format: uuid
+             * @default 11111111-1111-4111-8111-111111111111
+             */
+            club_id: string;
             /** Name */
             name: string;
             /** Duration Months */
@@ -2589,6 +3130,12 @@ export interface components {
         };
         /** MembershipPlanRead */
         MembershipPlanRead: {
+            /**
+             * Club Id
+             * Format: uuid
+             * @default 11111111-1111-4111-8111-111111111111
+             */
+            club_id: string;
             /** Name */
             name: string;
             /** Duration Months */
@@ -2644,6 +3191,17 @@ export interface components {
         MessageResponse: {
             /** Message */
             message: string;
+        };
+        /** MyClubAccessRead */
+        MyClubAccessRead: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            role: components["schemas"]["UserRole"];
+            /** Clubs */
+            clubs: components["schemas"]["ClubRead"][];
         };
         /** NotificationRead */
         NotificationRead: {
@@ -2707,6 +3265,13 @@ export interface components {
              * Format: uuid
              */
             receipt_id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
+            /** Club Label */
+            club_label: string;
             /** Receipt Number */
             receipt_number: string;
             /**
@@ -2968,6 +3533,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
             /** Plan Name */
             plan_name: string;
             /**
@@ -3031,6 +3601,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
             /**
              * Member Id
              * Format: uuid
@@ -3103,6 +3678,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
             /** Name */
             name: string;
             /** Description */
@@ -3134,6 +3714,12 @@ export interface components {
         StorePaymentMethod: "cash" | "bank_card";
         /** StoreProductCreate */
         StoreProductCreate: {
+            /**
+             * Club Id
+             * Format: uuid
+             * @default 11111111-1111-4111-8111-111111111111
+             */
+            club_id: string;
             /** Name */
             name: string;
             /** Description */
@@ -3166,6 +3752,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
             /** Name */
             name: string;
             /** Description */
@@ -3229,6 +3820,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
             /**
              * Product Id
              * Format: uuid
@@ -3313,6 +3909,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
             /**
              * Product Id
              * Format: uuid
@@ -3435,6 +4036,11 @@ export interface components {
              */
             id: string;
             /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
+            /**
              * Member Id
              * Format: uuid
              */
@@ -3530,6 +4136,38 @@ export interface components {
             status: components["schemas"]["AccountStatus"];
             /** Member Number */
             member_number?: string | null;
+            /** Reason */
+            reason: string;
+        };
+        /** UserClubAssignmentRead */
+        UserClubAssignmentRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /**
+             * Club Id
+             * Format: uuid
+             */
+            club_id: string;
+            /** Assigned By Id */
+            assigned_by_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** UserClubAssignmentsUpdate */
+        UserClubAssignmentsUpdate: {
+            /** Club Ids */
+            club_ids: string[];
             /** Reason */
             reason: string;
         };
@@ -4042,6 +4680,35 @@ export interface operations {
             };
         };
     };
+    delete_menu_item_api_v1_cafe_menu_items__item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_menu_item_api_v1_cafe_menu_items__item_id__patch: {
         parameters: {
             query?: never;
@@ -4097,6 +4764,158 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CafeMenuMediaRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_clubs_api_v1_clubs_get: {
+        parameters: {
+            query?: {
+                active_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_club_access_api_v1_clubs_my_access_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyClubAccessRead"];
+                };
+            };
+        };
+    };
+    update_club_api_v1_clubs__club_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                club_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClubUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    user_club_assignments_api_v1_clubs_users__user_id__assignments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserClubAssignmentRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_user_club_assignments_api_v1_clubs_users__user_id__assignments_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserClubAssignmentsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserClubAssignmentRead"][];
                 };
             };
             /** @description Validation Error */
@@ -4367,6 +5186,7 @@ export interface operations {
         parameters: {
             query?: {
                 status?: components["schemas"]["ApplicationStatus"] | null;
+                club_id?: string | null;
             };
             header?: never;
             path?: never;
@@ -4498,6 +5318,7 @@ export interface operations {
             query?: {
                 active_only?: boolean;
                 service_type?: components["schemas"]["ServiceType"] | null;
+                club_id?: string | null;
             };
             header?: never;
             path?: never;
@@ -4598,6 +5419,7 @@ export interface operations {
             query?: {
                 query?: string | null;
                 limit?: number;
+                club_id?: string | null;
             };
             header?: never;
             path?: never;
@@ -4627,7 +5449,9 @@ export interface operations {
     };
     list_member_subscriptions_api_v1_members__member_id__subscriptions_get: {
         parameters: {
-            query?: never;
+            query?: {
+                club_id?: string | null;
+            };
             header?: never;
             path: {
                 member_id: string;
@@ -5037,7 +5861,9 @@ export interface operations {
     };
     list_member_receipts_api_v1_payments_members__member_id__receipts_get: {
         parameters: {
-            query?: never;
+            query?: {
+                club_id?: string | null;
+            };
             header?: never;
             path: {
                 member_id: string;
@@ -5135,6 +5961,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                club_id?: string | null;
             };
             header?: never;
             path: {
@@ -5877,6 +6704,372 @@ export interface operations {
             };
         };
     };
+    list_class_types_api_v1_collective_classes_types_get: {
+        parameters: {
+            query: {
+                club_id: string;
+                active_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectiveClassTypeRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_class_type_api_v1_collective_classes_types_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectiveClassTypeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectiveClassTypeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_class_type_api_v1_collective_classes_types__class_type_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_type_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectiveClassTypeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectiveClassTypeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sessions_api_v1_collective_classes_sessions_get: {
+        parameters: {
+            query: {
+                club_id: string;
+                coach_id?: string | null;
+                from_at?: string | null;
+                to_at?: string | null;
+                include_history?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectiveClassSessionRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_session_api_v1_collective_classes_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectiveClassSessionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectiveClassSessionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_session_api_v1_collective_classes_sessions__session_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectiveClassSessionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectiveClassSessionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_session_reservations_api_v1_collective_classes_sessions__session_id__reservations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectiveClassReservationRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reserve_session_api_v1_collective_classes_sessions__session_id__reservations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectiveClassReservationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_reservations_api_v1_collective_classes_my_reservations_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectiveClassReservationRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_reservation_api_v1_collective_classes_reservations__reservation_id__cancel_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reservation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectiveClassReservationCancel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectiveClassReservationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_reservation_status_api_v1_collective_classes_reservations__reservation_id__status_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reservation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectiveClassReservationStatusUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectiveClassReservationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_complaints_api_v1_complaints_get: {
         parameters: {
             query?: {
@@ -6348,6 +7541,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["StoreProductMediaRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_product_api_v1_store_products__product_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

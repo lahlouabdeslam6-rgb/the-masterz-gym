@@ -8,6 +8,8 @@ from app.core.errors import api_error
 from app.modules.applications.models import MembershipApplication
 from app.modules.applications.repository import ApplicationRepository
 from app.modules.audit.service import AuditService
+from app.modules.clubs.repository import ClubRepository
+from app.modules.clubs.service import ClubService
 from app.modules.memberships.models import Subscription, SubscriptionEvent
 from app.modules.memberships.repository import MembershipRepository
 from app.modules.memberships.service import MembershipService
@@ -35,6 +37,7 @@ class PaymentService:
         self.applications = ApplicationRepository(session)
         self.users = UserRepository(session)
         self.audit = AuditService(session)
+        self.clubs = ClubRepository(session)
 
     def record_membership_payment(
         self, data: MembershipPaymentCreate, actor: User
@@ -81,6 +84,7 @@ class PaymentService:
                 "inactive_plan",
                 "La formule n'est pas disponible.",
             )
+        ClubService(self.session).require_access(actor, plan.club_id)
         if plan.service_type == ServiceType.RECOVERY and plan.session_count is None:
             raise api_error(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -101,11 +105,14 @@ class PaymentService:
             else plan.name
         )
 
-        starts_on = self._resolve_start_date(member, data.starts_on, plan.service_type)
+        starts_on = self._resolve_start_date(
+            member, data.starts_on, plan.service_type, plan.club_id
+        )
         ends_on = add_months(starts_on, plan.duration_months) - timedelta(days=1)
         grace_days = self.membership_service.get_setting_int("subscription_grace_days")
         subscription = self.memberships.add_subscription(
             Subscription(
+                club_id=plan.club_id,
                 member_id=member.id,
                 plan_id=plan.id,
                 status=SubscriptionStatus.ACTIVE,
@@ -142,6 +149,7 @@ class PaymentService:
         )
         payment = self.payments.add_payment(
             Payment(
+                club_id=plan.club_id,
                 idempotency_key=data.idempotency_key,
                 member_id=member.id,
                 subscription_id=subscription.id,
@@ -161,6 +169,7 @@ class PaymentService:
         if application:
             if application_plan_changed:
                 application.selected_plan_id = plan.id
+                application.club_id = plan.club_id
                 application.promotion_id = None
                 application.promotion_title = None
                 application.promotion_price = None
@@ -168,6 +177,7 @@ class PaymentService:
                 application.promotion_participant_count = None
             application.status = ApplicationStatus.CONVERTED_TO_MEMBER
             application.converted_member_id = member.id
+        self.clubs.ensure_assignment(member.id, plan.club_id, actor.id)
         self.session.flush()
 
         self.audit.record(
@@ -242,9 +252,15 @@ class PaymentService:
         self.users.add(member)
         return member
 
-    def _resolve_start_date(self, member: User, requested_start, service_type: ServiceType):
+    def _resolve_start_date(
+        self,
+        member: User,
+        requested_start,
+        service_type: ServiceType,
+        club_id: uuid.UUID,
+    ):
         today = local_today()
-        current = self.memberships.current_subscription(member.id, today, service_type)
+        current = self.memberships.current_subscription(member.id, today, service_type, club_id)
         if not current:
             return requested_start or today
         current_status = self.membership_service.effective_status(current, today)
@@ -272,8 +288,13 @@ class PaymentService:
         employee = self.users.get(payment.recorded_by_id)
         if not subscription or not member or not employee or not member.member_number:
             raise RuntimeError("Données de reçu incomplètes.")
+        club = self.clubs.get(payment.club_id)
+        if not club:
+            raise RuntimeError("Salle du paiement introuvable.")
         return PrintableReceiptData(
             receipt_id=receipt.id,
+            club_id=club.id,
+            club_label=club.label,
             receipt_number=receipt.receipt_number,
             issued_at=receipt.issued_at,
             payment_id=payment.id,

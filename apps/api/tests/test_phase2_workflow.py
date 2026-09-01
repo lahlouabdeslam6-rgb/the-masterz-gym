@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.security import hash_password
 from app.modules.applications.models import MembershipApplication
 from app.modules.auth.otp import OTPProvider
+from app.modules.clubs.constants import SALLE_1_ID
 from app.modules.memberships.models import MembershipPlan, Subscription
 from app.modules.users.models import User
 from app.modules.users.photo import MemberPhotoService, VerifiedMemberPhoto
@@ -739,6 +740,7 @@ def test_payment_member_summaries_prioritize_renewals(
         .filter(
             MembershipPlan.duration_months == 1,
             MembershipPlan.service_type == ServiceType.GYM,
+            MembershipPlan.club_id == SALLE_1_ID,
         )
         .one()
     )
@@ -796,6 +798,7 @@ def test_payment_requires_an_inactive_subscription_and_honors_the_new_start_date
         .filter(
             MembershipPlan.duration_months == 1,
             MembershipPlan.service_type == ServiceType.GYM,
+            MembershipPlan.club_id == SALLE_1_ID,
         )
         .one()
     )
@@ -925,6 +928,7 @@ def test_finished_subscription_is_expired_but_keeps_configured_grace_access(
         .filter(
             MembershipPlan.duration_months == 1,
             MembershipPlan.service_type == ServiceType.GYM,
+            MembershipPlan.club_id == SALLE_1_ID,
         )
         .one()
     )
@@ -990,6 +994,7 @@ def test_future_subscription_does_not_allow_early_attendance(
         .filter(
             MembershipPlan.duration_months == 1,
             MembershipPlan.service_type == ServiceType.GYM,
+            MembershipPlan.club_id == SALLE_1_ID,
         )
         .one()
     )
@@ -1056,7 +1061,10 @@ def test_application_payment_attendance_and_audit_workflow(
     admin_headers: dict[str, str],
     reception_headers: dict[str, str],
 ) -> None:
-    plans = client.get("/api/v1/membership-plans").json()
+    plans = client.get(
+        "/api/v1/membership-plans",
+        params={"club_id": str(SALLE_1_ID)},
+    ).json()
     plan = next(
         item for item in plans if item["duration_months"] == 1 and item["service_type"] == "gym"
     )

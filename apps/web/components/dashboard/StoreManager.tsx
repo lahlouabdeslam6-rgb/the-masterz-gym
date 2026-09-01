@@ -24,6 +24,7 @@ import type { components } from "@masterz/api-client";
 import { Alert, Button, Card, Input, Pill } from "@masterz/ui";
 import { api, apiBaseUrl, authenticatedFetch } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import { SALLE_1_ID } from "./ClubSwitcher";
 import { notifyNavigationBadgesChanged } from "@/lib/navigation-badges";
 import { PublicStoreCatalog } from "@/components/PublicStoreCatalog";
 import {
@@ -113,6 +114,7 @@ export function AdminStoreManager({ session }: { session: AuthSession }) {
     const result = await api.POST("/api/v1/store/products", {
       headers,
       body: {
+        club_id: SALLE_1_ID,
         name: name.trim(),
         description: description.trim() || null,
         image_url: mediaUrls[0] ?? null,
@@ -239,6 +241,7 @@ export function AdminStoreManager({ session }: { session: AuthSession }) {
                 session={session}
                 product={product}
                 onSaved={load}
+                onDeleted={load}
               />
             ))}
           </div>
@@ -254,10 +257,12 @@ function ProductEditor({
   session,
   product,
   onSaved,
+  onDeleted,
 }: {
   session: AuthSession;
   product: Product;
   onSaved: () => Promise<void>;
+  onDeleted: () => Promise<void>;
 }) {
   const headers = useStoreHeaders(session);
   const [name, setName] = useState(product.name);
@@ -295,6 +300,28 @@ function ProductEditor({
     }
     setFeedback("Produit modifie.");
     await onSaved();
+  }
+
+  async function deleteProduct() {
+    if (!window.confirm(`Supprimer definitivement ${product.name} du Store ?`)) {
+      return;
+    }
+    setBusy(true);
+    setFeedback(null);
+    const result = await api.DELETE("/api/v1/store/products/{product_id}", {
+      headers,
+      params: { path: { product_id: product.id } },
+    });
+    setBusy(false);
+    if (result.error) {
+      setFeedback(
+        result.response.status === 409
+          ? "Ce produit a deja un historique. Masquez-le pour garder les ventes et reservations."
+          : "Le produit n'a pas pu etre supprime.",
+      );
+      return;
+    }
+    await onDeleted();
   }
 
   return (
@@ -367,15 +394,25 @@ function ProductEditor({
           />
         </Field>
       </div>
-      <div className="mt-4 flex items-center justify-between gap-4">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
         <p className="text-xs text-gray-500">{feedback}</p>
-        <Button
-          variant="outline"
-          disabled={busy || imageUploading}
-          onClick={() => void save()}
-        >
-          <Save className="h-4 w-4" /> Enregistrer
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button
+            variant="outline"
+            className="border-red-400/35 text-red-300 hover:border-red-300 hover:text-red-200"
+            disabled={busy || imageUploading}
+            onClick={() => void deleteProduct()}
+          >
+            <Trash2 className="h-4 w-4" /> Supprimer
+          </Button>
+          <Button
+            variant="outline"
+            disabled={busy || imageUploading}
+            onClick={() => void save()}
+          >
+            <Save className="h-4 w-4" /> Enregistrer
+          </Button>
+        </div>
       </div>
     </Card>
   );

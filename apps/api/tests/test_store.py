@@ -102,6 +102,29 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
     )
     assert blank_product.status_code == 422
 
+    deletable = client.post(
+        "/api/v1/store/products",
+        headers=admin_headers,
+        json={
+            "name": "Produit temporaire",
+            "price": "50.00",
+            "currency": "MAD",
+            "stock_quantity": 1,
+            "is_active": True,
+        },
+    )
+    assert deletable.status_code == 201, deletable.text
+    forbidden_delete = client.delete(
+        f"/api/v1/store/products/{deletable.json()['id']}",
+        headers=reception_headers,
+    )
+    assert forbidden_delete.status_code == 403
+    deleted = client.delete(
+        f"/api/v1/store/products/{deletable.json()['id']}",
+        headers=admin_headers,
+    )
+    assert deleted.status_code == 204, deleted.text
+
     created = client.post(
         "/api/v1/store/products",
         headers=admin_headers,
@@ -135,6 +158,7 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
     public_product = next(item for item in public_catalog.json() if item["id"] == product["id"])
     assert public_product == {
         "id": product["id"],
+        "club_id": "11111111-1111-4111-8111-111111111111",
         "name": "Proteine Masterz",
         "description": "Proteine pour les membres de la salle.",
         "image_url": image_url,
@@ -174,6 +198,13 @@ def test_store_reservation_validation_and_direct_sale_update_stock(
     reservation_data = reservation.json()
     assert reservation_data["status"] == "pending"
     assert reservation_data["total_amount"] == "700.00"
+
+    protected_delete = client.delete(
+        f"/api/v1/store/products/{product['id']}",
+        headers=admin_headers,
+    )
+    assert protected_delete.status_code == 409
+    assert protected_delete.json()["detail"]["code"] == "store_product_has_history"
 
     other_reservations = client.get("/api/v1/store/reservations", headers=other_member_headers)
     assert other_reservations.status_code == 200

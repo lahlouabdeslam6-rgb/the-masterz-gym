@@ -17,30 +17,33 @@ class AttendanceRepository:
         self.session.flush()
         return attendance
 
-    def recent_accepted(self, member_id: uuid.UUID, since: datetime) -> Attendance | None:
-        return self.session.scalar(
-            select(Attendance)
-            .where(
-                Attendance.member_id == member_id,
-                Attendance.checked_in_at >= since,
-                Attendance.decision.in_(
-                    [
-                        AttendanceDecision.ALLOWED,
-                        AttendanceDecision.ALLOWED_WITH_WARNING,
-                        AttendanceDecision.EXCEPTIONAL_ACCESS,
-                    ]
-                ),
-            )
-            .order_by(Attendance.checked_in_at.desc())
-            .limit(1)
+    def recent_accepted(
+        self, member_id: uuid.UUID, since: datetime, club_id: uuid.UUID | None = None
+    ) -> Attendance | None:
+        statement = select(Attendance).where(
+            Attendance.member_id == member_id,
+            Attendance.checked_in_at >= since,
+            Attendance.decision.in_(
+                [
+                    AttendanceDecision.ALLOWED,
+                    AttendanceDecision.ALLOWED_WITH_WARNING,
+                    AttendanceDecision.EXCEPTIONAL_ACCESS,
+                ]
+            ),
         )
+        if club_id:
+            statement = statement.where(Attendance.club_id == club_id)
+        return self.session.scalar(statement.order_by(Attendance.checked_in_at.desc()).limit(1))
 
-    def list_member_attendance(self, member_id: uuid.UUID, limit: int = 100) -> list[Attendance]:
+    def list_member_attendance(
+        self,
+        member_id: uuid.UUID,
+        limit: int = 100,
+        club_id: uuid.UUID | None = None,
+    ) -> list[Attendance]:
+        statement = select(Attendance).where(Attendance.member_id == member_id)
+        if club_id:
+            statement = statement.where(Attendance.club_id == club_id)
         return list(
-            self.session.scalars(
-                select(Attendance)
-                .where(Attendance.member_id == member_id)
-                .order_by(Attendance.checked_in_at.desc())
-                .limit(limit)
-            )
+            self.session.scalars(statement.order_by(Attendance.checked_in_at.desc()).limit(limit))
         )

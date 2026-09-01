@@ -16,6 +16,7 @@ import {
   selectClass,
   statusLabels,
 } from "./dashboard-shared";
+import { ClubBadge, clubLabel } from "./ClubSwitcher";
 
 function apiErrorMessage(error: unknown, fallback: string) {
   if (!error || typeof error !== "object") return fallback;
@@ -182,9 +183,12 @@ export function ApplicationManager({
                     {application.email ? ` · ${application.email}` : ""}
                   </p>
                 </div>
-                <Pill>
-                  {statusLabels[application.status] ?? application.status}
-                </Pill>
+                <div className="flex flex-wrap items-center gap-2">
+                  <ClubBadge clubId={application.club_id} />
+                  <Pill>
+                    {statusLabels[application.status] ?? application.status}
+                  </Pill>
+                </div>
               </div>
 
               {application.promotion_id ? (
@@ -335,12 +339,16 @@ export function ApplicationManager({
                           }))
                         }
                       >
-                        {plans.map((plan) => (
+                        {plans
+                          .filter(
+                            (plan) => plan.club_id === application.club_id,
+                          )
+                          .map((plan) => (
                           <option key={plan.id} value={plan.id}>
                             [{serviceTypeLabel(plan.service_type)}] {plan.name}{" "}
                             · {plan.price} {plan.currency}
                           </option>
-                        ))}
+                          ))}
                       </select>
                       <span className="block pt-1 text-[0.68rem] normal-case tracking-normal text-gray-500">
                         Choix initial : {requestedPlan?.name ?? "Chargement..."}
@@ -439,15 +447,21 @@ export function ReceiptSummary({ receipt }: { receipt: Receipt }) {
 
   return (
     <div className="rounded-sm border border-emerald-400/25 bg-emerald-400/[0.07] p-5">
-      <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-300">
-        Reçu {receipt.receipt_number}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-300">
+          Reçu {receipt.receipt_number}
+        </p>
+        <ClubBadge clubId={receipt.club_id} />
+      </div>
       <div className="mt-3 grid gap-3 text-sm text-gray-300 sm:grid-cols-2">
         <p>
           Membre : <strong className="text-white">{receipt.member_name}</strong>
         </p>
         <p>
           Formule : <strong className="text-white">{receipt.plan_name}</strong>
+        </p>
+        <p>
+          Salle : <strong className="text-white">{clubLabel(receipt.club_id)}</strong>
         </p>
         <p>
           Categorie :{" "}

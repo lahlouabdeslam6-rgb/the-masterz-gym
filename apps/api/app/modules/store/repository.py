@@ -35,6 +35,21 @@ class StoreRepository:
         self.session.flush()
         return product
 
+    def product_has_history(self, product_id: uuid.UUID) -> bool:
+        reservation_id = self.session.scalar(
+            select(StoreReservation.id).where(StoreReservation.product_id == product_id).limit(1)
+        )
+        if reservation_id:
+            return True
+        sale_id = self.session.scalar(
+            select(StoreSale.id).where(StoreSale.product_id == product_id).limit(1)
+        )
+        return sale_id is not None
+
+    def delete_product(self, product: StoreProduct) -> None:
+        self.session.delete(product)
+        self.session.flush()
+
     def add_reservation(self, reservation: StoreReservation) -> StoreReservation:
         self.session.add(reservation)
         self.session.flush()

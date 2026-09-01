@@ -23,8 +23,13 @@ def list_applications(
     session: DbSession,
     actor: Reception,
     application_status: Annotated[ApplicationStatus | None, Query(alias="status")] = None,
+    club_id: Annotated[uuid.UUID | None, Query()] = None,
 ):
-    return ApplicationService(session).list(application_status)
+    if club_id:
+        from app.modules.clubs.service import ClubService
+
+        ClubService(session).require_access(actor, club_id)
+    return ApplicationService(session).list(application_status, club_id)
 
 
 @router.get("/{application_id}", response_model=ApplicationRead)

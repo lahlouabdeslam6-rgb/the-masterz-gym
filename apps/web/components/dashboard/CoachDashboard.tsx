@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Bell,
   CalendarDays,
+  CalendarRange,
   LayoutDashboard,
   KeyRound,
   LogOut,
@@ -30,6 +31,7 @@ import {
 import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 import { CoachingScheduleManager } from "./CoachingScheduleManager";
 import { CoachingConversationPanel } from "./CoachingConversationPanel";
+import { CollectiveClassesManager } from "./CollectiveClassesManager";
 import { MemberNotifications } from "./MemberNotifications";
 import { MemberAvatar } from "./MemberPhotoCapture";
 import { ChangePasswordForm } from "./ChangePasswordForm";
@@ -46,6 +48,7 @@ type CoachSection =
   | "overview"
   | "notifications"
   | "schedule"
+  | "collective"
   | "clients"
   | "messages"
   | "account";
@@ -73,6 +76,12 @@ const coachSections: Array<{
     label: "Mon planning",
     description: "Horaires et reservations",
     icon: CalendarDays,
+  },
+  {
+    id: "collective",
+    label: "Cours Salle 2",
+    description: "Cours collectifs et participants",
+    icon: CalendarRange,
   },
   {
     id: "clients",
@@ -156,7 +165,9 @@ export function CoachDashboard({
   }, [assignments, query]);
 
   const openNotification = (kind: string) => {
-    if (kind === "coaching_message_received") {
+    if (kind.startsWith("collective_class_")) {
+      openSection("collective");
+    } else if (kind === "coaching_message_received") {
       openSection("messages");
     } else if (kind === "coaching_member_assigned") {
       openSection("clients");
@@ -400,6 +411,15 @@ export function CoachDashboard({
               subtitle="Ajoutez vos disponibilites, suivez les demandes de vos clients et confirmez chaque seance."
             >
               <CoachingScheduleManager session={session} mode="coach" />
+            </Panel>
+          ) : null}
+
+          {activeSection === "collective" ? (
+            <Panel
+              title="Cours collectifs · Salle 2"
+              subtitle="Publiez vos cours, consultez les membres confirmes et gerez la liste d'attente."
+            >
+              <CollectiveClassesManager session={session} mode="coach" />
             </Panel>
           ) : null}
 

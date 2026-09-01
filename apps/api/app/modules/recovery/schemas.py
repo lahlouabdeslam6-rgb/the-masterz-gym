@@ -23,6 +23,7 @@ class RecoveryVisitCreate(BaseModel):
 
 class RecoveryVisitRead(BaseModel):
     id: uuid.UUID
+    club_id: uuid.UUID
     member_id: uuid.UUID
     subscription_id: uuid.UUID
     recorded_by_id: uuid.UUID
@@ -36,6 +37,7 @@ class RecoveryVisitRead(BaseModel):
 
 class RecoverySubscriptionSummary(BaseModel):
     id: uuid.UUID
+    club_id: uuid.UUID
     plan_name: str
     starts_on: date
     ends_on: date

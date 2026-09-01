@@ -15,7 +15,7 @@ export default function AbonnementsPage() {
         align="center"
       />
       <SectionShell tone="blue" className="!py-10 sm:!py-12 lg:!py-14">
-        <MembershipPlansList serviceType="gym" />
+        <MembershipPlansList serviceType="gym" showPromotions />
       </SectionShell>
       <SectionShell>
         <div className="grid gap-4 md:grid-cols-3">

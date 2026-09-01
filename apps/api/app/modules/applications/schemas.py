@@ -34,6 +34,7 @@ class ApplicationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    club_id: uuid.UUID
     full_name: str
     phone: str
     email: EmailStr | None

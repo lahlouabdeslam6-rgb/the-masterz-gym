@@ -120,6 +120,7 @@ class RecoveryServiceManager:
         subscription.remaining_sessions -= 1
         visit = self.recovery.add_visit(
             RecoveryVisit(
+                club_id=subscription.club_id,
                 idempotency_key=data.idempotency_key,
                 member_id=member.id,
                 subscription_id=subscription.id,
@@ -183,6 +184,7 @@ class RecoveryServiceManager:
         )
         return RecoverySubscriptionSummary(
             id=subscription.id,
+            club_id=subscription.club_id,
             plan_name=subscription.plan_name,
             starts_on=subscription.starts_on,
             ends_on=subscription.ends_on,
@@ -208,6 +210,7 @@ class RecoveryServiceManager:
             services.append(RecoveryService.COMPRESSION)
         return RecoveryVisitRead(
             id=visit.id,
+            club_id=visit.club_id,
             member_id=visit.member_id,
             subscription_id=visit.subscription_id,
             recorded_by_id=visit.recorded_by_id,

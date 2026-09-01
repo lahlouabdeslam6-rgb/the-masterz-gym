@@ -3,6 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
+from app.modules.clubs.constants import SALLE_1_ID
 from app.shared.enums import (
     AccountStatus,
     CoachingAssignmentRequestStatus,
@@ -154,6 +155,7 @@ def _validate_aware_datetime(value: datetime, field_name: str) -> datetime:
 
 
 class CoachAvailabilityCreate(BaseModel):
+    club_id: uuid.UUID = SALLE_1_ID
     starts_at: datetime
     ends_at: datetime
     session_duration_minutes: int = Field(ge=15, le=240)
@@ -182,6 +184,7 @@ class CoachingReservedPeriod(BaseModel):
 
 class CoachAvailabilityRead(BaseModel):
     id: uuid.UUID
+    club_id: uuid.UUID
     coach_id: uuid.UUID
     coach_name: str
     starts_at: datetime
@@ -227,6 +230,7 @@ class CoachingBookingReschedule(BaseModel):
 
 class CoachingBookingRead(BaseModel):
     id: uuid.UUID
+    club_id: uuid.UUID
     availability_id: uuid.UUID
     assignment_id: uuid.UUID
     coach_id: uuid.UUID

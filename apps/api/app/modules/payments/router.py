@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.core.dependencies import CurrentUser, DbSession, require_roles
 from app.core.errors import api_error
@@ -36,12 +36,21 @@ def get_printable_receipt(receipt_id: uuid.UUID, session: DbSession, actor: Curr
 
 
 @router.get("/members/{member_id}/receipts", response_model=list[PrintableReceiptData])
-def list_member_receipts(member_id: uuid.UUID, session: DbSession, actor: CurrentUser):
+def list_member_receipts(
+    member_id: uuid.UUID,
+    session: DbSession,
+    actor: CurrentUser,
+    club_id: Annotated[uuid.UUID | None, Query()] = None,
+):
     if actor.role not in {UserRole.ADMIN, UserRole.RECEPTIONIST} and actor.id != member_id:
         raise api_error(403, "permission_denied", "Accès interdit.")
+    if club_id and actor.role in {UserRole.ADMIN, UserRole.RECEPTIONIST}:
+        from app.modules.clubs.service import ClubService
+
+        ClubService(session).require_access(actor, club_id)
     repository = PaymentRepository(session)
     service = PaymentService(session)
     return [
         service.printable_receipt(receipt.id)
-        for receipt in repository.list_member_receipts(member_id)
+        for receipt in repository.list_member_receipts(member_id, club_id)
     ]

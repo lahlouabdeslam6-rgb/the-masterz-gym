@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -30,6 +30,12 @@ import {
   statusLabels,
 } from "./dashboard-shared";
 import { MemberAvatar } from "./MemberPhotoCapture";
+import {
+  ClubBadge,
+  SALLE_1_ID,
+  SALLE_2_ID,
+  defaultClubs,
+} from "./ClubSwitcher";
 
 const roles: User["role"][] = [
   "admin",
@@ -55,6 +61,81 @@ const userRoleFilters: Array<"all" | User["role"]> = [
   "cafe_employee",
 ];
 const usersPerPage = 10;
+
+function UserClubSelector({
+  session,
+  userId,
+}: {
+  session: AuthSession;
+  userId: string;
+}) {
+  const [clubIds, setClubIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void api
+      .GET("/api/v1/clubs/users/{user_id}/assignments", {
+        headers: authorizationHeaders(session.accessToken),
+        params: { path: { user_id: userId } },
+      })
+      .then((result) => {
+        if (!active) return;
+        setClubIds((result.data ?? []).map((item) => item.club_id));
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [session.accessToken, userId]);
+
+  async function toggleClub(clubId: string) {
+    if (busy || loading) return;
+    const next = clubIds.includes(clubId)
+      ? clubIds.filter((value) => value !== clubId)
+      : [...clubIds, clubId];
+    if (!next.length) return;
+    setBusy(true);
+    const result = await api.PUT(
+      "/api/v1/clubs/users/{user_id}/assignments",
+      {
+        headers: authorizationHeaders(session.accessToken),
+        params: { path: { user_id: userId } },
+        body: {
+          club_ids: next,
+          reason: "Mise a jour des salles autorisees",
+        },
+      },
+    );
+    if (result.data) setClubIds(result.data.map((item) => item.club_id));
+    setBusy(false);
+  }
+
+  return (
+    <div className="flex items-center gap-2" aria-label="Salles autorisees">
+      {defaultClubs.map((club) => {
+        const assigned = clubIds.includes(club.id);
+        return (
+          <button
+            key={club.id}
+            type="button"
+            disabled={busy || loading}
+            aria-pressed={assigned}
+            onClick={() => void toggleClub(club.id)}
+            className={`min-h-9 rounded-sm border px-3 text-[0.65rem] font-black uppercase tracking-[0.08em] transition disabled:opacity-50 ${
+              assigned
+                ? "border-primary/50 bg-primary/10 text-primary"
+                : "border-white/10 bg-black/20 text-gray-600 hover:border-white/25 hover:text-gray-300"
+            }`}
+          >
+            {club.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 type UserEditForm = {
   full_name: string;
@@ -116,6 +197,7 @@ export function AdminUserManager({
     role: "receptionist" as User["role"],
     status: "active" as User["status"],
     member_number: "",
+    club_ids: [SALLE_1_ID] as string[],
   });
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editForm, setEditForm] = useState<UserEditForm | null>(null);
@@ -172,6 +254,19 @@ export function AdminUserManager({
     });
     setBusy(false);
     if (result.data) {
+      if (
+        form.club_ids.length !== 1 ||
+        form.club_ids[0] !== SALLE_1_ID
+      ) {
+        await api.PUT("/api/v1/clubs/users/{user_id}/assignments", {
+          headers,
+          params: { path: { user_id: result.data.id } },
+          body: {
+            club_ids: form.club_ids,
+            reason: "Affectation des salles a la creation",
+          },
+        });
+      }
       setFeedback("Utilisateur créé.");
       setForm({
         full_name: "",
@@ -181,6 +276,7 @@ export function AdminUserManager({
         role: "receptionist",
         status: "active",
         member_number: "",
+        club_ids: [SALLE_1_ID],
       });
       await onReload();
     } else
@@ -362,6 +458,36 @@ export function AdminUserManager({
         ) : (
           <div />
         )}
+        <Field label="Salles autorisees">
+          <div className="grid min-h-12 grid-cols-2 gap-2">
+            {[
+              { id: SALLE_1_ID, label: "Salle 1" },
+              { id: SALLE_2_ID, label: "Salle 2" },
+            ].map((club) => {
+              const selected = form.club_ids.includes(club.id);
+              return (
+                <button
+                  key={club.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => {
+                    const next = selected
+                      ? form.club_ids.filter((id) => id !== club.id)
+                      : [...form.club_ids, club.id];
+                    if (next.length) setForm({ ...form, club_ids: next });
+                  }}
+                  className={`rounded-sm border px-3 text-xs font-black uppercase tracking-[0.08em] ${
+                    selected
+                      ? "border-primary/60 bg-primary/10 text-primary"
+                      : "border-white/10 text-gray-500"
+                  }`}
+                >
+                  {club.label}
+                </button>
+              );
+            })}
+          </div>
+        </Field>
         <div className="flex items-end">
           <Button type="submit" className="w-full" disabled={busy}>
             <UserPlus className="h-4 w-4" /> Créer utilisateur
@@ -467,6 +593,7 @@ export function AdminUserManager({
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                <UserClubSelector session={session} userId={user.id} />
                 <span className="rounded-full border border-primary/20 bg-primary/[0.07] px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.1em] text-primary">
                   {roleLabels[user.role]}
                 </span>
@@ -747,10 +874,12 @@ export function AdminPlanManager({
   session,
   plans,
   onReload,
+  clubId = SALLE_1_ID,
 }: {
   session: AuthSession;
   plans: Plan[];
   onReload: () => Promise<void> | void;
+  clubId?: string;
 }) {
   const [activeServiceType, setActiveServiceType] =
     useState<Plan["service_type"]>("gym");
@@ -806,6 +935,7 @@ export function AdminPlanManager({
     const result = await api.POST("/api/v1/membership-plans", {
       headers,
       body: {
+        club_id: clubId,
         name: create.name,
         duration_months: Number(create.duration),
         price: create.price,
@@ -922,7 +1052,7 @@ export function AdminPlanManager({
         <div className="flex flex-col gap-2 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.16em] text-primary">
-              Nouvelle offre
+              Nouvelle offre · {clubId === SALLE_2_ID ? "Salle 2" : "Salle 1"}
             </p>
             <h3 className="mt-2 text-xl font-black text-white">
               {serviceTypeLabels[activeServiceType]}
@@ -1035,6 +1165,9 @@ export function AdminPlanManager({
                   >
                     {plan.is_active ? "Visible" : "Masquee"}
                   </span>
+                </div>
+                <div className="border-b border-white/10 px-5 py-3">
+                  <ClubBadge clubId={plan.club_id} />
                 </div>
                 <div className="p-5">
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-2">

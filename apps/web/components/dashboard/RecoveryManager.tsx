@@ -14,6 +14,7 @@ import type { components } from "@masterz/api-client";
 import { Alert, Button, Card, Input, Pill } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import { SALLE_1_ID } from "./ClubSwitcher";
 import {
   EmptyState,
   Field,
@@ -129,6 +130,7 @@ export function RecoveryManager({ session }: { session: AuthSession }) {
     const result = await api.POST("/api/v1/recovery/visits", {
       headers,
       body: {
+        club_id: SALLE_1_ID,
         idempotency_key: `recovery-${crypto.randomUUID()}`,
         member_id: selectedId,
         occurred_at: new Date(occurredAt).toISOString(),

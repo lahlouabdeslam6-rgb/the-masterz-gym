@@ -4,6 +4,7 @@ from datetime import date
 from sqlalchemy import and_, case, or_, select
 from sqlalchemy.orm import Session
 
+from app.modules.clubs.models import UserClubAssignment
 from app.modules.memberships.models import (
     MembershipPlan,
     Subscription,
@@ -50,12 +51,15 @@ class MembershipRepository:
         *,
         active_only: bool = False,
         service_type: ServiceType | None = None,
+        club_id: uuid.UUID | None = None,
     ) -> list[MembershipPlan]:
         statement = select(MembershipPlan).order_by(MembershipPlan.duration_months)
         if active_only:
             statement = statement.where(MembershipPlan.is_active.is_(True))
         if service_type:
             statement = statement.where(MembershipPlan.service_type == service_type)
+        if club_id:
+            statement = statement.where(MembershipPlan.club_id == club_id)
         return list(self.session.scalars(statement))
 
     def setting(self, key: str) -> SystemSetting | None:
@@ -77,54 +81,57 @@ class MembershipRepository:
         member_id: uuid.UUID,
         on_date: date,
         service_type: ServiceType,
+        club_id: uuid.UUID | None = None,
     ) -> Subscription | None:
+        statement = select(Subscription).where(
+            Subscription.member_id == member_id,
+            Subscription.service_type == service_type,
+        )
+        if club_id:
+            statement = statement.where(Subscription.club_id == club_id)
         return self.session.scalar(
-            select(Subscription)
-            .where(
-                Subscription.member_id == member_id,
-                Subscription.service_type == service_type,
-            )
-            .order_by(
+            statement.order_by(
                 subscription_priority(on_date),
                 Subscription.created_at.desc(),
                 Subscription.ends_on.desc(),
-            )
-            .limit(1)
+            ).limit(1)
         )
 
-    def access_subscription(self, member_id: uuid.UUID, on_date: date) -> Subscription | None:
+    def access_subscription(
+        self, member_id: uuid.UUID, on_date: date, club_id: uuid.UUID | None = None
+    ) -> Subscription | None:
+        statement = select(Subscription).where(
+            Subscription.member_id == member_id,
+            Subscription.service_type == ServiceType.GYM,
+            Subscription.starts_on <= on_date,
+        )
+        if club_id:
+            statement = statement.where(Subscription.club_id == club_id)
         return self.session.scalar(
-            select(Subscription)
-            .where(
-                Subscription.member_id == member_id,
-                Subscription.service_type == ServiceType.GYM,
-                Subscription.starts_on <= on_date,
-            )
-            .order_by(
+            statement.order_by(
                 subscription_priority(on_date),
                 Subscription.created_at.desc(),
                 Subscription.ends_on.desc(),
-            )
-            .limit(1)
+            ).limit(1)
         )
 
-    def list_member_subscriptions(self, member_id: uuid.UUID) -> list[Subscription]:
-        return list(
-            self.session.scalars(
-                select(Subscription)
-                .where(Subscription.member_id == member_id)
-                .order_by(Subscription.starts_on.desc())
-            )
-        )
+    def list_member_subscriptions(
+        self, member_id: uuid.UUID, club_id: uuid.UUID | None = None
+    ) -> list[Subscription]:
+        statement = select(Subscription).where(Subscription.member_id == member_id)
+        if club_id:
+            statement = statement.where(Subscription.club_id == club_id)
+        return list(self.session.scalars(statement.order_by(Subscription.starts_on.desc())))
 
     def list_members_with_latest_subscription(
-        self, on_date: date, query: str | None = None
+        self, on_date: date, query: str | None = None, club_id: uuid.UUID | None = None
     ) -> list[tuple[User, Subscription | None]]:
         latest_subscription_id = (
             select(Subscription.id)
             .where(
                 Subscription.member_id == User.id,
                 Subscription.service_type == ServiceType.GYM,
+                *([Subscription.club_id == club_id] if club_id else []),
             )
             .order_by(
                 subscription_priority(on_date),
@@ -140,6 +147,11 @@ class MembershipRepository:
             .outerjoin(Subscription, Subscription.id == latest_subscription_id)
             .where(User.role == UserRole.MEMBER)
         )
+        if club_id:
+            statement = statement.join(
+                UserClubAssignment,
+                UserClubAssignment.user_id == User.id,
+            ).where(UserClubAssignment.club_id == club_id)
         if query and query.strip():
             pattern = f"%{query.strip()}%"
             statement = statement.where(

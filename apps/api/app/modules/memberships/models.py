@@ -19,6 +19,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.modules.clubs.constants import SALLE_1_ID
 from app.shared.enums import ServiceType, SubscriptionStatus
 from app.shared.models import TimestampMixin, UUIDPrimaryKeyMixin
 
@@ -35,6 +36,14 @@ class MembershipPlan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
     name: Mapped[str] = mapped_column(String(120), nullable=False)
+    club_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("clubs.id"),
+        nullable=False,
+        default=SALLE_1_ID,
+        server_default=str(SALLE_1_ID),
+        index=True,
+    )
     duration_months: Mapped[int] = mapped_column(Integer, nullable=False)
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
@@ -82,6 +91,14 @@ class Subscription(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     member_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    )
+    club_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("clubs.id"),
+        nullable=False,
+        default=SALLE_1_ID,
+        server_default=str(SALLE_1_ID),
+        index=True,
     )
     plan_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("membership_plans.id"), nullable=False
