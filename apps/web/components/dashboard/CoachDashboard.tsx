@@ -192,7 +192,7 @@ export function CoachDashboard({
         onClear={() => clearBadge("notifications")}
         onOpenNotification={openNotification}
       />
-      <aside className="flex overflow-hidden rounded-lg border border-white/10 bg-[#081119]/95 shadow-2xl lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:flex-col">
+      <aside className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#081119]/95 shadow-2xl lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
         <div className="border-b border-white/10 bg-primary/[0.07] p-5">
           <span className="flex h-11 w-11 items-center justify-center rounded-sm bg-primary text-black">
             <Target className="h-5 w-5" />

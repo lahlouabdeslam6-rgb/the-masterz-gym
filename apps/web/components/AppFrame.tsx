@@ -10,7 +10,9 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   const isPrivateSpace = pathname.startsWith("/espace/");
 
   if (isPrivateSpace) {
-    return <main className="min-h-screen flex-1">{children}</main>;
+    return (
+      <main className="dashboard-surface min-h-screen flex-1">{children}</main>
+    );
   }
 
   return (

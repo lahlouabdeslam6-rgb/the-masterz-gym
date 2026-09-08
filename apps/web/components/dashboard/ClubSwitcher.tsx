@@ -51,7 +51,7 @@ export function ClubSwitcher({
   title?: string;
 }) {
   return (
-    <section className="rounded-lg border border-white/10 bg-[#081119]/95 p-3 sm:p-4">
+    <section className="rounded-2xl border border-white/10 bg-[#081119]/95 p-3 sm:p-4">
       <p className="px-1 pb-3 text-[0.65rem] font-black uppercase tracking-[0.18em] text-gray-500">
         {title}
       </p>
@@ -64,32 +64,41 @@ export function ClubSwitcher({
               type="button"
               aria-pressed={active}
               onClick={() => onChange(club.id)}
-              className={`flex min-h-20 items-center justify-between gap-4 rounded-sm border px-5 py-4 text-left transition ${
+              className={`flex min-h-24 items-center justify-between gap-4 rounded-2xl border px-5 py-4 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 active
-                  ? "border-primary/70 bg-primary/[0.12] text-white"
+                  ? "border-primary/50 bg-[linear-gradient(120deg,rgba(0,212,255,.12),rgba(7,16,24,.95))] text-white shadow-[inset_0_1px_0_rgba(0,212,255,.12)]"
                   : "border-white/10 bg-black/20 text-gray-400 hover:border-primary/35 hover:text-white"
               }`}
             >
               <span className="flex items-center gap-3">
                 <span
-                  className={`flex h-10 w-10 items-center justify-center rounded-sm ${
-                    active ? "bg-primary text-black" : "bg-white/5 text-primary"
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${
+                    active
+                      ? "border-primary/25 bg-primary/15 text-primary"
+                      : "border-white/10 bg-white/5 text-gray-400"
                   }`}
                 >
                   <Building2 className="h-5 w-5" />
                 </span>
                 <span>
-                  <strong className="block text-sm uppercase tracking-[0.08em]">
+                  <strong className="block text-sm font-semibold">
                     {club.label}
                   </strong>
-                  <span className="mt-1 block text-xs font-normal text-gray-600">
+                  <span className="mt-1 block text-xs font-normal leading-5 text-gray-400">
                     {club.id === SALLE_1_ID
-                      ? "Salle actuelle"
+                      ? "Musculation & accompagnement"
                       : "Cours collectifs"}
                   </span>
                 </span>
               </span>
-              {active ? <Check className="h-5 w-5 text-primary" /> : null}
+              <span
+                aria-hidden="true"
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${active ? "border-primary bg-primary text-[#031116]" : "border-white/20"}`}
+              >
+                {active ? (
+                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                ) : null}
+              </span>
             </button>
           );
         })}

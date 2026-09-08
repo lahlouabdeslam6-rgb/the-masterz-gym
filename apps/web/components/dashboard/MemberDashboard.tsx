@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Bell,
+  ArrowUpRight,
+  Check,
   Camera,
   CalendarCheck,
   CalendarDays,
@@ -303,7 +305,7 @@ export function MemberDashboard({
   };
 
   return (
-    <div className="mt-8 grid items-start gap-5 lg:grid-cols-[15.5rem_minmax(0,1fr)]">
+    <div className="mt-8 grid items-start gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]">
       <AccountNotificationBell
         accountLabel="membre"
         notifications={notifications}
@@ -312,7 +314,7 @@ export function MemberDashboard({
         onClear={() => clearBadge("notifications")}
         onOpenNotification={openNotification}
       />
-      <aside className="flex overflow-hidden rounded-lg border border-white/10 bg-[#081119]/95 shadow-2xl lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:flex-col">
+      <aside className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#081119]/95 shadow-2xl lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
         <div className="border-b border-white/10 bg-primary/[0.07] p-4">
           <MemberAvatar member={currentUser} className="h-12 w-12" />
           <p className="mt-3 truncate text-sm font-black uppercase text-white">
@@ -724,15 +726,17 @@ function OverviewCard({
   return (
     <button
       type="button"
-      className="group rounded-lg border border-white/10 bg-[#091119]/90 p-5 text-left shadow-2xl transition hover:-translate-y-0.5 hover:border-primary/40"
+      className="group rounded-2xl border border-white/10 bg-[linear-gradient(140deg,rgba(0,212,255,.05),#091119_65%)] p-5 text-left transition duration-200 hover:border-primary/40 hover:shadow-[0_8px_24px_rgba(0,212,255,.08)] motion-safe:hover:-translate-y-0.5"
       onClick={onClick}
     >
       <div className="flex items-center justify-between gap-4">
-        <Icon className="h-6 w-6 text-primary" />
+        <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
+          <Icon className="h-5 w-5 text-primary" />
+        </span>
         <span className="text-3xl font-black text-white">{value}</span>
       </div>
-      <p className="mt-5 text-xs font-black uppercase tracking-[0.1em] text-gray-500 transition group-hover:text-white">
-        {label}
+      <p className="mt-5 flex items-center justify-between gap-2 text-sm font-semibold text-gray-300 transition group-hover:text-primary">
+        {label} <ArrowUpRight className="h-4 w-4 shrink-0" aria-hidden="true" />
       </p>
     </button>
   );
@@ -807,7 +811,7 @@ function SubscriptionsPanel({
   return (
     <Panel
       title="Mes abonnements"
-      subtitle="Consultez les offres disponibles sans melanger vos anciens abonnements."
+      subtitle="Retrouvez vos formules, découvrez les offres et consultez votre historique."
     >
       <DashboardTabs
         eyebrow="Abonnements membre"
@@ -832,7 +836,7 @@ function SubscriptionsPanel({
 
       {activeView === "offers" ? (
         <div className="mt-6">
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {services.map((service) => {
               const latest = latestSubscriptionFor(subscriptions, service.id);
               const current = latest ? isCurrentSubscription(latest) : false;
@@ -855,14 +859,22 @@ function SubscriptionsPanel({
                   data-testid={`member-service-${service.id}`}
                   aria-pressed={activeService === service.id}
                   onClick={() => setActiveService(service.id)}
-                  className={`rounded-sm border p-4 text-left transition ${
+                  className={`rounded-2xl border p-4 text-left transition duration-200 ${
                     activeService === service.id
-                      ? "border-primary bg-primary/[0.1]"
+                      ? "border-primary/50 bg-primary/[0.08] shadow-[inset_0_1px_0_rgba(0,212,255,.1)]"
                       : "border-white/10 bg-black/20 hover:border-primary/40"
                   }`}
                 >
-                  <span className="block text-[0.65rem] font-black uppercase tracking-[0.14em] text-primary">
+                  <span className="flex items-center justify-between gap-3 text-sm font-semibold text-primary">
                     {service.label}
+                    <span
+                      aria-hidden="true"
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${activeService === service.id ? "border-primary bg-primary text-[#031116]" : "border-white/20"}`}
+                    >
+                      {activeService === service.id ? (
+                        <Check className="h-3 w-3" />
+                      ) : null}
+                    </span>
                   </span>
                   <span
                     className={`mt-2 block text-sm font-black ${
