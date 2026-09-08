@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   Activity,
+  Check,
   Dumbbell,
   HeartPulse,
   Shield,
@@ -48,7 +49,15 @@ export function PublicClubOffers({
 
   return (
     <div>
-      <div className="mb-8 grid gap-3 sm:grid-cols-2">
+      <div className="mb-4 flex items-center gap-3">
+        <span className="flex h-6 w-6 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-[0.65rem] font-bold text-primary">
+          01
+        </span>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">
+          Choisissez votre club
+        </p>
+      </div>
+      <div className="mb-7 grid gap-3 sm:grid-cols-2">
         {publicClubs.map((club, index) => {
           const active = club.id === clubId;
           const Icon = index === 0 ? Dumbbell : UsersRound;
@@ -56,53 +65,59 @@ export function PublicClubOffers({
             <button
               key={club.id}
               type="button"
+              aria-pressed={active}
               onClick={() => {
                 setClubId(club.id);
                 setServiceType("gym");
               }}
-              className={`flex min-h-24 items-center gap-4 border px-5 py-4 text-left transition ${
+              className={`group relative flex min-h-28 items-center gap-4 overflow-hidden rounded-2xl border p-5 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-6 ${
                 active
-                  ? "border-primary bg-primary/[0.1]"
-                  : "border-white/10 bg-black/20 hover:border-primary/35"
+                  ? "border-primary/55 bg-[linear-gradient(120deg,rgba(0,212,255,0.12),rgba(7,16,24,0.95))] shadow-[inset_0_1px_0_rgba(0,212,255,0.1),0_8px_32px_rgba(0,0,0,0.12)]"
+                  : "border-white/10 bg-[#071018] hover:border-primary/35 hover:bg-primary/[0.04]"
               }`}
             >
-              <Icon className="h-6 w-6 shrink-0 text-primary" />
-              <span>
-                <span className="block text-sm font-black uppercase text-white">
+              <span
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border transition ${active ? "border-primary/25 bg-primary/15 text-primary" : "border-white/10 bg-white/[0.03] text-gray-400 group-hover:text-primary"}`}
+              >
+                <Icon className="h-6 w-6" aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span
+                  className={`mb-1.5 block text-[0.6rem] font-bold uppercase tracking-[0.18em] ${active ? "text-primary" : "text-gray-400"}`}
+                >
+                  {club.internalName}
+                </span>
+                <span className="block text-sm font-bold text-white sm:text-base">
                   {club.name}
                 </span>
-                <span className="mt-1 block text-xs text-gray-500">
-                  {club.signature}
+                <span className="mt-1 block text-xs leading-5 text-gray-400">
+                  {index === 0
+                    ? "Musculation, cardio & accompagnement"
+                    : "Fitness, cours collectifs & arts martiaux"}
                 </span>
+              </span>
+              <span
+                aria-hidden="true"
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${active ? "border-primary bg-primary text-[#031116]" : "border-white/20 bg-black/10"}`}
+              >
+                {active ? (
+                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                ) : null}
               </span>
             </button>
           );
         })}
       </div>
-      {clubId === SALLE_2_ID ? (
-        <div className="mb-8 grid gap-px overflow-hidden border border-white/10 bg-white/10 md:grid-cols-2">
-          <div className="bg-[#071018] p-5 sm:p-6">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-primary">
-              Pass 4 Fit
-            </p>
-            <p className="mt-3 text-sm leading-6 text-gray-400">
-              Fitness, CrossFit, musculation et cours collectifs dans une meme
-              formule.
-            </p>
-          </div>
-          <div className="bg-[#071018] p-5 sm:p-6">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-300">
-              Arts martiaux
-            </p>
-            <p className="mt-3 text-sm leading-6 text-gray-400">
-              Formules par seances, separees du Pass 4 Fit. La musculation est
-              accessible uniquement pendant le creneau du cours.
-            </p>
-          </div>
-        </div>
-      ) : null}
+      <div className="mb-4 flex items-center gap-3">
+        <span className="flex h-6 w-6 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-[0.65rem] font-bold text-primary">
+          02
+        </span>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">
+          Choisissez votre activité
+        </p>
+      </div>
       <div
-        className="mb-8 grid gap-2 rounded-lg border border-white/10 bg-black/20 p-2 sm:grid-cols-3"
+        className={`mb-7 grid gap-3 ${clubId === SALLE_2_ID ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}
         role="tablist"
         aria-label="Categories d'abonnement"
       >
@@ -114,15 +129,42 @@ export function PublicClubOffers({
               key={tab.id}
               type="button"
               role="tab"
+              aria-label={tab.label}
               aria-selected={active}
               onClick={() => setServiceType(tab.id)}
-              className={`flex min-h-14 items-center justify-center gap-3 border px-4 text-xs font-black uppercase tracking-[0.08em] transition ${
+              className={`relative flex flex-col gap-3 rounded-2xl border p-5 text-left transition duration-200 motion-safe:hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                 active
-                  ? "border-primary bg-primary/[0.12] text-primary"
-                  : "border-transparent text-gray-500 hover:border-white/10 hover:text-white"
+                  ? "border-primary/50 bg-primary/[0.07] shadow-[inset_0_1px_0_rgba(0,212,255,0.12)]"
+                  : "border-white/10 bg-[#071018] hover:border-primary/30 hover:bg-primary/[0.03]"
               }`}
             >
-              <Icon className="h-4 w-4" /> {tab.label}
+              <span className="flex w-full items-center gap-3">
+                <span
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${active ? "bg-primary/15 text-primary" : "bg-white/5 text-gray-400"}`}
+                >
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <span
+                  className={`flex-1 text-sm font-semibold ${active ? "text-primary" : "text-gray-200"}`}
+                >
+                  {tab.label}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={`flex h-5 w-5 items-center justify-center rounded-full border ${active ? "border-primary bg-primary text-[#031116]" : "border-white/15"}`}
+                >
+                  {active ? (
+                    <Check className="h-3 w-3" strokeWidth={3} />
+                  ) : null}
+                </span>
+              </span>
+              {clubId === SALLE_2_ID ? (
+                <span className="text-sm leading-6 text-gray-400">
+                  {tab.id === "gym"
+                    ? "Un seul abonnement pour le fitness, le CrossFit, la musculation et les cours collectifs."
+                    : "Un abonnement par séances, distinct du Pass 4 Fit. L’accès à la musculation est inclus uniquement pendant votre cours."}
+                </span>
+              ) : null}
             </button>
           );
         })}
