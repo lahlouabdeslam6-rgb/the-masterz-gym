@@ -42,7 +42,6 @@ const roles: User["role"][] = [
   "receptionist",
   "coach",
   "member",
-  "recovery_client",
   "cafe_employee",
 ];
 const accountStatuses: User["status"][] = [
@@ -57,7 +56,6 @@ const userRoleFilters: Array<"all" | User["role"]> = [
   "coach",
   "receptionist",
   "admin",
-  "recovery_client",
   "cafe_employee",
 ];
 const usersPerPage = 10;
@@ -65,9 +63,11 @@ const usersPerPage = 10;
 function UserClubSelector({
   session,
   userId,
+  role,
 }: {
   session: AuthSession;
   userId: string;
+  role: User["role"];
 }) {
   const [clubIds, setClubIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,22 +92,22 @@ function UserClubSelector({
 
   async function toggleClub(clubId: string) {
     if (busy || loading) return;
-    const next = clubIds.includes(clubId)
-      ? clubIds.filter((value) => value !== clubId)
-      : [...clubIds, clubId];
+    const next =
+      role === "receptionist"
+        ? [clubId]
+        : clubIds.includes(clubId)
+          ? clubIds.filter((value) => value !== clubId)
+          : [...clubIds, clubId];
     if (!next.length) return;
     setBusy(true);
-    const result = await api.PUT(
-      "/api/v1/clubs/users/{user_id}/assignments",
-      {
-        headers: authorizationHeaders(session.accessToken),
-        params: { path: { user_id: userId } },
-        body: {
-          club_ids: next,
-          reason: "Mise a jour des salles autorisees",
-        },
+    const result = await api.PUT("/api/v1/clubs/users/{user_id}/assignments", {
+      headers: authorizationHeaders(session.accessToken),
+      params: { path: { user_id: userId } },
+      body: {
+        club_ids: next,
+        reason: "Mise a jour des salles autorisees",
       },
-    );
+    });
     if (result.data) setClubIds(result.data.map((item) => item.club_id));
     setBusy(false);
   }
@@ -152,7 +152,17 @@ const serviceTypeLabels: Record<Plan["service_type"], string> = {
   gym: "Salle musculation",
   coaching: "Coaching",
   recovery: "Recovery (sauna, bain froid, compression)",
+  martial_arts: "Arts martiaux",
 };
+
+function planServiceLabel(serviceType: Plan["service_type"], clubId?: string) {
+  if (clubId === SALLE_2_ID && serviceType === "gym") return "Pass 4 Fit";
+  return serviceTypeLabels[serviceType];
+}
+
+function isSessionPlan(serviceType: Plan["service_type"]) {
+  return serviceType === "recovery" || serviceType === "martial_arts";
+}
 
 const settingPresentation: Record<
   string,
@@ -254,10 +264,7 @@ export function AdminUserManager({
     });
     setBusy(false);
     if (result.data) {
-      if (
-        form.club_ids.length !== 1 ||
-        form.club_ids[0] !== SALLE_1_ID
-      ) {
+      if (form.club_ids.length !== 1 || form.club_ids[0] !== SALLE_1_ID) {
         await api.PUT("/api/v1/clubs/users/{user_id}/assignments", {
           headers,
           params: { path: { user_id: result.data.id } },
@@ -419,9 +426,17 @@ export function AdminUserManager({
           <select
             className={selectClass}
             value={form.role}
-            onChange={(event) =>
-              setForm({ ...form, role: event.target.value as User["role"] })
-            }
+            onChange={(event) => {
+              const role = event.target.value as User["role"];
+              setForm({
+                ...form,
+                role,
+                club_ids:
+                  role === "receptionist"
+                    ? [form.club_ids[0] ?? SALLE_1_ID]
+                    : form.club_ids,
+              });
+            }}
           >
             {roles.map((role) => (
               <option key={role} value={role}>
@@ -471,9 +486,12 @@ export function AdminUserManager({
                   type="button"
                   aria-pressed={selected}
                   onClick={() => {
-                    const next = selected
-                      ? form.club_ids.filter((id) => id !== club.id)
-                      : [...form.club_ids, club.id];
+                    const next =
+                      form.role === "receptionist"
+                        ? [club.id]
+                        : selected
+                          ? form.club_ids.filter((id) => id !== club.id)
+                          : [...form.club_ids, club.id];
                     if (next.length) setForm({ ...form, club_ids: next });
                   }}
                   className={`rounded-sm border px-3 text-xs font-black uppercase tracking-[0.08em] ${
@@ -593,7 +611,11 @@ export function AdminUserManager({
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                <UserClubSelector session={session} userId={user.id} />
+                <UserClubSelector
+                  session={session}
+                  userId={user.id}
+                  role={user.role}
+                />
                 <span className="rounded-full border border-primary/20 bg-primary/[0.07] px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.1em] text-primary">
                   {roleLabels[user.role]}
                 </span>
@@ -928,6 +950,11 @@ export function AdminPlanManager({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const headers = authorizationHeaders(session.accessToken);
+  const serviceTypes = (
+    clubId === SALLE_2_ID
+      ? ["gym", "martial_arts"]
+      : ["gym", "coaching", "recovery"]
+  ) as Plan["service_type"][];
 
   async function createPlan(event: React.FormEvent) {
     event.preventDefault();
@@ -941,10 +968,9 @@ export function AdminPlanManager({
         price: create.price,
         currency: create.currency.toUpperCase(),
         service_type: create.service_type,
-        session_count:
-          create.service_type === "recovery"
-            ? Number(create.session_count)
-            : null,
+        session_count: isSessionPlan(create.service_type)
+          ? Number(create.session_count)
+          : null,
         is_active: true,
       },
     });
@@ -977,8 +1003,9 @@ export function AdminPlanManager({
         price: edit.price,
         currency: edit.currency.toUpperCase(),
         service_type: edit.service_type,
-        session_count:
-          edit.service_type === "recovery" ? Number(edit.session_count) : null,
+        session_count: isSessionPlan(edit.service_type)
+          ? Number(edit.session_count)
+          : null,
         is_active: edit.active,
         reason: edit.reason,
       },
@@ -992,7 +1019,6 @@ export function AdminPlanManager({
     if (result.data) await onReload();
   }
 
-  const serviceTypes = Object.keys(serviceTypeLabels) as Plan["service_type"][];
   const visiblePlans = plans.filter(
     (plan) => plan.service_type === activeServiceType,
   );
@@ -1031,7 +1057,7 @@ export function AdminPlanManager({
               }`}
             >
               <span className="text-sm font-black uppercase tracking-[0.08em]">
-                {serviceTypeLabels[serviceType]}
+                {planServiceLabel(serviceType, clubId)}
               </span>
               <span
                 className={`rounded-full px-2.5 py-1 text-xs font-black ${
@@ -1055,7 +1081,7 @@ export function AdminPlanManager({
               Nouvelle offre · {clubId === SALLE_2_ID ? "Salle 2" : "Salle 1"}
             </p>
             <h3 className="mt-2 text-xl font-black text-white">
-              {serviceTypeLabels[activeServiceType]}
+              {planServiceLabel(activeServiceType, clubId)}
             </h3>
           </div>
           <p className="max-w-lg text-xs leading-5 text-gray-500">
@@ -1067,7 +1093,13 @@ export function AdminPlanManager({
           <Field label="Nom de la formule">
             <Input
               required
-              placeholder="Ex. Pack Recovery 1 mois"
+              placeholder={
+                activeServiceType === "martial_arts"
+                  ? "Ex. Kick-boxing · 8 seances"
+                  : clubId === SALLE_2_ID
+                    ? "Ex. Pass 4 Fit · 1 mois"
+                    : "Ex. Abonnement 1 mois"
+              }
               value={create.name}
               onChange={(event) =>
                 setCreate({ ...create, name: event.target.value })
@@ -1108,7 +1140,7 @@ export function AdminPlanManager({
               }
             />
           </Field>
-          {create.service_type === "recovery" ? (
+          {isSessionPlan(create.service_type) ? (
             <Field label="Nombre de seances">
               <Input
                 type="number"
@@ -1132,7 +1164,7 @@ export function AdminPlanManager({
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-black text-white">
-              Offres {serviceTypeLabels[activeServiceType]}
+              Offres {planServiceLabel(activeServiceType, clubId)}
             </h3>
             <p className="mt-1 text-xs text-gray-500">
               {visiblePlans.length} formule(s) dans cette categorie.
@@ -1151,7 +1183,7 @@ export function AdminPlanManager({
                     </p>
                     <p className="mt-1 text-xs text-gray-500">
                       {plan.duration_months} mois · {plan.price} {plan.currency}
-                      {plan.service_type === "recovery"
+                      {isSessionPlan(plan.service_type)
                         ? ` · ${plan.session_count ?? "A configurer"} seance(s)`
                         : ""}
                     </p>
@@ -1197,13 +1229,11 @@ export function AdminPlanManager({
                           }))
                         }
                       >
-                        {Object.entries(serviceTypeLabels).map(
-                          ([value, label]) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ),
-                        )}
+                        {serviceTypes.map((value) => (
+                          <option key={value} value={value}>
+                            {planServiceLabel(value, clubId)}
+                          </option>
+                        ))}
                       </select>
                     </Field>
                     <Field label="Duree en mois">
@@ -1266,7 +1296,7 @@ export function AdminPlanManager({
                         <option value="inactive">Inactive</option>
                       </select>
                     </Field>
-                    {edit.service_type === "recovery" ? (
+                    {isSessionPlan(edit.service_type) ? (
                       <Field label="Nombre de seances">
                         <Input
                           type="number"
@@ -1303,7 +1333,7 @@ export function AdminPlanManager({
                       disabled={
                         busy ||
                         edit.reason.trim().length < 3 ||
-                        (edit.service_type === "recovery" &&
+                        (isSessionPlan(edit.service_type) &&
                           !edit.session_count)
                       }
                     >
@@ -1318,7 +1348,7 @@ export function AdminPlanManager({
         {visiblePlans.length === 0 ? (
           <div className="rounded-lg border border-dashed border-white/15 px-6 py-12 text-center">
             <p className="font-bold text-white">
-              Aucune offre {serviceTypeLabels[activeServiceType]}.
+              Aucune offre {planServiceLabel(activeServiceType, clubId)}.
             </p>
             <p className="mt-2 text-sm text-gray-500">
               Utilisez le formulaire ci-dessus pour creer la premiere.

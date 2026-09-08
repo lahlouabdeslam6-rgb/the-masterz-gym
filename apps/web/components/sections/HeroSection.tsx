@@ -10,10 +10,10 @@ import {
 import { Pill, buttonStyles } from "@masterz/ui";
 
 const badges = [
-  { label: "Horaires étendus", icon: Sparkles },
-  { label: "Salle mixte", icon: Users },
-  { label: "Coaching", icon: Dumbbell },
-  { label: "Recovery", icon: HeartPulse },
+  { label: "2 clubs", icon: Sparkles },
+  { label: "Musculation", icon: Dumbbell },
+  { label: "Cours collectifs", icon: Users },
+  { label: "Coaching & Recovery", icon: HeartPulse },
 ];
 
 export function HeroSection() {
@@ -33,28 +33,28 @@ export function HeroSection() {
       <div className="mx-auto flex min-h-[560px] max-w-7xl items-center px-5 py-12 sm:min-h-[590px] sm:px-8 lg:min-h-[620px]">
         <div className="max-w-[620px] pb-2 pt-4 lg:max-w-[680px]">
           <p className="mb-4 flex items-center gap-3 text-[0.68rem] font-black uppercase tracking-[0.26em] text-primary sm:text-xs">
-            <span className="h-px w-8 bg-primary" /> The Masterz Gym · Kénitra
+            <span className="h-px w-8 bg-primary" /> The Masterz · Kénitra
           </p>
-          <h1 className="font-display text-[2.65rem] font-black uppercase leading-[0.9] tracking-[-0.05em] text-white sm:text-[3.2rem] md:text-[3.75rem] lg:text-[4.1rem]">
-            Élève ton niveau.
+          <h1 className="max-w-[590px] font-display text-[2.55rem] font-black uppercase leading-[0.9] tracking-[-0.05em] text-white sm:text-[3.05rem] md:text-[3.5rem] lg:text-[3.8rem]">
+            Deux clubs.
             <span className="mt-1.5 block text-primary">
-              Maîtrise tes limites.
+              Une seule ambition.
             </span>
           </h1>
           <p className="mt-5 max-w-xl text-sm font-medium leading-6 text-gray-300 sm:text-base sm:leading-7">
-            Un seul lieu pour développer votre force, structurer votre
-            progression et accélérer votre récupération.
+            Force et performance dans le premier club. Energie et cours
+            collectifs dans le second. Choisissez votre univers Masterz.
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <Link href="/inscription" className={buttonStyles({ size: "lg" })}>
-              S’inscrire <ArrowUpRight className="h-4 w-4" />
+            <Link href="#clubs" className={buttonStyles({ size: "lg" })}>
+              Choisir mon club <ArrowUpRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/la-salle"
+              href="#offres"
               className={buttonStyles({ variant: "outline", size: "lg" })}
             >
-              Découvrir la salle
+              Voir les offres
             </Link>
           </div>
 

@@ -16,6 +16,7 @@ const admin = {
 
 const plan = {
   id: "00000000-0000-0000-0000-000000000202",
+  club_id: "11111111-1111-4111-8111-111111111111",
   name: "12 mois",
   duration_months: 12,
   price: "2000.00",
@@ -102,6 +103,16 @@ test("permet a l'Admin de creer et mettre en avant une promotion", async ({
   await expect(
     page.getByRole("heading", { name: "Promotions", exact: true }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: "Ouvrir le calendrier pour debut de l'offre",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: "Ouvrir le calendrier pour fin de l'offre",
+    }),
+  ).toBeVisible();
   await page.getByLabel("Titre de l'offre").fill("Offre Duo Masterz");
   await page
     .getByLabel("Texte court du banner")
@@ -167,7 +178,10 @@ test("affiche l'offre au visiteur et la joint a sa demande", async ({
   });
 
   await page.goto("/");
-  await page.getByRole("link", { name: /Offre Duo Masterz/ }).click();
+  await page
+    .getByRole("link", { name: /Offre Duo Masterz/ })
+    .first()
+    .click();
   await expect(page).toHaveURL(new RegExp(`/offres/${promotion.slug}$`));
   await expect(
     page.getByRole("heading", { name: "Offre Duo Masterz" }),

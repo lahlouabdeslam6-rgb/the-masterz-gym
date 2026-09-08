@@ -3,17 +3,19 @@ import { expect, test } from "@playwright/test";
 test("affiche la page d’accueil premium", async ({ page }) => {
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: /Élève ton niveau/i }),
+    page.getByRole("heading", { name: /Deux clubs.*Une seule ambition/i }),
   ).toBeVisible();
   await expect(page).toHaveTitle(/The Masterz Gym/);
   await expect(
     page.getByRole("heading", {
-      name: /Trouvez la formule qui suit votre rythme/i,
+      name: /Choisissez l experience qui vous ressemble/i,
     }),
   ).toBeVisible();
 });
 
-test("regroupe les univers dans le menu abonnements", async ({ page }) => {
+test("separe les abonnements par salle et regroupe le Store avec le Cafe", async ({
+  page,
+}) => {
   await page.goto("/");
 
   const menu = page.getByRole("button", { name: "Abonnements", exact: true });
@@ -42,11 +44,25 @@ test("regroupe les univers dans le menu abonnements", async ({ page }) => {
   await expect(
     page.getByRole("link", { name: /Recovery/i }).first(),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Pass 4 Fit & Arts martiaux/i }),
+  ).toHaveAttribute("href", "/abonnements?club=salle-2");
 
   await page.locator("main").click({ position: { x: 10, y: 10 } });
   await expect(
     page.getByRole("link", { name: /Salle musculation/i }),
   ).toBeHidden();
+
+  const commerceMenu = page.getByRole("button", {
+    name: "Store & Café",
+    exact: true,
+  });
+  await commerceMenu.click();
+  const commercePanel = page.locator("#commerce-navigation");
+  await expect(
+    commercePanel.getByRole("link", { name: /Masterz Store/i }),
+  ).toBeVisible();
+  await expect(commercePanel.getByRole("link", { name: /Healthy Café/i })).toBeVisible();
 });
 
 test("integre l'analyse corporelle au parcours coaching", async ({ page }) => {

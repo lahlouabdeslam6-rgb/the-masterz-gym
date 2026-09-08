@@ -1,10 +1,18 @@
 import { CheckCircle2, ShieldCheck, UserRoundCheck } from "lucide-react";
-import { MembershipPlansList } from "@/components/MembershipPlansList";
+import { PublicClubOffers } from "@/components/PublicClubOffers";
 import { PageHero } from "@/components/PageHero";
 import { SectionShell } from "@/components/SectionShell";
 import { FinalCTA } from "@/components/FinalCTA";
+import { publicClubForQuery } from "@/lib/clubs";
 
-export default function AbonnementsPage() {
+export default async function AbonnementsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ club?: string }>;
+}) {
+  const { club } = await searchParams;
+  const initialClub = publicClubForQuery(club);
+
   return (
     <>
       <PageHero
@@ -15,7 +23,7 @@ export default function AbonnementsPage() {
         align="center"
       />
       <SectionShell tone="blue" className="!py-10 sm:!py-12 lg:!py-14">
-        <MembershipPlansList serviceType="gym" showPromotions />
+        <PublicClubOffers initialClubId={initialClub.id} />
       </SectionShell>
       <SectionShell>
         <div className="grid gap-4 md:grid-cols-3">

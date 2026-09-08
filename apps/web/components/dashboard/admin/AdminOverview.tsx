@@ -29,6 +29,7 @@ const serviceLabels = {
   gym: "Salle musculation",
   coaching: "Coaching",
   recovery: "Recovery",
+  martial_arts: "Arts martiaux",
 } as const;
 
 const paymentLabels = {

@@ -26,12 +26,15 @@ class ApplicationRepository:
         self,
         application_status: ApplicationStatus | None = None,
         club_id: uuid.UUID | None = None,
+        club_ids: list[uuid.UUID] | None = None,
     ) -> list[MembershipApplication]:
         statement = select(MembershipApplication).order_by(MembershipApplication.created_at.desc())
         if application_status:
             statement = statement.where(MembershipApplication.status == application_status)
         if club_id:
             statement = statement.where(MembershipApplication.club_id == club_id)
+        elif club_ids is not None:
+            statement = statement.where(MembershipApplication.club_id.in_(club_ids))
         return list(self.session.scalars(statement))
 
     def stale_pending(self, cutoff: datetime) -> list[MembershipApplication]:

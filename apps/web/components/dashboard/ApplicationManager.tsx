@@ -5,6 +5,7 @@ import { Check, CreditCard, Info, UserRoundSearch, X } from "lucide-react";
 import { Alert, Button, Input, Pill } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import { SALLE_2_ID } from "@/lib/clubs";
 import { notifyNavigationBadgesChanged } from "@/lib/navigation-badges";
 import {
   type Application,
@@ -344,10 +345,14 @@ export function ApplicationManager({
                             (plan) => plan.club_id === application.club_id,
                           )
                           .map((plan) => (
-                          <option key={plan.id} value={plan.id}>
-                            [{serviceTypeLabel(plan.service_type)}] {plan.name}{" "}
-                            · {plan.price} {plan.currency}
-                          </option>
+                            <option key={plan.id} value={plan.id}>
+                              [
+                              {serviceTypeLabel(
+                                plan.service_type,
+                                plan.club_id,
+                              )}
+                              ] {plan.name} · {plan.price} {plan.currency}
+                            </option>
                           ))}
                       </select>
                       <span className="block pt-1 text-[0.68rem] normal-case tracking-normal text-gray-500">
@@ -430,21 +435,17 @@ function ApplicationInfo({
   );
 }
 
-function serviceTypeLabel(serviceType: Plan["service_type"]) {
+function serviceTypeLabel(serviceType: Plan["service_type"], clubId?: string) {
+  if (clubId === SALLE_2_ID && serviceType === "gym") return "Pass 4 Fit";
   return {
     gym: "Salle musculation",
     coaching: "Coaching",
     recovery: "Recovery",
+    martial_arts: "Arts martiaux",
   }[serviceType];
 }
 
 export function ReceiptSummary({ receipt }: { receipt: Receipt }) {
-  const serviceTypeLabels = {
-    gym: "Salle musculation",
-    coaching: "Coaching",
-    recovery: "Recovery",
-  } as const;
-
   return (
     <div className="rounded-sm border border-emerald-400/25 bg-emerald-400/[0.07] p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -461,12 +462,13 @@ export function ReceiptSummary({ receipt }: { receipt: Receipt }) {
           Formule : <strong className="text-white">{receipt.plan_name}</strong>
         </p>
         <p>
-          Salle : <strong className="text-white">{clubLabel(receipt.club_id)}</strong>
+          Salle :{" "}
+          <strong className="text-white">{clubLabel(receipt.club_id)}</strong>
         </p>
         <p>
           Categorie :{" "}
           <strong className="text-white">
-            {serviceTypeLabels[receipt.service_type]}
+            {serviceTypeLabel(receipt.service_type, receipt.club_id)}
           </strong>
         </p>
         <p>
@@ -475,7 +477,8 @@ export function ReceiptSummary({ receipt }: { receipt: Receipt }) {
             {receipt.amount} {receipt.currency}
           </strong>
         </p>
-        {receipt.service_type === "recovery" ? (
+        {receipt.service_type === "recovery" ||
+        receipt.service_type === "martial_arts" ? (
           <p>
             Seances :{" "}
             <strong className="text-white">

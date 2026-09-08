@@ -8,6 +8,7 @@ from app.core.security import hash_password
 from app.modules.applications.models import MembershipApplication
 from app.modules.auth.otp import OTPProvider
 from app.modules.clubs.constants import SALLE_1_ID
+from app.modules.clubs.models import UserClubAssignment
 from app.modules.memberships.models import MembershipPlan, Subscription
 from app.modules.users.models import User
 from app.modules.users.photo import MemberPhotoService, VerifiedMemberPhoto
@@ -758,8 +759,16 @@ def test_payment_member_summaries_prioritize_renewals(
         db_session.add(member)
         db_session.flush()
         db_session.add(
+            UserClubAssignment(
+                user_id=member.id,
+                club_id=SALLE_1_ID,
+                assigned_by_id=receptionist.id,
+            )
+        )
+        db_session.add(
             Subscription(
                 member_id=member.id,
+                club_id=SALLE_1_ID,
                 plan_id=plan.id,
                 status=SubscriptionStatus.ACTIVE,
                 starts_on=today - timedelta(days=10),
@@ -943,9 +952,17 @@ def test_finished_subscription_is_expired_but_keeps_configured_grace_access(
     )
     db_session.add(member)
     db_session.flush()
+    db_session.add(
+        UserClubAssignment(
+            user_id=member.id,
+            club_id=SALLE_1_ID,
+            assigned_by_id=receptionist.id,
+        )
+    )
     mark_member_photo_verified(member)
     subscription = Subscription(
         member_id=member.id,
+        club_id=SALLE_1_ID,
         plan_id=plan.id,
         status=SubscriptionStatus.ACTIVE,
         starts_on=today - timedelta(days=32),

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import api_error
 from app.modules.audit.service import AuditService
+from app.modules.clubs.constants import SALLE_2_ID
 from app.modules.memberships.models import (
     MembershipPlan,
     Subscription,
@@ -47,6 +48,7 @@ class MembershipService:
         return setting.value["value"]
 
     def create_plan(self, data: MembershipPlanCreate, actor: User) -> MembershipPlan:
+        self._validate_club_service(data.club_id, data.service_type)
         plan = self.repository.add_plan(MembershipPlan(**data.model_dump()))
         self.audit.record(
             actor=actor,
@@ -74,14 +76,16 @@ class MembershipService:
         }
         changes = data.model_dump(exclude_none=True, exclude={"reason"})
         final_service_type = changes.get("service_type", plan.service_type)
+        self._validate_club_service(plan.club_id, final_service_type)
         final_session_count = changes.get("session_count", plan.session_count)
-        if final_service_type == ServiceType.RECOVERY and final_session_count is None:
+        session_services = {ServiceType.RECOVERY, ServiceType.MARTIAL_ARTS}
+        if final_service_type in session_services and final_session_count is None:
             raise api_error(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "recovery_session_count_required",
-                "Le nombre de seances est requis pour une offre recovery.",
+                "session_count_required",
+                "Le nombre de seances est requis pour cette categorie.",
             )
-        if final_service_type != ServiceType.RECOVERY:
+        if final_service_type not in session_services:
             changes["session_count"] = None
         for field, value in changes.items():
             setattr(plan, field, value)
@@ -108,6 +112,26 @@ class MembershipService:
             reason=data.reason,
         )
         return plan
+
+    @staticmethod
+    def _validate_club_service(
+        club_id: uuid.UUID, service_type: ServiceType
+    ) -> None:
+        if club_id == SALLE_2_ID and service_type in {
+            ServiceType.COACHING,
+            ServiceType.RECOVERY,
+        }:
+            raise api_error(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "service_unavailable_in_club",
+                "Le coaching personnel et le Recovery restent rattaches a la Salle 1.",
+            )
+        if club_id != SALLE_2_ID and service_type == ServiceType.MARTIAL_ARTS:
+            raise api_error(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "service_unavailable_in_club",
+                "Les arts martiaux sont rattaches a la Salle 2.",
+            )
 
     def effective_status(
         self,

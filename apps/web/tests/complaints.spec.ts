@@ -152,6 +152,22 @@ test("la reception repond et change le statut dans sa page", async ({
     const url = new URL(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = receptionist;
+    if (url.pathname === "/api/v1/clubs/my-access") {
+      body = {
+        user_id: receptionist.id,
+        role: "receptionist",
+        clubs: [
+          {
+            id: "11111111-1111-4111-8111-111111111111",
+            name: "The Masterz Gym",
+            label: "Salle 1",
+            slug: "salle-1",
+            address: null,
+            is_active: true,
+          },
+        ],
+      };
+    }
     if (url.pathname === "/api/v1/complaints") body = [complaint()];
     if (
       url.pathname === `/api/v1/complaints/${complaintId}/messages` &&

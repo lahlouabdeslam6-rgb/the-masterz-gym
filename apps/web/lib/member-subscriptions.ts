@@ -19,7 +19,8 @@ export function isCurrentSubscription(subscription: MemberSubscription) {
   const status = subscription.effective_status ?? subscription.status;
   if (!currentStatuses.has(status)) return false;
   return !(
-    subscription.service_type === "recovery" &&
+    (subscription.service_type === "recovery" ||
+      subscription.service_type === "martial_arts") &&
     subscription.remaining_sessions === 0
   );
 }
@@ -66,10 +67,12 @@ export function useMemberSubscriptions() {
 export function currentSubscriptionFor(
   subscriptions: MemberSubscription[],
   serviceType: ServiceType,
+  clubId?: string,
 ) {
   return subscriptions.find(
     (subscription) =>
       subscription.service_type === serviceType &&
+      (!clubId || subscription.club_id === clubId) &&
       isCurrentSubscription(subscription),
   );
 }
@@ -77,8 +80,11 @@ export function currentSubscriptionFor(
 export function latestSubscriptionFor(
   subscriptions: MemberSubscription[],
   serviceType: ServiceType,
+  clubId?: string,
 ) {
   return subscriptions.find(
-    (subscription) => subscription.service_type === serviceType,
+    (subscription) =>
+      subscription.service_type === serviceType &&
+      (!clubId || subscription.club_id === clubId),
   );
 }

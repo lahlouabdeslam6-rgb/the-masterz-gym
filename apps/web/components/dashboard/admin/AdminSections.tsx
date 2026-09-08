@@ -191,6 +191,7 @@ export function AdminPlansSection() {
           subtitle={`${plans.filter((plan) => plan.is_active).length} formule(s) active(s).`}
         >
           <AdminPlanManager
+            key={clubId}
             session={session}
             plans={plans}
             clubId={clubId}

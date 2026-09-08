@@ -3649,7 +3649,7 @@ export interface components {
          * ServiceType
          * @enum {string}
          */
-        ServiceType: "gym" | "coaching" | "recovery";
+        ServiceType: "gym" | "coaching" | "recovery" | "martial_arts";
         /** SettingRead */
         SettingRead: {
             /** Key */

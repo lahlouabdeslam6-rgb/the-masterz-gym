@@ -24,10 +24,15 @@ class MembershipPlanCreate(MembershipPlanBase):
 
     @model_validator(mode="after")
     def validate_session_count(self):
-        if self.service_type == ServiceType.RECOVERY and self.session_count is None:
-            raise ValueError("Le nombre de seances est requis pour une offre recovery.")
-        if self.service_type != ServiceType.RECOVERY and self.session_count is not None:
-            raise ValueError("Le nombre de seances est reserve aux offres recovery.")
+        session_services = {ServiceType.RECOVERY, ServiceType.MARTIAL_ARTS}
+        if self.service_type in session_services and self.session_count is None:
+            raise ValueError(
+                "Le nombre de seances est requis pour une offre recovery ou arts martiaux."
+            )
+        if self.service_type not in session_services and self.session_count is not None:
+            raise ValueError(
+                "Le nombre de seances est reserve aux offres recovery et arts martiaux."
+            )
         return self
 
 

@@ -14,7 +14,6 @@ import type { components } from "@masterz/api-client";
 import { Alert, Button, Card, Input, Pill } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
-import { SALLE_1_ID } from "./ClubSwitcher";
 import {
   EmptyState,
   Field,
@@ -64,19 +63,24 @@ export function RecoveryManager({ session }: { session: AuthSession }) {
     [session.accessToken],
   );
 
-  const loadClients = useCallback(async () => {
-    const result = await api.GET("/api/v1/recovery/clients", {
-      headers,
-      params: { query: { limit: 100 } },
-    });
-    const next = result.data ?? [];
-    setClients(next);
-    setSelectedId((current) => current ?? next[0]?.member_id ?? null);
-    setFeedback(
-      result.error ? "La liste recovery n’a pas pu être chargée." : null,
-    );
-    setLoading(false);
-  }, [headers]);
+  const loadClients = useCallback(
+    async (preserveFeedback = false) => {
+      const result = await api.GET("/api/v1/recovery/clients", {
+        headers,
+        params: { query: { limit: 100 } },
+      });
+      const next = result.data ?? [];
+      setClients(next);
+      setSelectedId((current) => current ?? next[0]?.member_id ?? null);
+      if (result.error) {
+        setFeedback("La liste recovery n’a pas pu être chargée.");
+      } else if (!preserveFeedback) {
+        setFeedback(null);
+      }
+      setLoading(false);
+    },
+    [headers],
+  );
 
   const loadTracking = useCallback(
     async (memberId: string) => {
@@ -130,7 +134,6 @@ export function RecoveryManager({ session }: { session: AuthSession }) {
     const result = await api.POST("/api/v1/recovery/visits", {
       headers,
       body: {
-        club_id: SALLE_1_ID,
         idempotency_key: `recovery-${crypto.randomUUID()}`,
         member_id: selectedId,
         occurred_at: new Date(occurredAt).toISOString(),
@@ -151,7 +154,7 @@ export function RecoveryManager({ session }: { session: AuthSession }) {
     setServices([]);
     setNotes("");
     setOccurredAt(dateTimeInputValue());
-    await Promise.all([loadTracking(selectedId), loadClients()]);
+    await Promise.all([loadTracking(selectedId), loadClients(true)]);
   }
 
   return (

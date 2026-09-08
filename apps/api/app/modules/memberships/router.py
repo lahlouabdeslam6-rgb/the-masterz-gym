@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.core.dependencies import CurrentUser, DbSession, require_roles
 from app.core.errors import api_error
+from app.modules.clubs.service import ClubService
 from app.modules.memberships.repository import MembershipRepository
 from app.modules.memberships.schemas import (
     MembershipPlanCreate,
@@ -57,6 +58,13 @@ def list_member_subscription_summaries(
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
     club_id: Annotated[uuid.UUID | None, Query()] = None,
 ):
+    if club_id:
+        ClubService(session).require_access(actor, club_id)
+    elif actor.role == UserRole.RECEPTIONIST:
+        assigned = ClubService(session).clubs_for(actor)
+        club_id = assigned[0].id if assigned else None
+        if club_id is None:
+            raise api_error(403, "club_access_denied", "Aucune salle affectee.")
     return MembershipService(session).list_member_subscription_summaries(
         query=query, limit=limit, club_id=club_id
     )
@@ -73,6 +81,14 @@ def list_member_subscriptions(
         raise api_error(403, "permission_denied", "Accès interdit.")
     if actor.role not in {UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.MEMBER}:
         raise api_error(403, "permission_denied", "Accès interdit.")
+    if actor.role == UserRole.RECEPTIONIST:
+        if club_id:
+            ClubService(session).require_access(actor, club_id)
+        else:
+            assigned = ClubService(session).clubs_for(actor)
+            club_id = assigned[0].id if assigned else None
+            if club_id is None:
+                raise api_error(403, "club_access_denied", "Aucune salle affectee.")
     memberships = MembershipRepository(session)
     service = MembershipService(session)
     return [
@@ -91,6 +107,10 @@ def update_subscription_status(
     actor: Reception,
 ):
     service = MembershipService(session)
+    subscription = service.repository.get_subscription(subscription_id)
+    if not subscription:
+        raise api_error(404, "subscription_not_found", "Abonnement introuvable.")
+    ClubService(session).require_access(actor, subscription.club_id)
     subscription = service.update_status(subscription_id, data, actor)
     return SubscriptionRead.model_validate(subscription).model_copy(
         update={"effective_status": service.effective_status(subscription)}
@@ -105,6 +125,10 @@ def update_subscription_dates(
     actor: Reception,
 ):
     service = MembershipService(session)
+    subscription = service.repository.get_subscription(subscription_id)
+    if not subscription:
+        raise api_error(404, "subscription_not_found", "Abonnement introuvable.")
+    ClubService(session).require_access(actor, subscription.club_id)
     subscription = service.update_dates(subscription_id, data, actor)
     return SubscriptionRead.model_validate(subscription).model_copy(
         update={"effective_status": service.effective_status(subscription)}
@@ -113,7 +137,12 @@ def update_subscription_dates(
 
 @router.get("/subscriptions/{subscription_id}/events", response_model=list[SubscriptionEventRead])
 def list_subscription_events(subscription_id: uuid.UUID, session: DbSession, actor: Reception):
-    return MembershipRepository(session).list_events(subscription_id)
+    repository = MembershipRepository(session)
+    subscription = repository.get_subscription(subscription_id)
+    if not subscription:
+        raise api_error(404, "subscription_not_found", "Abonnement introuvable.")
+    ClubService(session).require_access(actor, subscription.club_id)
+    return repository.list_events(subscription_id)
 
 
 @router.put("/membership-settings/{key}", response_model=SettingRead)

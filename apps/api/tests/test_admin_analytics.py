@@ -34,7 +34,7 @@ def test_admin_dashboard_returns_consistent_live_metrics(
     payload = response.json()
     assert payload["period_months"] == 6
     assert len(payload["monthly"]) == 6
-    assert len(payload["service_revenue"]) == 3
+    assert len(payload["service_revenue"]) == 4
     assert len(payload["payment_methods"]) == 3
     assert payload["metrics"]["member_count"] >= payload["metrics"]["active_member_count"]
     assert (

@@ -25,11 +25,7 @@ def list_applications(
     application_status: Annotated[ApplicationStatus | None, Query(alias="status")] = None,
     club_id: Annotated[uuid.UUID | None, Query()] = None,
 ):
-    if club_id:
-        from app.modules.clubs.service import ClubService
-
-        ClubService(session).require_access(actor, club_id)
-    return ApplicationService(session).list(application_status, club_id)
+    return ApplicationService(session).list(actor, application_status, club_id)
 
 
 @router.get("/{application_id}", response_model=ApplicationRead)
@@ -38,7 +34,7 @@ def get_application(application_id: uuid.UUID, session: DbSession, actor: Recept
 
     from app.core.errors import api_error
 
-    application = ApplicationService(session).get(application_id)
+    application = ApplicationService(session).get_for_actor(application_id, actor)
     if not application:
         raise api_error(
             http_status.HTTP_404_NOT_FOUND, "application_not_found", "Demande introuvable."

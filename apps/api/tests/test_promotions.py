@@ -100,3 +100,39 @@ def test_admin_creates_featured_promotion_and_application_uses_special_price(
     actions = {entry["action"] for entry in audit.json()}
     assert "promotion.created" in actions
     assert "application.submitted" in actions
+
+
+def test_admin_can_target_a_coaching_plan_with_a_promotion(
+    client: TestClient,
+    admin_headers: dict[str, str],
+) -> None:
+    plans = client.get(
+        "/api/v1/membership-plans",
+        params={"active_only": True, "service_type": "coaching"},
+    )
+    assert plans.status_code == 200
+    plan = plans.json()[0]
+    now = datetime.now(UTC)
+
+    created = client.post(
+        "/api/v1/admin/promotions",
+        headers=admin_headers,
+        json={
+            "title": "Offre Coaching Performance",
+            "short_description": "Une offre speciale pour le suivi coaching.",
+            "description": "Cette campagne reste liee a sa formule coaching.",
+            "base_plan_id": plan["id"],
+            "price": "850.00",
+            "currency": "MAD",
+            "participant_count": 1,
+            "starts_at": (now - timedelta(hours=1)).isoformat(),
+            "ends_at": (now + timedelta(days=10)).isoformat(),
+            "terms": None,
+            "is_active": True,
+            "is_featured": False,
+        },
+    )
+
+    assert created.status_code == 201, created.text
+    assert created.json()["base_plan_id"] == plan["id"]
+    assert created.json()["base_plan_name"] == plan["name"]

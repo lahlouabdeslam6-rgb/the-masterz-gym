@@ -9,6 +9,7 @@ from app.modules.applications.models import MembershipApplication
 from app.modules.applications.repository import ApplicationRepository
 from app.modules.applications.schemas import ApplicationCreate, ApplicationReview
 from app.modules.audit.service import AuditService
+from app.modules.clubs.service import ClubService
 from app.modules.memberships.repository import MembershipRepository
 from app.modules.memberships.service import MembershipService
 from app.modules.promotions.service import PromotionService
@@ -40,15 +41,34 @@ class ApplicationService:
 
     def list(
         self,
+        actor: User,
         application_status: ApplicationStatus | None = None,
         club_id: uuid.UUID | None = None,
     ) -> list[MembershipApplication]:
         self.purge_stale_pending()
-        return self.applications.list(application_status, club_id)
+        clubs = ClubService(self.session)
+        if club_id:
+            clubs.require_access(actor, club_id)
+            return self.applications.list(application_status, club_id)
+        if actor.role == UserRole.ADMIN:
+            return self.applications.list(application_status)
+        allowed_club_ids = [club.id for club in clubs.clubs_for(actor)]
+        return self.applications.list(
+            application_status,
+            club_ids=allowed_club_ids,
+        )
 
     def get(self, application_id: uuid.UUID) -> MembershipApplication | None:
         self.purge_stale_pending()
         return self.applications.get(application_id)
+
+    def get_for_actor(
+        self, application_id: uuid.UUID, actor: User
+    ) -> MembershipApplication | None:
+        application = self.get(application_id)
+        if application:
+            ClubService(self.session).require_access(actor, application.club_id)
+        return application
 
     def purge_stale_pending(self) -> int:
         retention_days = self.membership_service.get_setting_int(
@@ -77,29 +97,41 @@ class ApplicationService:
 
     def submit(self, data: ApplicationCreate) -> MembershipApplication:
         plan = self.plans.get_plan(data.selected_plan_id)
-        if not plan or not plan.is_active or plan.service_type != ServiceType.GYM:
+        if not plan or not plan.is_active:
             raise api_error(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 "inactive_plan",
-                "La formule salle sélectionnée n'est pas disponible.",
+                "La formule selectionnee n'est pas disponible.",
             )
         existing_member = self.users.by_phone(data.phone)
         if existing_member and existing_member.role == UserRole.MEMBER:
             current = self.plans.current_subscription(
                 existing_member.id,
                 local_today(),
-                ServiceType.GYM,
+                plan.service_type,
                 plan.club_id,
             )
-            if current and self.membership_service.effective_status(current) not in {
-                SubscriptionStatus.SUSPENDED,
-                SubscriptionStatus.EXPIRED,
-                SubscriptionStatus.CANCELLED,
-            }:
+            session_services = {ServiceType.RECOVERY, ServiceType.MARTIAL_ARTS}
+            if (
+                current
+                and not (
+                    current.service_type in session_services
+                    and current.remaining_sessions == 0
+                )
+                and self.membership_service.effective_status(current)
+                not in {
+                    SubscriptionStatus.SUSPENDED,
+                    SubscriptionStatus.EXPIRED,
+                    SubscriptionStatus.CANCELLED,
+                }
+            ):
                 raise api_error(
                     status.HTTP_409_CONFLICT,
                     "active_subscription",
-                    "Ce membre a deja paye un abonnement salle encore valide.",
+                    (
+                        "Ce membre a deja paye un abonnement encore valide dans cette "
+                        "categorie et cette salle."
+                    ),
                 )
         promotion = None
         if data.promotion_id:
@@ -128,7 +160,9 @@ class ApplicationService:
             entity_id=application.id,
             new_value={
                 "applicant_name": application.full_name,
+                "club_id": str(application.club_id),
                 "plan_name": plan.name,
+                "service_type": plan.service_type.value,
                 "promotion_title": promotion.title if promotion else None,
                 "status": application.status.value,
             },
@@ -139,7 +173,7 @@ class ApplicationService:
     def review(
         self, application_id: uuid.UUID, data: ApplicationReview, actor: User
     ) -> MembershipApplication:
-        application = self.get(application_id)
+        application = self.get_for_actor(application_id, actor)
         if not application:
             raise api_error(
                 status.HTTP_404_NOT_FOUND, "application_not_found", "Demande introuvable."

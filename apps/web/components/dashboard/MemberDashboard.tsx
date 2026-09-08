@@ -792,7 +792,7 @@ function SubscriptionsPanel({
     "offers" | "promotions" | "history"
   >("offers");
   const [activeService, setActiveService] = useState<
-    "gym" | "coaching" | "recovery"
+    "gym" | "coaching" | "recovery" | "martial_arts"
   >("gym");
   const services = [
     {
@@ -801,6 +801,7 @@ function SubscriptionsPanel({
     },
     { id: "coaching" as const, label: "Coaching" },
     { id: "recovery" as const, label: "Recovery" },
+    { id: "martial_arts" as const, label: "Arts martiaux" },
   ];
 
   return (
@@ -835,13 +836,14 @@ function SubscriptionsPanel({
             {services.map((service) => {
               const latest = latestSubscriptionFor(subscriptions, service.id);
               const current = latest ? isCurrentSubscription(latest) : false;
-              const recoveryFinished =
-                latest?.service_type === "recovery" &&
+              const sessionsFinished =
+                (latest?.service_type === "recovery" ||
+                  latest?.service_type === "martial_arts") &&
                 latest.remaining_sessions === 0;
               const serviceStatus = current
                 ? "Deja paye"
                 : latest
-                  ? recoveryFinished
+                  ? sessionsFinished
                     ? "Seances terminees"
                     : "A renouveler"
                   : "Disponible";
@@ -912,7 +914,8 @@ function SubscriptionsPanel({
                     <p className="mt-2 text-sm font-bold text-primary">
                       {subscription.price} {subscription.currency}
                     </p>
-                    {subscription.service_type === "recovery" ? (
+                    {subscription.service_type === "recovery" ||
+                    subscription.service_type === "martial_arts" ? (
                       <p className="mt-2 text-sm font-bold text-emerald-200">
                         {subscription.remaining_sessions ?? "-"} /{" "}
                         {subscription.total_sessions ?? "-"} seance(s)

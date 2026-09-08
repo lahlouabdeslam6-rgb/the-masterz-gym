@@ -57,6 +57,9 @@ test("enregistre un passage recovery et retire une seule seance", async ({
     }
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = receptionist;
+    if (url.pathname === "/api/v1/clubs/my-access") {
+      body = receptionSalle1Access();
+    }
     if (url.pathname === "/api/v1/recovery/clients") {
       body = [
         {
@@ -170,6 +173,9 @@ test("explique pourquoi un passage est bloque pour un pack annule", async ({
     const url = new URL(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = receptionist;
+    if (url.pathname === "/api/v1/clubs/my-access") {
+      body = receptionSalle1Access();
+    }
     if (url.pathname === "/api/v1/recovery/clients") {
       body = [
         {
@@ -214,3 +220,20 @@ test("explique pourquoi un passage est bloque pour un pack annule", async ({
     page.getByRole("button", { name: "Confirmer le passage" }),
   ).toHaveCount(0);
 });
+
+function receptionSalle1Access() {
+  return {
+    user_id: receptionist.id,
+    role: "receptionist",
+    clubs: [
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "The Masterz Gym",
+        label: "Salle 1",
+        slug: "salle-1",
+        address: null,
+        is_active: true,
+      },
+    ],
+  };
+}

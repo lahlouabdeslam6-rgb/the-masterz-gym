@@ -22,7 +22,8 @@ import {
 import { Card, CardContent, SectionTitle, buttonStyles } from "@masterz/ui";
 import { ClubMediaShowcase } from "@/components/ClubMediaShowcase";
 import { FinalCTA } from "@/components/FinalCTA";
-import { MembershipPlansList } from "@/components/MembershipPlansList";
+import { PublicClubChooser } from "@/components/PublicClubChooser";
+import { PublicClubOffers } from "@/components/PublicClubOffers";
 import { SectionShell } from "@/components/SectionShell";
 import { HeroSection } from "@/components/sections/HeroSection";
 
@@ -86,19 +87,20 @@ export default function HomePage() {
   return (
     <div className="w-full">
       <HeroSection />
+      <PublicClubChooser />
 
       <SectionShell
-        id="abonnements"
+        id="offres"
         tone="blue"
-        className="!py-12 sm:!py-14 lg:!py-16"
+        className="scroll-mt-28 !py-12 sm:!py-14 lg:!py-16"
       >
         <SectionTitle
-          eyebrow="Abonnements"
-          title="Trouvez la formule qui suit votre rythme."
-          subtitle="Comparez les offres actives et choisissez simplement votre point de départ."
+          eyebrow="Offres par club"
+          title="Choisissez d abord votre club."
+          subtitle="Les formules et promotions affichees viennent directement de la gestion Admin du club selectionne."
           className="!mb-8"
         />
-        <MembershipPlansList />
+        <PublicClubOffers />
       </SectionShell>
 
       <SectionShell id="experience" tone="surface">

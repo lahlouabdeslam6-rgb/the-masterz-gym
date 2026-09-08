@@ -50,6 +50,84 @@ a {
   font-family: var(--font-display);
   font-stretch: condensed;
 }
+
+/* Public navigation: compact controls and matching destination cards. */
+.site-header nav[aria-label="Navigation principale"] {
+  gap: 0.25rem;
+}
+.site-header nav[aria-label="Navigation principale"] > a,
+.site-header nav[aria-label="Navigation principale"] > div > button {
+  min-height: 42px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  letter-spacing: 0.035em;
+  transition: background 180ms, border-color 180ms, color 180ms;
+}
+.site-header nav[aria-label="Navigation principale"] > a:hover,
+.site-header nav[aria-label="Navigation principale"] > div > button:hover,
+.site-header nav[aria-label="Navigation principale"] > div > button[aria-expanded="true"] {
+  border-color: rgb(0 212 255 / 18%);
+  background: rgb(0 212 255 / 7%);
+  color: #00d4ff;
+}
+.site-header nav a:focus-visible,
+.site-header nav button:focus-visible,
+.site-header nav summary:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 3px;
+}
+.site-header [data-nav-panel] {
+  border-color: rgb(0 212 255 / 16%);
+  border-radius: 18px;
+  padding: 12px;
+  background: linear-gradient(145deg, #101923, #0a121a 65%);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 45%), inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+.site-header [data-nav-panel] a {
+  border-color: rgb(255 255 255 / 7%);
+  border-radius: 12px;
+  transition: border-color 180ms, background 180ms, box-shadow 180ms;
+}
+.site-header [data-nav-panel] a:hover,
+.site-header [data-nav-panel] a:focus-visible {
+  border-color: rgb(0 212 255 / 35%);
+  background: rgb(0 212 255 / 7%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+.site-header [data-nav-panel] a > svg {
+  box-sizing: content-box;
+  padding: 9px;
+  border: 1px solid rgb(0 212 255 / 15%);
+  border-radius: 10px;
+  background: rgb(0 212 255 / 6%);
+}
+.site-header [data-nav-panel] a .text-gray-500 {
+  color: #9ca3af;
+}
+.site-header #membership-navigation section {
+  border-color: rgb(255 255 255 / 6%);
+  border-radius: 12px;
+  background: rgb(3 6 9 / 20%);
+}
+.site-header #commerce-navigation a {
+  display: block;
+  padding: 18px;
+}
+.site-header #mobile-navigation details {
+  margin-top: 5px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 2%);
+}
+.site-header #mobile-navigation details[open] {
+  border-color: rgb(0 212 255 / 22%);
+  background: rgb(0 212 255 / 3%);
+}
+.site-header #mobile-navigation details a {
+  margin-right: 12px;
+  border-radius: 8px;
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

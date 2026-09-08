@@ -33,7 +33,12 @@ import {
   statusLabels,
 } from "./dashboard-shared";
 import { MemberAvatar, MemberPhotoCapture } from "./MemberPhotoCapture";
-import { ClubBadge, SALLE_1_ID, clubLabel } from "./ClubSwitcher";
+import {
+  ClubBadge,
+  SALLE_1_ID,
+  SALLE_2_ID,
+  clubLabel,
+} from "./ClubSwitcher";
 
 type PaymentMethod = "cash" | "bank_card";
 export type StaffMemberMode = "full" | "profile" | "payments" | "access";
@@ -55,8 +60,24 @@ const serviceTypeLabels: Record<Plan["service_type"], string> = {
   gym: "Salle musculation",
   coaching: "Coaching",
   recovery: "Recovery",
+  martial_arts: "Arts martiaux",
 };
 const serviceTypes = Object.keys(serviceTypeLabels) as Plan["service_type"][];
+
+function isSessionService(serviceType: Plan["service_type"]) {
+  return serviceType === "recovery" || serviceType === "martial_arts";
+}
+
+function serviceTypesForClub(clubId: string): Plan["service_type"][] {
+  return clubId === SALLE_2_ID
+    ? ["gym", "martial_arts"]
+    : ["gym", "coaching", "recovery"];
+}
+
+function serviceTypeLabel(serviceType: Plan["service_type"], clubId: string) {
+  if (clubId === SALLE_2_ID && serviceType === "gym") return "Pass 4 Fit";
+  return serviceTypeLabels[serviceType];
+}
 
 type MemberProfileDraft = {
   full_name: string;
@@ -647,10 +668,13 @@ export function StaffMemberManager({
   const activePlans = plans.filter(
     (plan) => plan.is_active && (plan.club_id ?? SALLE_1_ID) === clubId,
   );
+  const visibleServiceTypes = serviceTypesForClub(clubId);
   const selectedPlan =
     activePlans.find((plan) => plan.id === planId) ?? activePlans[0];
   const selectedPlanNeedsRecoverySetup = Boolean(
-    selectedPlan?.service_type === "recovery" && !selectedPlan.session_count,
+    selectedPlan &&
+    isSessionService(selectedPlan.service_type) &&
+    !selectedPlan.session_count,
   );
   const selectedServiceSubscription = selectedPlan
     ? subscriptions.find(
@@ -658,7 +682,7 @@ export function StaffMemberManager({
           subscription.service_type === selectedPlan.service_type &&
           (subscription.club_id ?? SALLE_1_ID) === clubId &&
           !(
-            subscription.service_type === "recovery" &&
+            isSessionService(subscription.service_type) &&
             subscription.remaining_sessions === 0
           ) &&
           !["suspended", "expired", "cancelled"].includes(
@@ -917,22 +941,22 @@ export function StaffMemberManager({
                       if (nextPlan) setActiveServiceType(nextPlan.service_type);
                     }}
                   >
-                    {serviceTypes.map((serviceType) => {
+                    {visibleServiceTypes.map((serviceType) => {
                       const categoryPlans = activePlans.filter(
                         (plan) => plan.service_type === serviceType,
                       );
                       return categoryPlans.length ? (
                         <optgroup
                           key={serviceType}
-                          label={serviceTypeLabels[serviceType]}
+                          label={serviceTypeLabel(serviceType, clubId)}
                         >
                           {categoryPlans.map((plan) => (
                             <option key={plan.id} value={plan.id}>
                               {plan.name} · {plan.price} {plan.currency}
-                              {plan.service_type === "recovery" &&
+                              {isSessionService(plan.service_type) &&
                               plan.session_count
                                 ? ` · ${plan.session_count} seances`
-                                : plan.service_type === "recovery"
+                                : isSessionService(plan.service_type)
                                   ? " · A configurer"
                                   : ""}
                             </option>
@@ -990,7 +1014,7 @@ export function StaffMemberManager({
                   <p className="text-sm font-black uppercase text-emerald-200">
                     Abonnement{" "}
                     {selectedPlan
-                      ? serviceTypeLabels[selectedPlan.service_type]
+                      ? serviceTypeLabel(selectedPlan.service_type, clubId)
                       : ""}{" "}
                     encore valide
                   </p>
@@ -1271,7 +1295,7 @@ export function StaffMemberManager({
               role="tablist"
               className="grid gap-2 rounded-lg border border-white/10 bg-black/20 p-2 md:grid-cols-3"
             >
-              {serviceTypes.map((serviceType) => {
+              {visibleServiceTypes.map((serviceType) => {
                 const subscriptionCount = subscriptions.filter(
                   (subscription) => subscription.service_type === serviceType,
                 ).length;
@@ -1299,7 +1323,7 @@ export function StaffMemberManager({
                     }`}
                   >
                     <span className="block text-sm font-black uppercase tracking-[0.08em]">
-                      {serviceTypeLabels[serviceType]}
+                      {serviceTypeLabel(serviceType, clubId)}
                     </span>
                     <span className="mt-1 block text-xs font-bold text-gray-500">
                       {subscriptionCount} abonnement
@@ -1319,11 +1343,11 @@ export function StaffMemberManager({
                   Dossier commercial
                 </p>
                 <h3 className="mt-2 text-xl font-black uppercase text-white">
-                  Abonnements · {serviceTypeLabels[activeServiceType]}
+                  Abonnements · {serviceTypeLabel(activeServiceType, clubId)}
                 </h3>
               </div>
               <div className="grid gap-4">
-                {serviceTypes
+                {visibleServiceTypes
                   .filter((serviceType) => serviceType === activeServiceType)
                   .map((serviceType) => {
                     const categorySubscriptions = subscriptions.filter(
@@ -1338,7 +1362,7 @@ export function StaffMemberManager({
                       >
                         <div className="flex items-center justify-between gap-3 border-b border-white/10 px-2 pb-3">
                           <h4 className="text-sm font-black uppercase tracking-[0.08em] text-white">
-                            {serviceTypeLabels[serviceType]}
+                            {serviceTypeLabel(serviceType, clubId)}
                           </h4>
                           <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-black text-primary">
                             {categorySubscriptions.length}
@@ -1351,11 +1375,10 @@ export function StaffMemberManager({
                                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                   <div>
                                     <Pill>
-                                      {
-                                        serviceTypeLabels[
-                                          subscription.service_type
-                                        ]
-                                      }
+                                      {serviceTypeLabel(
+                                        subscription.service_type,
+                                        clubId,
+                                      )}
                                     </Pill>
                                     <div className="mt-2">
                                       <ClubBadge
@@ -1370,8 +1393,9 @@ export function StaffMemberManager({
                                       {formatDate(subscription.starts_on)} au{" "}
                                       {formatDate(subscription.ends_on)}
                                     </p>
-                                    {subscription.service_type ===
-                                    "recovery" ? (
+                                    {isSessionService(
+                                      subscription.service_type,
+                                    ) ? (
                                       <p className="mt-2 text-sm font-bold text-primary">
                                         {subscription.remaining_sessions ??
                                           "Non configure"}{" "}
@@ -1582,7 +1606,7 @@ export function StaffMemberManager({
                             ))
                           ) : (
                             <EmptyState
-                              text={`Aucun abonnement ${serviceTypeLabels[serviceType]}.`}
+                              text={`Aucun abonnement ${serviceTypeLabel(serviceType, clubId)}.`}
                             />
                           )}
                         </div>
@@ -1602,14 +1626,14 @@ export function StaffMemberManager({
                       Historique de caisse
                     </p>
                     <h3 className="mt-2 text-xl font-black uppercase text-white">
-                      Recus · {serviceTypeLabels[activeServiceType]}
+                      Recus · {serviceTypeLabel(activeServiceType, clubId)}
                     </h3>
                     <p className="mt-2 text-sm text-gray-500">
                       Affichage separe pour eviter de melanger les paiements.
                     </p>
                   </div>
                   <div className="grid gap-4">
-                    {serviceTypes
+                    {visibleServiceTypes
                       .filter(
                         (serviceType) => serviceType === activeServiceType,
                       )
@@ -1625,7 +1649,7 @@ export function StaffMemberManager({
                           >
                             <div className="flex items-center justify-between gap-3 border-b border-white/10 px-2 pb-3">
                               <h4 className="text-sm font-black uppercase tracking-[0.08em] text-white">
-                                {serviceTypeLabels[serviceType]}
+                                {serviceTypeLabel(serviceType, clubId)}
                               </h4>
                               <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-black text-primary">
                                 {categoryReceipts.length}
@@ -1641,7 +1665,7 @@ export function StaffMemberManager({
                                 ))
                               ) : (
                                 <EmptyState
-                                  text={`Aucun recu ${serviceTypeLabels[serviceType]}.`}
+                                  text={`Aucun recu ${serviceTypeLabel(serviceType, clubId)}.`}
                                 />
                               )}
                             </div>

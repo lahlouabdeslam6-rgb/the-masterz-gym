@@ -28,7 +28,7 @@ import {
   Stat,
 } from "../dashboard-shared";
 import { ReceptionPage } from "./ReceptionPage";
-import { useReceptionSession } from "./ReceptionShell";
+import { useReceptionClub, useReceptionSession } from "./ReceptionShell";
 import { ClubBadge, SALLE_1_ID } from "../ClubSwitcher";
 
 const shortcuts = [
@@ -60,6 +60,7 @@ const shortcuts = [
 
 export function ReceptionOverview() {
   const session = useReceptionSession();
+  const club = useReceptionClub();
   const [applications, setApplications] = useState<Application[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,10 +71,10 @@ export function ReceptionOverview() {
     const [applicationsResult, plansResult] = await Promise.all([
       api.GET("/api/v1/membership-applications", {
         headers,
-        params: { query: { club_id: SALLE_1_ID } },
+        params: { query: { club_id: club.id } },
       }),
       api.GET("/api/v1/membership-plans", {
-        params: { query: { active_only: true, club_id: SALLE_1_ID } },
+        params: { query: { active_only: true, club_id: club.id } },
       }),
     ]);
     setApplications(applicationsResult.data ?? []);
@@ -84,7 +85,7 @@ export function ReceptionOverview() {
         : null,
     );
     setLoading(false);
-  }, [session.accessToken]);
+  }, [club.id, session.accessToken]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => void load(), 0);
@@ -105,7 +106,7 @@ export function ReceptionOverview() {
     >
       {error ? <Alert type="error" message={error} className="mb-6" /> : null}
       <div className="mb-6">
-        <ClubBadge clubId={SALLE_1_ID} />
+        <ClubBadge clubId={club.id} />
       </div>
       {loading ? (
         <LoadingMessage message="Chargement des indicateurs..." />
@@ -120,22 +121,37 @@ export function ReceptionOverview() {
             <Stat
               icon={CreditCard}
               value={plans.filter((plan) => plan.service_type === "gym").length}
-              label="Formules salle"
+              label={club.id === SALLE_1_ID ? "Formules salle" : "Pass 4 Fit"}
             />
-            <Stat
-              icon={CreditCard}
-              value={
-                plans.filter((plan) => plan.service_type === "coaching").length
-              }
-              label="Formules coaching"
-            />
-            <Stat
-              icon={CreditCard}
-              value={
-                plans.filter((plan) => plan.service_type === "recovery").length
-              }
-              label="Formules recovery"
-            />
+            {club.id === SALLE_1_ID ? (
+              <Stat
+                icon={CreditCard}
+                value={
+                  plans.filter((plan) => plan.service_type === "coaching")
+                    .length
+                }
+                label="Formules coaching"
+              />
+            ) : (
+              <Stat
+                icon={CreditCard}
+                value={
+                  plans.filter((plan) => plan.service_type === "martial_arts")
+                    .length
+                }
+                label="Arts martiaux"
+              />
+            )}
+            {club.id === SALLE_1_ID ? (
+              <Stat
+                icon={CreditCard}
+                value={
+                  plans.filter((plan) => plan.service_type === "recovery")
+                    .length
+                }
+                label="Formules recovery"
+              />
+            ) : null}
           </div>
 
           <section className="mt-8">
@@ -170,6 +186,7 @@ export function ReceptionOverview() {
 
 export function ReceptionApplicationsSection() {
   const session = useReceptionSession();
+  const club = useReceptionClub();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -177,12 +194,12 @@ export function ReceptionApplicationsSection() {
   const load = useCallback(async () => {
     const result = await api.GET("/api/v1/membership-applications", {
       headers: authorizationHeaders(session.accessToken),
-      params: { query: { club_id: SALLE_1_ID } },
+      params: { query: { club_id: club.id } },
     });
     setApplications(result.data ?? []);
     setError(result.error ? "Impossible de charger les demandes." : null);
     setLoading(false);
-  }, [session.accessToken]);
+  }, [club.id, session.accessToken]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => void load(), 0);
@@ -195,6 +212,9 @@ export function ReceptionApplicationsSection() {
       title="Demandes"
       description="Validez ici les demandes apres confirmation du paiement, puis indiquez la date de debut choisie avec le client."
     >
+      <div className="mb-6">
+        <ClubBadge clubId={club.id} />
+      </div>
       <PageState loading={loading} error={error}>
         <Panel
           title="Demandes d'adhesion"
@@ -213,6 +233,7 @@ export function ReceptionApplicationsSection() {
 
 export function ReceptionMembersSection() {
   const session = useReceptionSession();
+  const club = useReceptionClub();
   return (
     <ReceptionPage
       eyebrow="Base clients"
@@ -227,7 +248,7 @@ export function ReceptionMembersSection() {
           session={session}
           plans={[]}
           mode="profile"
-          clubId={SALLE_1_ID}
+          clubId={club.id}
         />
       </Panel>
     </ReceptionPage>
@@ -236,18 +257,19 @@ export function ReceptionMembersSection() {
 
 export function ReceptionPaymentsSection() {
   const session = useReceptionSession();
+  const club = useReceptionClub();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const result = await api.GET("/api/v1/membership-plans", {
-      params: { query: { active_only: true, club_id: SALLE_1_ID } },
+      params: { query: { active_only: true, club_id: club.id } },
     });
     setPlans(result.data ?? []);
     setError(result.error ? "Impossible de charger les formules." : null);
     setLoading(false);
-  }, []);
+  }, [club.id]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => void load(), 0);
@@ -263,13 +285,17 @@ export function ReceptionPaymentsSection() {
       <PageState loading={loading} error={error}>
         <Panel
           title="Paiement membre"
-          subtitle="Les offres salle, coaching et recovery sont classees par categorie."
+          subtitle={
+            club.id === SALLE_1_ID
+              ? "Les offres salle, coaching et recovery sont classees par categorie."
+              : "Les offres Pass 4 Fit et Arts martiaux sont classees par categorie."
+          }
         >
           <StaffMemberManager
             session={session}
             plans={plans}
             mode="payments"
-            clubId={SALLE_1_ID}
+            clubId={club.id}
           />
         </Panel>
       </PageState>
@@ -279,6 +305,7 @@ export function ReceptionPaymentsSection() {
 
 export function ReceptionAccessSection() {
   const session = useReceptionSession();
+  const club = useReceptionClub();
   return (
     <ReceptionPage
       eyebrow="Accueil salle"
@@ -293,7 +320,7 @@ export function ReceptionAccessSection() {
           session={session}
           plans={[]}
           mode="access"
-          clubId={SALLE_1_ID}
+          clubId={club.id}
         />
       </Panel>
     </ReceptionPage>
@@ -302,6 +329,21 @@ export function ReceptionAccessSection() {
 
 export function ReceptionRecoverySection() {
   const session = useReceptionSession();
+  const club = useReceptionClub();
+  if (club.id !== SALLE_1_ID) {
+    return (
+      <ReceptionPage
+        eyebrow="Service Salle 1"
+        title="Recovery"
+        description="Le Recovery est gere exclusivement par la Reception de la Salle 1."
+      >
+        <Alert
+          type="info"
+          message="Ce service n'est pas disponible dans la Salle 2."
+        />
+      </ReceptionPage>
+    );
+  }
   return (
     <ReceptionPage
       eyebrow="Sauna, bain froid et compression"
@@ -315,9 +357,24 @@ export function ReceptionRecoverySection() {
 
 export function ReceptionCoachingSection() {
   const session = useReceptionSession();
+  const club = useReceptionClub();
   const [activeView, setActiveView] = useState<"requests" | "schedule">(
     "requests",
   );
+  if (club.id !== SALLE_1_ID) {
+    return (
+      <ReceptionPage
+        eyebrow="Service Salle 1"
+        title="Coaching personnel"
+        description="Le coaching personnel reste gere par la Reception de la Salle 1."
+      >
+        <Alert
+          type="info"
+          message="Les cours collectifs de la Salle 2 seront geres dans leur espace dedie."
+        />
+      </ReceptionPage>
+    );
+  }
   return (
     <ReceptionPage
       eyebrow="Planning des coachs"
@@ -387,6 +444,21 @@ export function ReceptionComplaintsSection() {
 
 export function ReceptionStoreSection() {
   const session = useReceptionSession();
+  const club = useReceptionClub();
+  if (club.id !== SALLE_1_ID) {
+    return (
+      <ReceptionPage
+        eyebrow="Service Salle 1"
+        title="Masterz Store"
+        description="Le Store est gere exclusivement dans la Salle 1."
+      >
+        <Alert
+          type="info"
+          message="Aucune caisse Store n'est affectee a la Reception de la Salle 2."
+        />
+      </ReceptionPage>
+    );
+  }
   return (
     <ReceptionPage
       eyebrow="Reservations et ventes"

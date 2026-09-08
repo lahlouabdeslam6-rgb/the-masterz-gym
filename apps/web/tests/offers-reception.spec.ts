@@ -1,8 +1,12 @@
 import { expect, test } from "@playwright/test";
 
+const SALLE_1_ID = "11111111-1111-4111-8111-111111111111";
+const SALLE_2_ID = "22222222-2222-4222-8222-222222222222";
+
 const plans = [
   {
     id: "00000000-0000-0000-0000-000000000101",
+    club_id: SALLE_1_ID,
     name: "Salle 1 mois",
     duration_months: 1,
     price: "300.00",
@@ -14,6 +18,7 @@ const plans = [
   },
   {
     id: "00000000-0000-0000-0000-000000000102",
+    club_id: SALLE_1_ID,
     name: "Coaching Performance",
     duration_months: 3,
     price: "900.00",
@@ -25,6 +30,7 @@ const plans = [
   },
   {
     id: "00000000-0000-0000-0000-000000000103",
+    club_id: SALLE_1_ID,
     name: "Pack Recovery",
     duration_months: 1,
     price: "600.00",
@@ -37,12 +43,39 @@ const plans = [
   },
   {
     id: "00000000-0000-0000-0000-000000000104",
+    club_id: SALLE_1_ID,
     name: "Ancienne offre Recovery",
     duration_months: 1,
     price: "450.00",
     currency: "MAD",
     service_type: "recovery",
     session_count: null,
+    is_active: true,
+    created_at: "2026-08-17T10:00:00Z",
+    updated_at: "2026-08-17T10:00:00Z",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000106",
+    club_id: SALLE_2_ID,
+    name: "Salle 2 Collectif",
+    duration_months: 1,
+    price: "500.00",
+    currency: "MAD",
+    service_type: "gym",
+    session_count: null,
+    is_active: true,
+    created_at: "2026-08-17T10:00:00Z",
+    updated_at: "2026-08-17T10:00:00Z",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000107",
+    club_id: SALLE_2_ID,
+    name: "Kick-boxing · 8 seances",
+    duration_months: 1,
+    price: "400.00",
+    currency: "MAD",
+    service_type: "martial_arts",
+    session_count: 8,
     is_active: true,
     created_at: "2026-08-17T10:00:00Z",
     updated_at: "2026-08-17T10:00:00Z",
@@ -100,7 +133,7 @@ test("affiche chaque offre dans sa page publique", async ({ page }) => {
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Demander" }).first(),
-  ).toHaveAttribute("href", `/inscription?plan=${plans[1].id}`);
+  ).toHaveAttribute("href", `/inscription?club=salle-1&plan=${plans[1].id}`);
   await expect(page.getByText("Salle 1 mois", { exact: true })).toHaveCount(0);
 
   await page.goto("/recovery");
@@ -113,7 +146,7 @@ test("affiche chaque offre dans sa page publique", async ({ page }) => {
     page.getByText("Coaching Performance", { exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.locator(`a[href="/inscription?plan=${plans[2].id}"]`),
+    page.locator(`a[href="/inscription?club=salle-1&plan=${plans[2].id}"]`),
   ).toContainText("Demander");
 
   await page.goto(`/inscription?plan=${plans[2].id}`);
@@ -123,6 +156,81 @@ test("affiche chaque offre dans sa page publique", async ({ page }) => {
   await expect(planSelect).toContainText("Coaching Performance");
   await expect(planSelect).toContainText("Pack Recovery");
   await expect(planSelect).toContainText("10 seances");
+});
+
+test("separe les formules publiques et la demande par salle", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    let body: unknown = [];
+    if (url.pathname === "/api/v1/membership-plans") {
+      const serviceType = url.searchParams.get("service_type");
+      body = serviceType
+        ? plans.filter((plan) => plan.service_type === serviceType)
+        : plans;
+    }
+    if (url.pathname === "/api/v1/promotions") body = [];
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify(body),
+    });
+  });
+
+  await page.goto("/abonnements");
+  await expect(page.getByText("Salle 1 mois", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Salle 2 Collectif", { exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: /The Masterz Gym 4 Fit/ }).click();
+  await expect(
+    page.getByText("Salle 2 Collectif", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Salle 1 mois", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Choisir" })).toHaveAttribute(
+    "href",
+    `/inscription?club=salle-2&plan=${plans[4].id}`,
+  );
+
+  await page.goto("/abonnements?club=salle-2");
+  await expect(
+    page.getByText("Salle 2 Collectif", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Salle 1 mois", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: /Pass 4 Fit/ })).toBeVisible();
+  await page.getByRole("tab", { name: /Arts martiaux/ }).click();
+  await expect(
+    page.getByText("Kick-boxing · 8 seances", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Salle 2 Collectif", { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByText(/Valable 1 mois.*8 seance/)).toBeVisible();
+  await expect(
+    page.locator(`a[href="/inscription?club=salle-2&plan=${plans[5].id}"]`),
+  ).toContainText("Choisir");
+
+  await page.goto("/inscription?club=salle-2");
+  await expect(
+    page.getByRole("button", { name: /The Masterz Gym 4 Fit/ }),
+  ).toHaveClass(/border-primary/);
+  await expect(page.getByLabel("2. Choisissez votre formule *")).toHaveValue(
+    plans[4].id,
+  );
+  await expect(
+    page.getByLabel("2. Choisissez votre formule *"),
+  ).not.toContainText("Salle 1 mois");
+  await expect(
+    page.locator('#selected_plan_id optgroup[label="Arts martiaux"]'),
+  ).toHaveCount(1);
+  await page
+    .getByLabel("2. Choisissez votre formule *")
+    .selectOption(plans[5].id);
+  await expect(page.getByLabel("2. Choisissez votre formule *")).toHaveValue(
+    plans[5].id,
+  );
 });
 
 test("separe les taches de la reception en pages", async ({ page }) => {
@@ -144,6 +252,22 @@ test("separe les taches de la reception en pages", async ({ page }) => {
     const url = new URL(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = receptionist;
+    if (url.pathname === "/api/v1/clubs/my-access") {
+      body = {
+        user_id: receptionist.id,
+        role: "receptionist",
+        clubs: [
+          {
+            id: SALLE_1_ID,
+            name: "The Masterz Gym",
+            label: "Salle 1",
+            slug: "salle-1",
+            address: null,
+            is_active: true,
+          },
+        ],
+      };
+    }
     if (url.pathname === "/api/v1/membership-plans") body = plans;
     await route.fulfill({
       status: 200,
@@ -210,6 +334,7 @@ test("informe le membre de ses abonnements avant une nouvelle inscription", asyn
   const subscriptions = [
     {
       id: "00000000-0000-0000-0000-000000000121",
+      club_id: SALLE_1_ID,
       member_id: member.id,
       plan_id: plans[0].id,
       status: "active",
@@ -230,6 +355,7 @@ test("informe le membre de ses abonnements avant une nouvelle inscription", asyn
     },
     {
       id: "00000000-0000-0000-0000-000000000122",
+      club_id: SALLE_1_ID,
       member_id: member.id,
       plan_id: plans[2].id,
       status: "active",
@@ -379,6 +505,7 @@ test("la reception accepte clairement une nouvelle demande", async ({
   function application() {
     return {
       id: applicationId,
+      club_id: SALLE_1_ID,
       full_name: "Nouveau Client",
       phone: "+212600000131",
       email: "nouveau.client@masterz.test",
@@ -405,6 +532,22 @@ test("la reception accepte clairement une nouvelle demande", async ({
     const url = new URL(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = receptionist;
+    if (url.pathname === "/api/v1/clubs/my-access") {
+      body = {
+        user_id: receptionist.id,
+        role: "receptionist",
+        clubs: [
+          {
+            id: SALLE_1_ID,
+            name: "The Masterz Gym",
+            label: "Salle 1",
+            slug: "salle-1",
+            address: null,
+            is_active: true,
+          },
+        ],
+      };
+    }
     if (url.pathname === "/api/v1/membership-applications") {
       body = [application()];
     }
@@ -426,6 +569,7 @@ test("la reception accepte clairement une nouvelle demande", async ({
       applicationStatus = "converted_to_member";
       body = {
         receipt_id: "00000000-0000-0000-0000-000000000132",
+        club_id: SALLE_1_ID,
         receipt_number: "TMG-20260829-TEST",
         issued_at: "2026-08-29T10:00:00Z",
         payment_id: "00000000-0000-0000-0000-000000000133",

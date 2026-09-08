@@ -3,7 +3,13 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, CheckCircle2, Megaphone, UsersRound } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Dumbbell,
+  Megaphone,
+  UsersRound,
+} from "lucide-react";
 import type { components } from "@masterz/api-client";
 import {
   Alert,
@@ -15,6 +21,7 @@ import {
 } from "@masterz/ui";
 import { AuthShell } from "@/components/AuthShell";
 import { api } from "@/lib/api";
+import { publicClubForQuery, publicClubs, SALLE_1_ID } from "@/lib/clubs";
 import {
   currentSubscriptionFor,
   useMemberSubscriptions,
@@ -28,20 +35,35 @@ const serviceLabels: Record<PlanOption["service_type"], string> = {
   gym: "Salle musculation",
   coaching: "Coaching",
   recovery: "Recovery",
+  martial_arts: "Arts martiaux",
 };
 
 const serviceOrder: PlanOption["service_type"][] = [
   "gym",
   "coaching",
   "recovery",
+  "martial_arts",
 ];
+
+function serviceLabel(serviceType: PlanOption["service_type"], clubId: string) {
+  if (clubId !== SALLE_1_ID && serviceType === "gym") return "Pass 4 Fit";
+  return serviceLabels[serviceType];
+}
+
+function planClubId(plan: PlanOption) {
+  return plan.club_id || SALLE_1_ID;
+}
 
 function InscriptionContent() {
   const searchParams = useSearchParams();
   const preselectedPlanId = searchParams.get("plan");
   const promotionId = searchParams.get("promotion");
+  const preselectedClub = publicClubForQuery(searchParams.get("club"));
   const [plans, setPlans] = useState<PlanOption[]>([]);
   const [promotion, setPromotion] = useState<Promotion | null>(null);
+  const [selectedClubId, setSelectedClubId] = useState<string>(
+    preselectedClub.id ?? SALLE_1_ID,
+  );
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [formData, setFormData] = useState({
     full_name: "",
@@ -59,8 +81,15 @@ function InscriptionContent() {
     (plan) => plan.id === formData.selected_plan_id,
   );
   const currentSelectedSubscription = selectedPlan
-    ? currentSubscriptionFor(subscriptions, selectedPlan.service_type)
+    ? currentSubscriptionFor(
+        subscriptions,
+        selectedPlan.service_type,
+        selectedPlan.club_id,
+      )
     : null;
+  const visiblePlans = plans.filter(
+    (plan) => planClubId(plan) === selectedClubId,
+  );
 
   useEffect(() => {
     let active = true;
@@ -85,8 +114,17 @@ function InscriptionContent() {
           const selectedPromotion =
             promotionsResult.data?.find((item) => item.id === promotionId) ??
             null;
+          const requestedPlan = sortedPlans.find(
+            (plan) =>
+              plan.id ===
+              (selectedPromotion?.base_plan_id ?? preselectedPlanId),
+          );
+          const nextClubId = requestedPlan
+            ? planClubId(requestedPlan)
+            : preselectedClub.id;
           setPlans(sortedPlans);
           setPromotion(selectedPromotion);
+          setSelectedClubId(nextClubId);
           if (selectedPromotion) {
             setFormData((current) => ({
               ...current,
@@ -98,7 +136,9 @@ function InscriptionContent() {
           ) {
             setFormData((current) => ({
               ...current,
-              selected_plan_id: sortedPlans[0]?.id ?? "",
+              selected_plan_id:
+                sortedPlans.find((plan) => planClubId(plan) === nextClubId)
+                  ?.id ?? "",
             }));
           }
         }
@@ -110,7 +150,17 @@ function InscriptionContent() {
     return () => {
       active = false;
     };
-  }, [preselectedPlanId, promotionId]);
+  }, [preselectedClub.id, preselectedPlanId, promotionId]);
+
+  function chooseClub(clubId: string) {
+    if (promotion) return;
+    setSelectedClubId(clubId);
+    setFormData((current) => ({
+      ...current,
+      selected_plan_id:
+        plans.find((plan) => planClubId(plan) === clubId)?.id ?? "",
+    }));
+  }
 
   function handleChange(
     event: React.ChangeEvent<
@@ -225,6 +275,90 @@ function InscriptionContent() {
         </div>
       ) : null}
       <form onSubmit={handleSubmit} className="space-y-5">
+        <fieldset>
+          <legend className="mb-3 text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300">
+            1. Choisissez votre club
+          </legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {publicClubs.map((club, index) => {
+              const active = selectedClubId === club.id;
+              const Icon = index === 0 ? Dumbbell : UsersRound;
+              return (
+                <button
+                  key={club.id}
+                  type="button"
+                  disabled={Boolean(promotion)}
+                  onClick={() => chooseClub(club.id)}
+                  className={`flex min-h-28 items-start gap-4 rounded-sm border p-4 text-left transition ${
+                    active
+                      ? "border-primary bg-primary/[0.1]"
+                      : "border-white/10 bg-black/20 hover:border-primary/40"
+                  } disabled:cursor-not-allowed`}
+                >
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-primary/10 text-primary">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-black uppercase text-white">
+                      {club.name}
+                    </span>
+                    <span className="mt-1 block text-xs font-bold uppercase tracking-[0.08em] text-primary">
+                      {club.signature}
+                    </span>
+                    <span className="mt-1 block text-xs text-gray-500">
+                      {club.internalName}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+        <Field label="2. Choisissez votre formule *" id="selected_plan_id">
+          {loadingPlans ? (
+            <div className="flex h-12 items-center rounded-sm border border-white/10 bg-black/25 px-4 text-sm text-gray-500">
+              Chargement des formules…
+            </div>
+          ) : (
+            <select
+              id="selected_plan_id"
+              className="h-12 w-full rounded-sm border border-white/15 bg-[#071018] px-4 text-sm text-white outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              required
+              disabled={Boolean(promotion)}
+              value={formData.selected_plan_id}
+              onChange={handleChange}
+            >
+              <option value="" disabled>
+                Sélectionnez une formule
+              </option>
+              {serviceOrder.map((serviceType) => {
+                const servicePlans = visiblePlans.filter(
+                  (plan) => plan.service_type === serviceType,
+                );
+                return servicePlans.length ? (
+                  <optgroup
+                    key={serviceType}
+                    label={serviceLabel(serviceType, selectedClubId)}
+                  >
+                    {servicePlans.map((plan) => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name} — {plan.price} {plan.currency}
+                        {(plan.service_type === "recovery" ||
+                          plan.service_type === "martial_arts") &&
+                        plan.session_count
+                          ? ` — ${plan.session_count} seances`
+                          : ""}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null;
+              })}
+            </select>
+          )}
+        </Field>
+        <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300">
+          3. Vos informations
+        </p>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Nom complet *" id="full_name">
             <Input
@@ -267,47 +401,6 @@ function InscriptionContent() {
           </Field>
         </div>
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Formule *" id="selected_plan_id">
-            {loadingPlans ? (
-              <div className="flex h-12 items-center rounded-sm border border-white/10 bg-black/25 px-4 text-sm text-gray-500">
-                Chargement des formules…
-              </div>
-            ) : (
-              <select
-                id="selected_plan_id"
-                className="h-12 w-full rounded-sm border border-white/15 bg-[#071018] px-4 text-sm text-white outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                required
-                disabled={Boolean(promotion)}
-                value={formData.selected_plan_id}
-                onChange={handleChange}
-              >
-                <option value="" disabled>
-                  Sélectionnez une formule
-                </option>
-                {serviceOrder.map((serviceType) => {
-                  const servicePlans = plans.filter(
-                    (plan) => plan.service_type === serviceType,
-                  );
-                  return servicePlans.length ? (
-                    <optgroup
-                      key={serviceType}
-                      label={serviceLabels[serviceType]}
-                    >
-                      {servicePlans.map((plan) => (
-                        <option key={plan.id} value={plan.id}>
-                          {plan.name} — {plan.price} {plan.currency}
-                          {plan.service_type === "recovery" &&
-                          plan.session_count
-                            ? ` — ${plan.session_count} seances`
-                            : ""}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ) : null;
-                })}
-              </select>
-            )}
-          </Field>
           <Field label="Genre" id="gender">
             <select
               id="gender"

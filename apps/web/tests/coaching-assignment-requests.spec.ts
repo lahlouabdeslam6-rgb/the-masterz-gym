@@ -58,6 +58,25 @@ test("le membre choisit un coach et la reception confirme la demande", async ({
     let status = 200;
 
     if (path === "/api/v1/users/me") body = currentUser;
+    if (
+      path === "/api/v1/clubs/my-access" &&
+      currentUser.role === "receptionist"
+    ) {
+      body = {
+        user_id: currentUser.id,
+        role: "receptionist",
+        clubs: [
+          {
+            id: "11111111-1111-4111-8111-111111111111",
+            name: "The Masterz Gym",
+            label: "Salle 1",
+            slug: "salle-1",
+            address: null,
+            is_active: true,
+          },
+        ],
+      };
+    }
     if (path === `/api/v1/members/${member.id}/subscriptions`) {
       body = [
         {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CalendarDays, Pencil, Plus, UsersRound } from "lucide-react";
 import { Alert, Button, Input, Label, LoadingMessage, Pill } from "@masterz/ui";
 import type { components } from "@masterz/api-client";
 import { api } from "@/lib/api";
 import { authorizationHeaders, type AuthSession } from "@/lib/auth";
+import { publicClubs, SALLE_1_ID } from "@/lib/clubs";
 import {
   EmptyState,
   Field,
@@ -15,6 +16,13 @@ import {
 
 type Promotion = components["schemas"]["PromotionRead"];
 type Plan = components["schemas"]["MembershipPlanRead"];
+
+const serviceLabels: Record<Plan["service_type"], string> = {
+  gym: "Abonnement club",
+  coaching: "Coaching",
+  recovery: "Recovery",
+  martial_arts: "Arts martiaux",
+};
 
 type PromotionForm = {
   title: string;
@@ -74,6 +82,55 @@ function formFromPromotion(promotion: Promotion): PromotionForm {
   };
 }
 
+function PromotionDateTimeInput({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function openPicker() {
+    const input = inputRef.current;
+    if (!input) return;
+    try {
+      input.showPicker();
+    } catch {
+      input.focus();
+    }
+  }
+
+  return (
+    <div>
+      <Label htmlFor={id}>{label}</Label>
+      <div className="relative mt-2.5">
+        <Input
+          ref={inputRef}
+          id={id}
+          required
+          type="datetime-local"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="pr-12 [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0"
+        />
+        <button
+          type="button"
+          onClick={openPicker}
+          aria-label={`Ouvrir le calendrier pour ${label.toLocaleLowerCase("fr")}`}
+          className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-sm border border-primary/30 bg-primary/10 text-primary transition hover:border-primary hover:bg-primary hover:text-black focus:outline-none focus:ring-2 focus:ring-primary/40"
+        >
+          <CalendarDays className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function PromotionManager({ session }: { session: AuthSession }) {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -88,7 +145,7 @@ export function PromotionManager({ session }: { session: AuthSession }) {
         headers: authorizationHeaders(session.accessToken),
       }),
       api.GET("/api/v1/membership-plans", {
-        params: { query: { active_only: true, service_type: "gym" } },
+        params: { query: { active_only: true } },
       }),
     ]);
     const nextPlans = plansResult.data ?? [];
@@ -222,11 +279,24 @@ export function PromotionManager({ session }: { session: AuthSession }) {
                 updateField("base_plan_id", event.target.value)
               }
             >
-              {plans.map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.name} · {plan.price} {plan.currency}
-                </option>
-              ))}
+              {publicClubs.map((club) => {
+                const clubPlans = plans.filter(
+                  (plan) => (plan.club_id || SALLE_1_ID) === club.id,
+                );
+                return clubPlans.length ? (
+                  <optgroup
+                    key={club.id}
+                    label={`${club.internalName} · ${club.name}`}
+                  >
+                    {clubPlans.map((plan) => (
+                      <option key={plan.id} value={plan.id}>
+                        [{serviceLabels[plan.service_type]}] {plan.name} ·{" "}
+                        {plan.price} {plan.currency}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null;
+              })}
             </select>
           </Field>
           <Field label="Texte court du banner">
@@ -274,24 +344,18 @@ export function PromotionManager({ session }: { session: AuthSession }) {
             />
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Debut de l'offre">
-              <Input
-                required
-                type="datetime-local"
-                value={form.starts_at}
-                onChange={(event) =>
-                  updateField("starts_at", event.target.value)
-                }
-              />
-            </Field>
-            <Field label="Fin de l'offre">
-              <Input
-                required
-                type="datetime-local"
-                value={form.ends_at}
-                onChange={(event) => updateField("ends_at", event.target.value)}
-              />
-            </Field>
+            <PromotionDateTimeInput
+              id="promotion-starts-at"
+              label="Debut de l'offre"
+              value={form.starts_at}
+              onChange={(value) => updateField("starts_at", value)}
+            />
+            <PromotionDateTimeInput
+              id="promotion-ends-at"
+              label="Fin de l'offre"
+              value={form.ends_at}
+              onChange={(value) => updateField("ends_at", value)}
+            />
           </div>
           <div className="lg:col-span-2">
             <Label htmlFor="promotion-description">Description complete</Label>

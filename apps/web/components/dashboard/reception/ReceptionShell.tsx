@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { Alert, LoadingMessage, Pill, buttonStyles } from "@masterz/ui";
+import type { components } from "@masterz/api-client";
 import { BrandLogo } from "@/components/BrandLogo";
 import { api } from "@/lib/api";
 import {
@@ -38,6 +39,9 @@ import {
   updateSessionUser,
   type AuthSession,
 } from "@/lib/auth";
+import { SALLE_1_ID } from "../ClubSwitcher";
+
+type Club = components["schemas"]["ClubRead"];
 
 type ReceptionNavigationItem = {
   label: string;
@@ -59,7 +63,7 @@ const receptionOverview: ReceptionNavigationItem = {
   icon: Gauge,
 };
 
-const navigationGroups: ReceptionNavigationGroup[] = [
+const baseNavigationGroups: ReceptionNavigationGroup[] = [
   {
     id: "members",
     label: "Membres & caisse",
@@ -127,7 +131,24 @@ const navigationGroups: ReceptionNavigationGroup[] = [
   },
 ];
 
+function navigationGroupsFor(clubId: string): ReceptionNavigationGroup[] {
+  return baseNavigationGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (clubId === SALLE_1_ID) return true;
+        return ![
+          "/espace/reception/coaching",
+          "/espace/reception/recovery",
+          "/espace/reception/store",
+        ].includes(item.href);
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
+}
+
 const ReceptionSessionContext = createContext<AuthSession | null>(null);
+const ReceptionClubContext = createContext<Club | null>(null);
 
 export function useReceptionSession() {
   const session = useContext(ReceptionSessionContext);
@@ -139,10 +160,19 @@ export function useReceptionSession() {
   return session;
 }
 
+export function useReceptionClub() {
+  const club = useContext(ReceptionClubContext);
+  if (!club) {
+    throw new Error("useReceptionClub doit etre utilise dans ReceptionShell");
+  }
+  return club;
+}
+
 export function ReceptionShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [session, setSession] = useState<AuthSession | null>(null);
+  const [club, setClub] = useState<Club | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -176,18 +206,29 @@ export function ReceptionShell({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const result = await api.GET("/api/v1/users/me", {
-          headers: authorizationHeaders(current.accessToken),
-        });
+        const headers = authorizationHeaders(current.accessToken);
+        const [result, accessResult] = await Promise.all([
+          api.GET("/api/v1/users/me", { headers }),
+          api.GET("/api/v1/clubs/my-access", { headers }),
+        ]);
         if (!active) return;
-        if (!result.data || result.data.role !== "receptionist") {
+        if (
+          !result.data ||
+          result.data.role !== "receptionist" ||
+          !accessResult.data?.clubs.length
+        ) {
           clearSession();
-          setError("Votre session a expire. Reconnectez-vous pour continuer.");
+          setError(
+            accessResult.data && !accessResult.data.clubs.length
+              ? "Aucune salle n'est affectee a cette Reception. Contactez l'Administration."
+              : "Votre session a expire. Reconnectez-vous pour continuer.",
+          );
           setLoading(false);
           return;
         }
         updateSessionUser(result.data);
         setSession({ ...current, user: result.data });
+        setClub(accessResult.data.clubs[0]);
       } catch {
         if (active) {
           setError("Le serveur est indisponible. Reessayez dans un instant.");
@@ -223,7 +264,7 @@ export function ReceptionShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (error || !session) {
+  if (error || !session || !club) {
     return (
       <div className="mx-auto flex min-h-screen max-w-lg items-center px-5">
         <Alert type="error" message={error ?? "Session indisponible."} />
@@ -233,85 +274,93 @@ export function ReceptionShell({ children }: { children: React.ReactNode }) {
 
   return (
     <ReceptionSessionContext.Provider value={session}>
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(0,212,255,0.1),transparent_25%),#050a0f] lg:grid lg:grid-cols-[270px_minmax(0,1fr)]">
-        <aside className="hidden h-screen flex-col overflow-hidden border-r border-white/10 bg-[#071018]/95 px-4 py-4 lg:sticky lg:top-0 lg:flex">
-          <BrandLogo compact />
-          <div className="mt-4 shrink-0 border-y border-white/10 py-4">
-            <Pill>Reception</Pill>
-            <p className="mt-3 truncate font-bold text-white">
-              {session.user.full_name}
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              Accueil et caisse Masterz Gym
-            </p>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <ReceptionNavigation
-              pathname={pathname}
-              badges={badges}
-              onBadgeOpen={clearBadge}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className={buttonStyles({
-              variant: "outline",
-              className:
-                "mt-3 h-10 w-full shrink-0 px-3 text-xs tracking-[0.08em]",
-            })}
-          >
-            <LogOut className="h-4 w-4" /> Se deconnecter
-          </button>
-        </aside>
-
-        <div className="min-w-0">
-          <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-[#071018]/95 px-4 backdrop-blur lg:hidden">
-            <span className="text-sm font-black uppercase tracking-[0.12em] text-primary">
-              Reception
-            </span>
-            <button
-              type="button"
-              onClick={() => setMobileOpen((open) => !open)}
-              aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
-              className="flex h-10 w-10 items-center justify-center rounded-sm border border-white/15 text-white"
-            >
-              {mobileOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </button>
-          </div>
-
-          {mobileOpen ? (
-            <div className="fixed inset-x-0 bottom-0 top-16 z-30 overflow-y-auto bg-[#071018] p-5 lg:hidden">
+      <ReceptionClubContext.Provider value={club}>
+        <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(0,212,255,0.1),transparent_25%),#050a0f] lg:grid lg:grid-cols-[270px_minmax(0,1fr)]">
+          <aside className="hidden h-screen flex-col overflow-hidden border-r border-white/10 bg-[#071018]/95 px-4 py-4 lg:sticky lg:top-0 lg:flex">
+            <BrandLogo compact />
+            <div className="mt-4 shrink-0 border-y border-white/10 py-4">
+              <Pill>Reception</Pill>
+              <p className="mt-3 truncate font-bold text-white">
+                {session.user.full_name}
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                Accueil et caisse {club.label}
+              </p>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
               <ReceptionNavigation
                 pathname={pathname}
                 badges={badges}
+                clubId={club.id}
                 onBadgeOpen={clearBadge}
-                onNavigate={() => setMobileOpen(false)}
               />
+            </div>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className={buttonStyles({
+                variant: "outline",
+                className:
+                  "mt-3 h-10 w-full shrink-0 px-3 text-xs tracking-[0.08em]",
+              })}
+            >
+              <LogOut className="h-4 w-4" /> Se deconnecter
+            </button>
+          </aside>
+
+          <div className="min-w-0">
+            <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-[#071018]/95 px-4 backdrop-blur lg:hidden">
+              <span className="text-sm font-black uppercase tracking-[0.12em] text-primary">
+                Reception · {club.label}
+              </span>
               <button
                 type="button"
-                onClick={() => void logout()}
-                className={buttonStyles({
-                  variant: "outline",
-                  className: "mt-6 w-full",
-                })}
+                onClick={() => setMobileOpen((open) => !open)}
+                aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
+                className="flex h-10 w-10 items-center justify-center rounded-sm border border-white/15 text-white"
               >
-                <LogOut className="h-4 w-4" /> Se deconnecter
+                {mobileOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
               </button>
             </div>
-          ) : null}
 
-          <ReceptionNotificationBell badges={badges} onBadgeOpen={clearBadge} />
+            {mobileOpen ? (
+              <div className="fixed inset-x-0 bottom-0 top-16 z-30 overflow-y-auto bg-[#071018] p-5 lg:hidden">
+                <ReceptionNavigation
+                  pathname={pathname}
+                  badges={badges}
+                  clubId={club.id}
+                  onBadgeOpen={clearBadge}
+                  onNavigate={() => setMobileOpen(false)}
+                />
+                <button
+                  type="button"
+                  onClick={() => void logout()}
+                  className={buttonStyles({
+                    variant: "outline",
+                    className: "mt-6 w-full",
+                  })}
+                >
+                  <LogOut className="h-4 w-4" /> Se deconnecter
+                </button>
+              </div>
+            ) : null}
 
-          <div className="mx-auto w-full max-w-[1450px] p-5 sm:p-8 xl:p-10">
-            {children}
+            <ReceptionNotificationBell
+              badges={badges}
+              clubId={club.id}
+              onBadgeOpen={clearBadge}
+            />
+
+            <div className="mx-auto w-full max-w-[1450px] p-5 sm:p-8 xl:p-10">
+              {children}
+            </div>
           </div>
         </div>
-      </div>
+      </ReceptionClubContext.Provider>
     </ReceptionSessionContext.Provider>
   );
 }
@@ -350,9 +399,11 @@ const receptionNotificationItems: Array<{
 
 function ReceptionNotificationBell({
   badges,
+  clubId,
   onBadgeOpen,
 }: {
   badges: NavigationBadges;
+  clubId: string;
   onBadgeOpen: (key: NavigationBadgeKey) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -362,9 +413,13 @@ function ReceptionNotificationBell({
   const currentItems = useMemo(
     () =>
       receptionNotificationItems
+        .filter(
+          (item) =>
+            clubId === SALLE_1_ID || !["coaching", "store"].includes(item.key),
+        )
         .map((item) => ({ ...item, count: badges[item.key] ?? 0 }))
         .filter((item) => item.count > 0),
-    [badges],
+    [badges, clubId],
   );
   const unreadCount = currentItems.reduce(
     (total, item) => total + item.count,
@@ -447,11 +502,13 @@ function ReceptionNotificationBell({
 function ReceptionNavigation({
   pathname,
   badges,
+  clubId,
   onBadgeOpen,
   onNavigate,
 }: {
   pathname: string;
   badges: NavigationBadges;
+  clubId: string;
   onBadgeOpen: (key: NavigationBadgeKey) => void;
   onNavigate?: () => void;
 }) {
@@ -479,7 +536,7 @@ function ReceptionNavigation({
         </span>
       </Link>
 
-      {navigationGroups.map((group) => {
+      {navigationGroupsFor(clubId).map((group) => {
         const groupActive = group.items.some((item) =>
           pathname.startsWith(item.href),
         );
@@ -567,9 +624,7 @@ function ReceptionNavigation({
                           data-testid={`navigation-badge-${badgeKey}`}
                           className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[0.58rem] font-black text-black"
                         >
-                          {badges[badgeKey]! > 99
-                            ? "99+"
-                            : badges[badgeKey]}
+                          {badges[badgeKey]! > 99 ? "99+" : badges[badgeKey]}
                         </span>
                       ) : null}
                     </Link>

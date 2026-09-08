@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.errors import api_error
 from app.modules.audit.service import AuditService
+from app.modules.clubs.constants import SALLE_1_ID
 from app.modules.memberships.models import Subscription, SubscriptionEvent
 from app.modules.memberships.repository import MembershipRepository
 from app.modules.memberships.service import MembershipService
@@ -48,7 +49,9 @@ class RecoveryServiceManager:
                 phone=member.phone,
                 subscription=self._subscription_summary(subscription),
             )
-            for member, subscription in self.recovery.list_clients(query=query, limit=limit)
+            for member, subscription in self.recovery.list_clients(
+                SALLE_1_ID, query=query, limit=limit
+            )
         ]
 
     def get_tracking(
@@ -61,11 +64,15 @@ class RecoveryServiceManager:
             member_number=member.member_number or "",
             subscriptions=[
                 self._subscription_summary(subscription)
-                for subscription in self.recovery.list_subscriptions(member.id)
+                for subscription in self.recovery.list_subscriptions(
+                    member.id, SALLE_1_ID
+                )
             ],
             visits=[
                 self._visit_read(visit)
-                for visit in self.recovery.list_visits(member.id, limit=limit)
+                for visit in self.recovery.list_visits(
+                    member.id, SALLE_1_ID, limit=limit
+                )
             ],
         )
 
@@ -93,7 +100,9 @@ class RecoveryServiceManager:
                 "Un passage recovery ne peut pas etre enregistre dans le futur.",
             )
         on_date = data.occurred_at.astimezone(ZoneInfo(settings.gym_timezone)).date()
-        subscription = self.recovery.usable_subscription_for_update(member.id, on_date)
+        subscription = self.recovery.usable_subscription_for_update(
+            member.id, SALLE_1_ID, on_date
+        )
         if not subscription:
             raise api_error(
                 status.HTTP_409_CONFLICT,

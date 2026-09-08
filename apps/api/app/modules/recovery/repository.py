@@ -30,22 +30,30 @@ class RecoveryRepository:
         self.session.flush()
         return visit
 
-    def list_visits(self, member_id: uuid.UUID, *, limit: int = 100) -> list[RecoveryVisit]:
+    def list_visits(
+        self, member_id: uuid.UUID, club_id: uuid.UUID, *, limit: int = 100
+    ) -> list[RecoveryVisit]:
         return list(
             self.session.scalars(
                 select(RecoveryVisit)
-                .where(RecoveryVisit.member_id == member_id)
+                .where(
+                    RecoveryVisit.member_id == member_id,
+                    RecoveryVisit.club_id == club_id,
+                )
                 .order_by(RecoveryVisit.occurred_at.desc(), RecoveryVisit.created_at.desc())
                 .limit(limit)
             )
         )
 
-    def list_subscriptions(self, member_id: uuid.UUID) -> list[Subscription]:
+    def list_subscriptions(
+        self, member_id: uuid.UUID, club_id: uuid.UUID
+    ) -> list[Subscription]:
         return list(
             self.session.scalars(
                 select(Subscription)
                 .where(
                     Subscription.member_id == member_id,
+                    Subscription.club_id == club_id,
                     Subscription.service_type == ServiceType.RECOVERY,
                 )
                 .order_by(Subscription.created_at.desc())
@@ -53,12 +61,13 @@ class RecoveryRepository:
         )
 
     def usable_subscription_for_update(
-        self, member_id: uuid.UUID, on_date: date
+        self, member_id: uuid.UUID, club_id: uuid.UUID, on_date: date
     ) -> Subscription | None:
         return self.session.scalar(
             select(Subscription)
             .where(
                 Subscription.member_id == member_id,
+                Subscription.club_id == club_id,
                 Subscription.service_type == ServiceType.RECOVERY,
                 Subscription.starts_on <= on_date,
                 Subscription.ends_on >= on_date,
@@ -78,13 +87,18 @@ class RecoveryRepository:
         )
 
     def list_clients(
-        self, *, query: str | None = None, limit: int = 100
+        self,
+        club_id: uuid.UUID,
+        *,
+        query: str | None = None,
+        limit: int = 100,
     ) -> list[tuple[User, Subscription]]:
         statement = (
             select(User, Subscription)
             .join(Subscription, Subscription.member_id == User.id)
             .where(
                 User.role == UserRole.MEMBER,
+                Subscription.club_id == club_id,
                 Subscription.service_type == ServiceType.RECOVERY,
             )
             .order_by(User.full_name, Subscription.created_at.desc())

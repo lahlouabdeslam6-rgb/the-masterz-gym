@@ -19,6 +19,7 @@ import {
   buttonStyles,
 } from "@masterz/ui";
 import { api } from "@/lib/api";
+import { registrationHref, SALLE_1_ID, SALLE_2_ID } from "@/lib/clubs";
 import {
   currentSubscriptionFor,
   latestSubscriptionFor,
@@ -61,17 +62,33 @@ const planContent: Record<
     buttonLabel: "Demander",
     emptyTitle: "Les formules recovery arrivent bientôt.",
   },
+  martial_arts: {
+    features: [
+      "Pack dedie a la discipline choisie",
+      "Acces comptabilise par seance",
+      "Musculation uniquement pendant le creneau du cours",
+      "Aucun acces general inclus au Pass 4 Fit",
+    ],
+    buttonLabel: "Choisir",
+    emptyTitle: "Les formules arts martiaux arrivent bientot.",
+  },
 };
+
+function isSessionService(serviceType: ServiceType) {
+  return serviceType === "recovery" || serviceType === "martial_arts";
+}
 
 export function MembershipPlansList({
   serviceType = "gym",
   showPromotions = false,
   promotionsOnly = false,
+  clubId,
   onViewSubscription,
 }: {
   serviceType?: ServiceType;
   showPromotions?: boolean;
   promotionsOnly?: boolean;
+  clubId?: string;
   onViewSubscription?: () => void;
 }) {
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
@@ -95,7 +112,13 @@ export function MembershipPlansList({
             : Promise.resolve(null);
         const [plansResult, promotionsResult] = await Promise.all([
           api.GET("/api/v1/membership-plans", {
-            params: { query: { active_only: true, service_type: serviceType } },
+            params: {
+              query: {
+                active_only: true,
+                service_type: serviceType,
+                club_id: clubId,
+              },
+            },
           }),
           promotionsRequest,
         ]);
@@ -106,9 +129,9 @@ export function MembershipPlansList({
           return;
         }
 
-        const loadedPlans = [...(plansResult.data ?? [])].sort(
-          (a, b) => Number(a.price) - Number(b.price),
-        );
+        const loadedPlans = [...(plansResult.data ?? [])]
+          .filter((plan) => !clubId || (plan.club_id || SALLE_1_ID) === clubId)
+          .sort((a, b) => Number(a.price) - Number(b.price));
         const planIds = new Set(loadedPlans.map((plan) => plan.id));
         setPlans(loadedPlans);
         setPromotions(
@@ -136,14 +159,31 @@ export function MembershipPlansList({
     return () => {
       active = false;
     };
-  }, [promotionsOnly, requestKey, serviceType, showPromotions]);
+  }, [clubId, promotionsOnly, requestKey, serviceType, showPromotions]);
 
-  const content = planContent[serviceType];
+  const content =
+    serviceType === "gym" && clubId === SALLE_2_ID
+      ? {
+          features: [
+            "Fitness et CrossFit",
+            "Musculation",
+            "Cours collectifs Pass 4 Fit",
+            "Arts martiaux non inclus",
+          ],
+          buttonLabel: "Choisir",
+          emptyTitle: "Les formules Pass 4 Fit arrivent bientot.",
+        }
+      : planContent[serviceType];
   const currentSubscription = currentSubscriptionFor(
     subscriptions,
     serviceType,
+    clubId,
   );
-  const latestSubscription = latestSubscriptionFor(subscriptions, serviceType);
+  const latestSubscription = latestSubscriptionFor(
+    subscriptions,
+    serviceType,
+    clubId,
+  );
   const memberIsRenewing =
     session?.user.role === "member" &&
     !currentSubscription &&
@@ -352,7 +392,7 @@ export function MembershipPlansList({
                   </CardTitle>
                   <p className="mt-2 text-sm text-gray-500">
                     Valable {plan.duration_months} mois
-                    {serviceType === "recovery"
+                    {isSessionService(serviceType)
                       ? ` · ${plan.session_count ?? "Nombre a confirmer"} seance(s)`
                       : ""}
                   </p>
@@ -367,7 +407,7 @@ export function MembershipPlansList({
                     </span>
                   </div>
                   <ul className="mt-8 flex-1 space-y-3 text-sm text-gray-300">
-                    {(serviceType === "recovery" && plan.session_count
+                    {(isSessionService(serviceType) && plan.session_count
                       ? [
                           `${plan.session_count} séances à utiliser pendant la validité du pack`,
                           ...content.features,
@@ -384,7 +424,7 @@ export function MembershipPlansList({
                     href={
                       planIsCurrent
                         ? "/espace/membre"
-                        : `/inscription?plan=${plan.id}`
+                        : registrationHref(plan.club_id, plan.id)
                     }
                     className={buttonStyles({
                       variant: planIsCurrent ? "outline" : "primary",

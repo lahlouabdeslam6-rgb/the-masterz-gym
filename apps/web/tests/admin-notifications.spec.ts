@@ -103,6 +103,9 @@ test("le jaras Reception kaybayan les actions w kaydi l page li m3niya", async (
     const url = new URL(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = receptionist;
+    if (url.pathname === "/api/v1/clubs/my-access") {
+      body = receptionSalle1Access(receptionist.id);
+    }
     if (url.pathname === "/api/v1/membership-applications") {
       body = [
         {
@@ -136,3 +139,20 @@ test("le jaras Reception kaybayan les actions w kaydi l page li m3niya", async (
   await expect(page).toHaveURL(/\/espace\/reception\/demandes$/);
   await expect(page.getByTestId("reception-notification-badge")).toHaveCount(0);
 });
+
+function receptionSalle1Access(userId: string) {
+  return {
+    user_id: userId,
+    role: "receptionist",
+    clubs: [
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "The Masterz Gym",
+        label: "Salle 1",
+        slug: "salle-1",
+        address: null,
+        is_active: true,
+      },
+    ],
+  };
+}

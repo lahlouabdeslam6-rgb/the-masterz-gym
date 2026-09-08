@@ -85,11 +85,12 @@ class PaymentService:
                 "La formule n'est pas disponible.",
             )
         ClubService(self.session).require_access(actor, plan.club_id)
-        if plan.service_type == ServiceType.RECOVERY and plan.session_count is None:
+        session_services = {ServiceType.RECOVERY, ServiceType.MARTIAL_ARTS}
+        if plan.service_type in session_services and plan.session_count is None:
             raise api_error(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "recovery_plan_not_configured",
-                "Le nombre de seances de cette offre recovery doit etre configure.",
+                "session_plan_not_configured",
+                "Le nombre de seances de cette offre doit etre configure.",
             )
 
         charged_price = (
@@ -125,10 +126,10 @@ class PaymentService:
                 currency=plan.currency,
                 service_type=plan.service_type,
                 total_sessions=(
-                    plan.session_count if plan.service_type == ServiceType.RECOVERY else None
+                    plan.session_count if plan.service_type in session_services else None
                 ),
                 remaining_sessions=(
-                    plan.session_count if plan.service_type == ServiceType.RECOVERY else None
+                    plan.session_count if plan.service_type in session_services else None
                 ),
                 created_by_id=actor.id,
             )
@@ -264,11 +265,14 @@ class PaymentService:
         if not current:
             return requested_start or today
         current_status = self.membership_service.effective_status(current, today)
+        session_services = {ServiceType.RECOVERY, ServiceType.MARTIAL_ARTS}
         if current_status not in {
             SubscriptionStatus.SUSPENDED,
             SubscriptionStatus.EXPIRED,
             SubscriptionStatus.CANCELLED,
-        } and not (service_type == ServiceType.RECOVERY and current.remaining_sessions == 0):
+        } and not (
+            service_type in session_services and current.remaining_sessions == 0
+        ):
             raise api_error(
                 status.HTTP_409_CONFLICT,
                 "active_subscription",

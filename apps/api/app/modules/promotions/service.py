@@ -13,7 +13,6 @@ from app.modules.promotions.models import Promotion
 from app.modules.promotions.repository import PromotionRepository
 from app.modules.promotions.schemas import PromotionCreate, PromotionRead, PromotionUpdate
 from app.modules.users.models import User
-from app.shared.enums import ServiceType
 
 
 class PromotionService:
@@ -128,11 +127,11 @@ class PromotionService:
 
     def _validate_plan(self, plan_id: uuid.UUID) -> None:
         plan = self.memberships.get_plan(plan_id)
-        if not plan or not plan.is_active or plan.service_type != ServiceType.GYM:
+        if not plan or not plan.is_active:
             raise api_error(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 "promotion_plan_not_available",
-                "Choisissez une formule salle active pour cette offre.",
+                "Choisissez une formule active pour cette offre.",
             )
 
     def _read(self, promotion: Promotion) -> PromotionRead:

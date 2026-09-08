@@ -40,13 +40,6 @@ DEVELOPMENT_ACCOUNTS = (
         "member_number": None,
     },
     {
-        "full_name": "Recovery Développement",
-        "phone": "+212600000005",
-        "password": "RecoveryLocal123!",
-        "role": UserRole.RECOVERY_CLIENT,
-        "member_number": None,
-    },
-    {
         "full_name": "Café Développement",
         "phone": "+212600000006",
         "password": "CafeLocal123!",

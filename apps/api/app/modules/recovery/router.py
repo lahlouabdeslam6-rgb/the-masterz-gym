@@ -4,6 +4,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, status
 
 from app.core.dependencies import DbSession, require_roles
+from app.modules.clubs.constants import SALLE_1_ID
+from app.modules.clubs.service import ClubService
 from app.modules.recovery.schemas import (
     RecoveryClientSummary,
     RecoveryTrackingRead,
@@ -29,6 +31,7 @@ def list_recovery_clients(
     query: Annotated[str | None, Query(max_length=160)] = None,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
 ):
+    ClubService(session).require_access(actor, SALLE_1_ID)
     return RecoveryServiceManager(session).list_clients(query=query, limit=limit)
 
 
@@ -39,9 +42,12 @@ def get_recovery_tracking(
     actor: Reader,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
 ):
+    if actor.role == UserRole.RECEPTIONIST:
+        ClubService(session).require_access(actor, SALLE_1_ID)
     return RecoveryServiceManager(session).get_tracking(member_id, actor, limit=limit)
 
 
 @router.post("/visits", response_model=RecoveryVisitRead, status_code=status.HTTP_201_CREATED)
 def record_recovery_visit(data: RecoveryVisitCreate, session: DbSession, actor: Staff):
+    ClubService(session).require_access(actor, SALLE_1_ID)
     return RecoveryServiceManager(session).record_visit(data, actor)

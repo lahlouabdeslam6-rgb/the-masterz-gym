@@ -81,6 +81,12 @@ class ClubService:
                 "club_assignment_required",
                 "Au moins une salle est requise pour ce compte.",
             )
+        if user.role == UserRole.RECEPTIONIST and len(unique_club_ids) != 1:
+            raise api_error(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "reception_single_club_required",
+                "Une Reception doit etre affectee a une seule salle.",
+            )
         for club_id in unique_club_ids:
             club = self.clubs.get(club_id)
             if not club or not club.is_active:

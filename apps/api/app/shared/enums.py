@@ -50,6 +50,7 @@ class ServiceType(StrEnum):
     GYM = "gym"
     COACHING = "coaching"
     RECOVERY = "recovery"
+    MARTIAL_ARTS = "martial_arts"
 
 
 class RecoveryService(StrEnum):
