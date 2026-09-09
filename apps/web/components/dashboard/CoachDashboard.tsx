@@ -36,11 +36,11 @@ import { MemberNotifications } from "./MemberNotifications";
 import { MemberAvatar } from "./MemberPhotoCapture";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 import { AccountNotificationBell } from "./AccountNotificationBell";
+import { CoachOverview } from "./CoachOverview";
 import {
   type CoachingAssignment,
   EmptyState,
   Panel,
-  Stat,
   formatDate,
 } from "./dashboard-shared";
 
@@ -298,99 +298,66 @@ export function CoachDashboard({
       </aside>
 
       <main className="min-w-0">
-        <header className="rounded-lg border border-white/10 bg-[linear-gradient(135deg,rgba(0,212,255,0.12),rgba(8,17,25,0.92)_48%)] p-5 shadow-2xl sm:p-7">
-          <div
-            className={`flex gap-4 ${
-              activeSection === "clients" ? "items-start" : "items-center"
-            }`}
-          >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border border-primary/30 bg-primary/[0.1] text-primary">
-              <SectionIcon className="h-6 w-6" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div
-                className={
-                  activeSection === "clients"
-                    ? "sm:flex sm:items-end sm:justify-between sm:gap-6"
-                    : undefined
-                }
-              >
-                <div className="shrink-0">
-                  <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-primary">
-                    Espace coach
-                  </p>
-                  <h2 className="mt-1 font-display text-3xl font-black uppercase tracking-[-0.035em] text-white">
-                    {section.label}
-                  </h2>
-                  {activeSection !== "clients" ? (
-                    <p className="mt-1 text-sm text-gray-500">
-                      {section.description}
+        {activeSection !== "overview" ? (
+          <header className="rounded-lg border border-white/10 bg-[linear-gradient(135deg,rgba(0,212,255,0.12),rgba(8,17,25,0.92)_48%)] p-5 shadow-2xl sm:p-7">
+            <div
+              className={`flex gap-4 ${
+                activeSection === "clients" ? "items-start" : "items-center"
+              }`}
+            >
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border border-primary/30 bg-primary/[0.1] text-primary">
+                <SectionIcon className="h-6 w-6" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div
+                  className={
+                    activeSection === "clients"
+                      ? "sm:flex sm:items-end sm:justify-between sm:gap-6"
+                      : undefined
+                  }
+                >
+                  <div className="shrink-0">
+                    <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-primary">
+                      Espace coach
                     </p>
+                    <h2 className="mt-1 font-display text-3xl font-black uppercase tracking-[-0.035em] text-white">
+                      {section.label}
+                    </h2>
+                    {activeSection !== "clients" ? (
+                      <p className="mt-1 text-sm text-gray-500">
+                        {section.description}
+                      </p>
+                    ) : null}
+                  </div>
+                  {activeSection === "clients" ? (
+                    <div className="relative mt-4 w-full sm:mt-0 sm:max-w-sm">
+                      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                      <Input
+                        aria-label="Rechercher un client"
+                        className="h-11 bg-black/20 pl-10 text-sm"
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        placeholder="Nom ou numero membre"
+                      />
+                    </div>
                   ) : null}
                 </div>
-                {activeSection === "clients" ? (
-                  <div className="relative mt-4 w-full sm:mt-0 sm:max-w-sm">
-                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-                    <Input
-                      aria-label="Rechercher un client"
-                      className="h-11 bg-black/20 pl-10 text-sm"
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                      placeholder="Nom ou numero membre"
-                    />
-                  </div>
-                ) : null}
               </div>
             </div>
-          </div>
-        </header>
+          </header>
+        ) : null}
 
-        <div className="mt-6">
+        <div className={activeSection === "overview" ? "" : "mt-6"}>
           {error ? (
             <Alert type="error" message={error} className="mb-6" />
           ) : null}
 
           {activeSection === "overview" ? (
-            <div className="space-y-6">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Stat
-                  icon={UsersRound}
-                  value={assignments.length}
-                  label="Clients suivis"
-                />
-                <Stat icon={Target} value="5" label="Tests disponibles" />
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => openSection("schedule")}
-                  className="group rounded-lg border border-white/10 bg-[#081119] p-6 text-left transition hover:border-primary/40 hover:bg-primary/[0.04]"
-                >
-                  <CalendarDays className="h-7 w-7 text-primary" />
-                  <strong className="mt-5 block text-xl text-white group-hover:text-primary">
-                    Ouvrir mon planning
-                  </strong>
-                  <span className="mt-2 block text-sm leading-6 text-gray-500">
-                    Ajoutez vos horaires et traitez les reservations sans
-                    melanger le suivi des clients.
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openSection("clients")}
-                  className="group rounded-lg border border-white/10 bg-[#081119] p-6 text-left transition hover:border-primary/40 hover:bg-primary/[0.04]"
-                >
-                  <UsersRound className="h-7 w-7 text-primary" />
-                  <strong className="mt-5 block text-xl text-white group-hover:text-primary">
-                    Ouvrir mes clients
-                  </strong>
-                  <span className="mt-2 block text-sm leading-6 text-gray-500">
-                    Retrouvez les objectifs, les tests et la progression dans un
-                    dossier separe.
-                  </span>
-                </button>
-              </div>
-            </div>
+            <CoachOverview
+              session={session}
+              assignments={assignments}
+              onNavigate={openSection}
+            />
           ) : null}
 
           {activeSection === "notifications" ? (

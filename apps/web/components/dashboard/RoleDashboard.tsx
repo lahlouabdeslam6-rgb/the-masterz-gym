@@ -60,6 +60,7 @@ export function RoleDashboard() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
+  const [memberDataAvailable, setMemberDataAvailable] = useState(false);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
   useEffect(() => {
@@ -145,6 +146,11 @@ export function RoleDashboard() {
         setSubscriptions(subscriptionResult.data ?? []);
         setReceipts(receiptResult.data ?? []);
         setAttendance(attendanceResult.data ?? []);
+        setMemberDataAvailable(
+          !subscriptionResult.error &&
+            !receiptResult.error &&
+            !attendanceResult.error,
+        );
       }
     } catch {
       clearSession();
@@ -223,6 +229,7 @@ export function RoleDashboard() {
             subscriptions={subscriptions}
             receipts={receipts}
             attendance={attendance}
+            overviewDataAvailable={memberDataAvailable}
             onLogout={() => void logout()}
           />
         ) : null}

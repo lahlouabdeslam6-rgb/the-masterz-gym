@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Bell,
-  ArrowUpRight,
   Check,
   Camera,
   CalendarCheck,
@@ -12,6 +11,7 @@ import {
   CalendarRange,
   ChevronDown,
   CreditCard,
+  Coffee,
   Dumbbell,
   History,
   LayoutDashboard,
@@ -35,6 +35,7 @@ import {
   latestSubscriptionFor,
 } from "@/lib/member-subscriptions";
 import { MembershipPlansList } from "@/components/MembershipPlansList";
+import { HealthyCafeMenu } from "@/components/HealthyCafeMenu";
 import { ReceiptSummary } from "./ApplicationManager";
 import { CoachingTrackingPanel } from "./CoachingTrackingPanel";
 import { CoachingScheduleManager } from "./CoachingScheduleManager";
@@ -48,6 +49,16 @@ import { ComplaintCenter } from "./ComplaintCenter";
 import { MemberStoreManager } from "./StoreManager";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 import { AccountNotificationBell } from "./AccountNotificationBell";
+import { ClubBadge, SALLE_2_ID } from "./ClubSwitcher";
+import {
+  ActivityChart,
+  activityDays,
+  OverviewAction,
+  OverviewGuide,
+  OverviewHeading,
+  OverviewMetric,
+  overviewSurface,
+} from "./OverviewKit";
 import {
   type Attendance,
   type Receipt,
@@ -72,6 +83,7 @@ type MemberSection =
   | "collective"
   | "recovery"
   | "store"
+  | "cafe"
   | "complaints";
 
 const memberSections: Array<{
@@ -141,6 +153,12 @@ const memberSections: Array<{
     icon: ShoppingBag,
   },
   {
+    id: "cafe",
+    label: "Healthy Café",
+    description: "La carte, les photos et les prix · Salle 1",
+    icon: Coffee,
+  },
+  {
     id: "complaints",
     label: "Reclamations",
     description: "Messages avec l'equipe",
@@ -182,9 +200,9 @@ const memberNavigationGroups: Array<{
   },
   {
     id: "support",
-    label: "Achats et assistance",
-    icon: ShoppingBag,
-    sections: ["store", "complaints"],
+    label: "Assistance",
+    icon: MessageSquareText,
+    sections: ["complaints"],
   },
 ];
 
@@ -194,6 +212,7 @@ export function MemberDashboard({
   subscriptions,
   receipts,
   attendance,
+  overviewDataAvailable = true,
   onLogout,
 }: {
   session: AuthSession;
@@ -201,6 +220,7 @@ export function MemberDashboard({
   subscriptions: Subscription[];
   receipts: Receipt[];
   attendance: Attendance[];
+  overviewDataAvailable?: boolean;
   onLogout: () => void;
 }) {
   const [activeSection, setActiveSection] = useState<MemberSection>("overview");
@@ -330,6 +350,12 @@ export function MemberDashboard({
           className="hidden min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2.5 lg:block"
         >
           {renderNavigationItem(memberSections[0])}
+          {renderNavigationItem(
+            memberSections.find((item) => item.id === "store")!,
+          )}
+          {renderNavigationItem(
+            memberSections.find((item) => item.id === "cafe")!,
+          )}
           {memberNavigationGroups.map((group) => {
             const GroupIcon = group.icon;
             const isOpen = openNavigationGroups.has(group.id);
@@ -385,6 +411,11 @@ export function MemberDashboard({
           })}
         </nav>
 
+        <div className="grid grid-cols-2 gap-2 px-3 py-3 lg:hidden">
+          {memberSections
+            .filter((item) => item.id === "store" || item.id === "cafe")
+            .map((item) => renderNavigationItem(item))}
+        </div>
         <button
           type="button"
           onClick={onLogout}
@@ -432,26 +463,28 @@ export function MemberDashboard({
       </aside>
 
       <main className="min-w-0">
-        <header className="rounded-lg border border-white/10 bg-[linear-gradient(135deg,rgba(0,212,255,0.12),rgba(8,17,25,0.92)_48%)] p-5 shadow-2xl sm:p-7">
-          <div className="flex items-center gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border border-primary/30 bg-primary/[0.1] text-primary">
-              <SectionIcon className="h-6 w-6" />
-            </span>
-            <div>
-              <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-primary">
-                Espace membre
-              </p>
-              <h2 className="mt-1 font-display text-3xl font-black uppercase tracking-[-0.035em] text-white">
-                {section.label}
-              </h2>
-              <p className="mt-1 text-sm text-gray-500">
-                {section.description}
-              </p>
+        {activeSection !== "overview" ? (
+          <header className="rounded-lg border border-white/10 bg-[linear-gradient(135deg,rgba(0,212,255,0.12),rgba(8,17,25,0.92)_48%)] p-5 shadow-2xl sm:p-7">
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border border-primary/30 bg-primary/[0.1] text-primary">
+                <SectionIcon className="h-6 w-6" />
+              </span>
+              <div>
+                <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-primary">
+                  Espace membre
+                </p>
+                <h2 className="mt-1 font-display text-3xl font-black uppercase tracking-[-0.035em] text-white">
+                  {section.label}
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  {section.description}
+                </p>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
+        ) : null}
 
-        <div className="mt-6">
+        <div className={activeSection === "overview" ? "" : "mt-6"}>
           {activeSection === "overview" ? (
             <MemberOverview
               photoReady={Boolean(
@@ -461,6 +494,7 @@ export function MemberDashboard({
               subscriptions={subscriptions}
               receipts={receipts}
               attendance={attendance}
+              dataAvailable={overviewDataAvailable}
               onNavigate={openSection}
             />
           ) : null}
@@ -538,6 +572,7 @@ export function MemberDashboard({
               <ComplaintCenter session={session} mode="member" />
             </Panel>
           ) : null}
+          {activeSection === "cafe" ? <HealthyCafeMenu /> : null}
         </div>
       </main>
     </div>
@@ -621,35 +656,76 @@ function MemberOverview({
   subscriptions,
   receipts,
   attendance,
+  dataAvailable,
   onNavigate,
 }: {
   photoReady: boolean;
   subscriptions: Subscription[];
   receipts: Receipt[];
   attendance: Attendance[];
+  dataAvailable: boolean;
   onNavigate: (section: MemberSection) => void;
 }) {
-  const currentSubscriptions = subscriptions.filter((subscription) =>
-    ["active", "expiring_soon", "grace_period"].includes(
-      subscription.effective_status ?? subscription.status,
-    ),
+  const [referenceTime] = useState(() => new Date());
+  const currentSubscriptions = subscriptions.filter(isCurrentSubscription);
+  const validSubscriptions = currentSubscriptions.filter(
+    (subscription) =>
+      (subscription.effective_status ?? subscription.status) !== "grace_period",
+  );
+  const visits = attendance.filter((entry) => entry.decision !== "denied");
+  const activity = activityDays(
+    visits.map((entry) => entry.checked_in_at),
+    referenceTime,
   );
 
   return (
     <div className="space-y-6">
+      <OverviewHeading
+        eyebrow="Votre quotidien Masterz"
+        title="Tout pour votre prochaine séance."
+        description="Vos abonnements, votre activité et vos produits préférés, réunis au même endroit."
+      >
+        <Button type="button" onClick={() => onNavigate("subscriptions")}>
+          <CalendarDays className="h-4 w-4" /> Voir mes abonnements
+        </Button>
+      </OverviewHeading>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <OverviewAction
+          icon={ShoppingBag}
+          title="Ouvrir le Store"
+          description="Découvrir les produits et suivre mes réservations."
+          onClick={() => onNavigate("store")}
+          featured
+        />
+        <OverviewAction
+          icon={Coffee}
+          title="Découvrir Healthy Café"
+          description="Salle 1 · La carte, les photos et les prix."
+          onClick={() => onNavigate("cafe")}
+          featured
+        />
+        <OverviewAction
+          icon={CalendarRange}
+          title="Consulter les cours"
+          description="Salle 2 · Selon les accès de mon abonnement."
+          onClick={() => onNavigate("collective")}
+        />
+        <OverviewAction
+          icon={Dumbbell}
+          title="Mon suivi coaching"
+          description="Retrouver mon coach et mes rendez-vous."
+          onClick={() => onNavigate("coaching")}
+        />
+      </div>
       {!photoReady ? (
-        <section className="rounded-lg border border-amber-300/30 bg-amber-300/[0.06] p-5 sm:p-6">
+        <section className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.04] p-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-200">
-                Action obligatoire avant votre premiere entree
-              </p>
-              <h3 className="mt-2 text-xl font-black uppercase text-white">
-                Ajoutez une photo claire de votre visage
+              <h3 className="text-sm font-semibold text-amber-200">
+                Votre profil est presque prêt
               </h3>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
-                Ouvrez la camera ou importez une photo. Un seul visage doit etre
-                visible et bien eclaire.
+              <p className="mt-1 text-xs leading-5 text-gray-400">
+                Ajoutez une photo de votre visage pour faciliter votre accueil.
               </p>
             </div>
             <Button type="button" onClick={() => onNavigate("profile")}>
@@ -658,87 +734,124 @@ function MemberOverview({
           </div>
         </section>
       ) : null}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <OverviewCard
-          icon={CalendarDays}
-          value={currentSubscriptions.length}
-          label="Abonnements actifs"
-          onClick={() => onNavigate("subscriptions")}
-        />
-        <OverviewCard
-          icon={CreditCard}
-          value={receipts.length}
-          label="Recus disponibles"
-          onClick={() => onNavigate("receipts")}
-        />
-        <OverviewCard
-          icon={CalendarCheck}
-          value={attendance.length}
-          label="Presences"
-          onClick={() => onNavigate("attendance")}
-        />
-      </div>
-
-      <Panel
-        title="Mes services actifs"
-        subtitle="Un resume rapide de vos formules actuellement valides."
-      >
-        {currentSubscriptions.length ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {currentSubscriptions.map((subscription) => (
-              <Card key={subscription.id} className="p-5">
-                <p className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-primary">
-                  {subscription.service_type.replaceAll("_", " ")}
-                </p>
-                <p className="mt-3 text-lg font-black text-white">
-                  {subscription.plan_name}
-                </p>
-                <p className="mt-2 text-xs leading-5 text-gray-500">
-                  Du {subscription.starts_on} au {subscription.ends_on}
-                </p>
-                <Pill className="mt-4">
-                  {statusLabels[
-                    subscription.effective_status ?? subscription.status
-                  ] ?? subscription.status}
-                </Pill>
-              </Card>
-            ))}
+      {!dataAvailable ? (
+        <p
+          role="alert"
+          className="rounded-xl border border-amber-300/20 p-4 text-sm text-amber-200"
+        >
+          Le résumé de votre activité est indisponible. Actualisez la page pour
+          réessayer. Store et Healthy Café restent accessibles.
+        </p>
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <OverviewMetric
+              icon={CalendarDays}
+              value={validSubscriptions.length}
+              label="Abonnements actifs"
+              detail="Vos formules en cours de validité"
+              onClick={() => onNavigate("subscriptions")}
+            />
+            <OverviewMetric
+              icon={CreditCard}
+              value={receipts.length}
+              label="Reçus disponibles"
+              detail="À consulter et télécharger"
+              onClick={() => onNavigate("receipts")}
+            />
+            <OverviewMetric
+              icon={CalendarCheck}
+              value={activity.reduce((sum, item) => sum + item.value, 0)}
+              label="Passages cette semaine"
+              detail="Enregistrés sur le site · 7 derniers jours"
+              onClick={() => onNavigate("attendance")}
+            />
           </div>
-        ) : (
-          <EmptyState text="Aucun abonnement actif sur ce compte." />
-        )}
-      </Panel>
+          <div className="grid gap-5 xl:grid-cols-2">
+            <div className="min-w-0">
+              <ActivityChart
+                title="Mon rythme de visite"
+                description="Passages enregistrés · 7 derniers jours"
+                data={activity}
+                emptyText="Aucun passage enregistré sur cette période."
+              />
+              <p className="px-1 pt-3 text-xs leading-5 text-gray-500">
+                Le système d’empreinte de la salle n’est pas synchronisé avec ce
+                graphique.
+              </p>
+            </div>
+            <section className={overviewSurface}>
+              <h3 className="text-lg font-semibold text-white">
+                Mes formules en cours
+              </h3>
+              <p className="mt-1 text-xs leading-5 text-gray-400">
+                Les dates et la salle de chaque abonnement.
+              </p>
+              {currentSubscriptions.length ? (
+                <div className="mt-5 max-h-80 space-y-3 overflow-y-auto">
+                  {currentSubscriptions.map((subscription) => (
+                    <div
+                      key={subscription.id}
+                      className="rounded-xl border border-white/10 bg-white/[.02] p-4"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <ClubBadge clubId={subscription.club_id} />
+                        <span className="text-xs text-gray-400">
+                          {
+                            {
+                              gym:
+                                subscription.club_id === SALLE_2_ID
+                                  ? "Pass 4 Fit"
+                                  : "Musculation",
+                              coaching: "Coaching",
+                              recovery: "Recovery",
+                              martial_arts: "Arts martiaux",
+                            }[subscription.service_type]
+                          }
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-white">
+                        {subscription.plan_name}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-gray-400">
+                        Du {formatDate(subscription.starts_on)} au{" "}
+                        {formatDate(subscription.ends_on)}
+                      </p>
+                      <Pill className="mt-3">
+                        {statusLabels[
+                          subscription.effective_status ?? subscription.status
+                        ] ?? subscription.status}
+                      </Pill>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-5 rounded-xl bg-white/[.03] p-4 text-sm leading-6 text-gray-400">
+                  Aucun abonnement actif. Consultez les formules ou contactez
+                  votre réception pour commencer.
+                </p>
+              )}
+            </section>
+          </div>
+        </>
+      )}
+      <OverviewGuide
+        steps={[
+          {
+            title: "Vérifiez votre accès",
+            text: "Dans Abonnements, retrouvez votre salle, vos services et leur date de fin.",
+          },
+          {
+            title: "Préparez votre séance",
+            text: "Ouvrez le planning du service inclus dans votre formule pour consulter les créneaux.",
+          },
+          {
+            title: "Retrouvez votre suivi",
+            text: "Consultez vos reçus, vos notifications et vos réservations Store à tout moment.",
+          },
+        ]}
+      />
     </div>
-  );
-}
-
-function OverviewCard({
-  icon: Icon,
-  value,
-  label,
-  onClick,
-}: {
-  icon: LucideIcon;
-  value: number;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="group rounded-2xl border border-white/10 bg-[linear-gradient(140deg,rgba(0,212,255,.05),#091119_65%)] p-5 text-left transition duration-200 hover:border-primary/40 hover:shadow-[0_8px_24px_rgba(0,212,255,.08)] motion-safe:hover:-translate-y-0.5"
-      onClick={onClick}
-    >
-      <div className="flex items-center justify-between gap-4">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
-          <Icon className="h-5 w-5 text-primary" />
-        </span>
-        <span className="text-3xl font-black text-white">{value}</span>
-      </div>
-      <p className="mt-5 flex items-center justify-between gap-2 text-sm font-semibold text-gray-300 transition group-hover:text-primary">
-        {label} <ArrowUpRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-      </p>
-    </button>
   );
 }
 

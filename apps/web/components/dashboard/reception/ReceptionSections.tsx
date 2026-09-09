@@ -1,16 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import {
   BadgeDollarSign,
   CalendarDays,
   ClipboardCheck,
   CreditCard,
-  ShieldCheck,
   UsersRound,
 } from "lucide-react";
-import { Alert, Card, LoadingMessage } from "@masterz/ui";
+import { Alert, LoadingMessage } from "@masterz/ui";
 import { api } from "@/lib/api";
 import { authorizationHeaders } from "@/lib/auth";
 import { ApplicationManager } from "../ApplicationManager";
@@ -25,16 +23,24 @@ import {
   type Plan,
   DashboardTabs,
   Panel,
-  Stat,
 } from "../dashboard-shared";
 import { ReceptionPage } from "./ReceptionPage";
 import { useReceptionClub, useReceptionSession } from "./ReceptionShell";
 import { ClubBadge, SALLE_1_ID } from "../ClubSwitcher";
+import {
+  ActivityChart,
+  activityDays,
+  OverviewAction,
+  OverviewGuide,
+  OverviewHeading,
+  OverviewMetric,
+  overviewSurface,
+} from "../OverviewKit";
 
 const shortcuts = [
   {
     label: "Traiter les demandes",
-    text: "Valider les inscriptions payees.",
+    text: "Examiner les inscriptions de votre salle.",
     href: "/espace/reception/demandes",
     icon: ClipboardCheck,
   },
@@ -50,12 +56,6 @@ const shortcuts = [
     href: "/espace/reception/paiements",
     icon: BadgeDollarSign,
   },
-  {
-    label: "Enregistrer une entree",
-    text: "Choisir le membre et confirmer son entree.",
-    href: "/espace/reception/acces",
-    icon: ShieldCheck,
-  },
 ];
 
 export function ReceptionOverview() {
@@ -65,26 +65,34 @@ export function ReceptionOverview() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [referenceTime, setReferenceTime] = useState(() => new Date());
 
   const load = useCallback(async () => {
-    const headers = authorizationHeaders(session.accessToken);
-    const [applicationsResult, plansResult] = await Promise.all([
-      api.GET("/api/v1/membership-applications", {
-        headers,
-        params: { query: { club_id: club.id } },
-      }),
-      api.GET("/api/v1/membership-plans", {
-        params: { query: { active_only: true, club_id: club.id } },
-      }),
-    ]);
-    setApplications(applicationsResult.data ?? []);
-    setPlans(plansResult.data ?? []);
-    setError(
-      applicationsResult.error || plansResult.error
-        ? "Impossible de charger tous les indicateurs."
-        : null,
-    );
-    setLoading(false);
+    setLoading(true);
+    try {
+      const headers = authorizationHeaders(session.accessToken);
+      const [applicationsResult, plansResult] = await Promise.all([
+        api.GET("/api/v1/membership-applications", {
+          headers,
+          params: { query: { club_id: club.id } },
+        }),
+        api.GET("/api/v1/membership-plans", {
+          params: { query: { active_only: true, club_id: club.id } },
+        }),
+      ]);
+      setApplications(applicationsResult.data ?? []);
+      setPlans(plansResult.data ?? []);
+      setError(
+        applicationsResult.error || plansResult.error
+          ? "Impossible de charger tous les indicateurs."
+          : null,
+      );
+      setReferenceTime(new Date());
+    } catch {
+      setError("Impossible de charger tous les indicateurs.");
+    } finally {
+      setLoading(false);
+    }
   }, [club.id, session.accessToken]);
 
   useEffect(() => {
@@ -97,12 +105,32 @@ export function ReceptionOverview() {
       application.status === "pending" ||
       application.status === "more_information_required",
   ).length;
+  const awaitingPayment = applications.filter(
+    (item) => item.status === "approved",
+  ).length;
+  const converted = applications.filter(
+    (item) => item.status === "converted_to_member",
+  ).length;
+  const distribution = [
+    { label: "À examiner", count: pending, color: "bg-primary" },
+    {
+      label: "En attente de paiement",
+      count: awaitingPayment,
+      color: "bg-amber-300",
+    },
+    { label: "Membres créés", count: converted, color: "bg-emerald-300" },
+    {
+      label: "Refusées",
+      count: applications.filter((item) => item.status === "rejected").length,
+      color: "bg-gray-500",
+    },
+  ];
 
   return (
     <ReceptionPage
       eyebrow="Accueil et caisse"
       title={`Bonjour, ${session.user.full_name.split(" ")[0]}.`}
-      description="Chaque travail de la reception a maintenant sa propre page pour aller vite sans melanger les dossiers."
+      description="Les priorités de votre salle, de la demande d’inscription au reçu de paiement."
     >
       {error ? <Alert type="error" message={error} className="mb-6" /> : null}
       <div className="mb-6">
@@ -111,74 +139,121 @@ export function ReceptionOverview() {
       {loading ? (
         <LoadingMessage message="Chargement des indicateurs..." />
       ) : (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Stat
-              icon={ClipboardCheck}
-              value={pending}
-              label="Demandes a traiter"
-            />
-            <Stat
-              icon={CreditCard}
-              value={plans.filter((plan) => plan.service_type === "gym").length}
-              label={club.id === SALLE_1_ID ? "Formules salle" : "Pass 4 Fit"}
-            />
-            {club.id === SALLE_1_ID ? (
-              <Stat
-                icon={CreditCard}
-                value={
-                  plans.filter((plan) => plan.service_type === "coaching")
-                    .length
-                }
-                label="Formules coaching"
+        <div className="space-y-6">
+          <OverviewHeading
+            eyebrow={`Votre poste d’accueil · ${club.label}`}
+            title="Un accueil fluide, des dossiers à jour."
+            description="Commencez par les demandes à examiner, puis finalisez les inscriptions approuvées."
+          />
+          <div className="grid gap-3 md:grid-cols-3">
+            {shortcuts.map((item) => (
+              <OverviewAction
+                key={item.href}
+                title={item.label}
+                description={item.text}
+                href={item.href}
+                icon={item.icon}
+                featured={item.href.endsWith("demandes")}
               />
-            ) : (
-              <Stat
-                icon={CreditCard}
-                value={
-                  plans.filter((plan) => plan.service_type === "martial_arts")
-                    .length
-                }
-                label="Arts martiaux"
-              />
-            )}
-            {club.id === SALLE_1_ID ? (
-              <Stat
-                icon={CreditCard}
-                value={
-                  plans.filter((plan) => plan.service_type === "recovery")
-                    .length
-                }
-                label="Formules recovery"
-              />
-            ) : null}
+            ))}
           </div>
-
-          <section className="mt-8">
-            <h2 className="text-sm font-black uppercase tracking-[0.14em] text-white">
-              Actions rapides
-            </h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {shortcuts.map(({ label, text, href, icon: Icon }) => (
-                <Link key={href} href={href}>
-                  <Card className="group flex h-full items-center gap-5 p-5 transition hover:border-primary/45 hover:bg-primary/[0.04]">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-primary">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span>
-                      <strong className="block text-white group-hover:text-primary">
-                        {label}
-                      </strong>
-                      <span className="mt-1 block text-xs text-gray-500">
-                        {text}
-                      </span>
-                    </span>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </section>
-        </>
+          {error ? (
+            <p className="rounded-xl border border-white/10 p-5 text-sm text-gray-400">
+              Les indicateurs sont temporairement indisponibles. Vos pages de
+              travail restent accessibles.
+            </p>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <OverviewMetric
+                  icon={ClipboardCheck}
+                  value={pending}
+                  label="Demandes à traiter"
+                  detail="Nouvelles ou à compléter"
+                />
+                <OverviewMetric
+                  icon={BadgeDollarSign}
+                  value={awaitingPayment}
+                  label="À encaisser"
+                  detail="Inscriptions approuvées, non finalisées"
+                />
+                <OverviewMetric
+                  icon={UsersRound}
+                  value={converted}
+                  label="Inscriptions finalisées"
+                  detail="Comptes créés depuis les demandes"
+                />
+                <OverviewMetric
+                  icon={CreditCard}
+                  value={plans.length}
+                  label="Formules disponibles"
+                  detail={`Offres actives · ${club.label}`}
+                />
+              </div>
+              <div className="grid gap-5 xl:grid-cols-2">
+                <ActivityChart
+                  title="Les nouvelles demandes"
+                  description={`${club.label} · Créées au cours des 7 derniers jours`}
+                  data={activityDays(
+                    applications.map((item) => item.created_at),
+                    referenceTime,
+                  )}
+                  emptyText="Aucune nouvelle demande sur cette période."
+                />
+                <section
+                  className={overviewSurface}
+                  aria-label="Suivi des inscriptions"
+                >
+                  <h3 className="text-lg font-semibold text-white">
+                    Où en sont les inscriptions ?
+                  </h3>
+                  <p className="mt-1 text-xs leading-5 text-gray-400">
+                    {applications.length} dossier(s) · {club.label} uniquement
+                  </p>
+                  <ul className="mt-6 space-y-5">
+                    {distribution.map((item) => (
+                      <li key={item.label}>
+                        <div className="mb-2 flex justify-between gap-3 text-xs text-gray-300">
+                          <span>{item.label}</span>
+                          <span className="font-semibold tabular-nums text-white">
+                            {item.count}
+                          </span>
+                        </div>
+                        <div
+                          className="h-1.5 overflow-hidden rounded-full bg-white/[.06]"
+                          aria-hidden="true"
+                        >
+                          <div
+                            className={`h-full rounded-full ${item.color}`}
+                            style={{
+                              width: `${(item.count / Math.max(1, applications.length)) * 100}%`,
+                            }}
+                          />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              </div>
+            </>
+          )}
+          <OverviewGuide
+            steps={[
+              {
+                title: "Examiner la demande",
+                text: "Vérifiez le dossier et la formule choisie. Demandez un complément si nécessaire.",
+              },
+              {
+                title: "Valider et encaisser",
+                text: "Après approbation, confirmez la formule, la date de début et le paiement avec le client.",
+              },
+              {
+                title: "Remettre le reçu",
+                text: "Le paiement finalise l’inscription. Retrouvez ensuite le membre et ses renouvellements dans son dossier.",
+              },
+            ]}
+          />
+        </div>
       )}
     </ReceptionPage>
   );
