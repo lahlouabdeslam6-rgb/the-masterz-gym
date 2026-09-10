@@ -132,7 +132,7 @@ export function PublicClubOffers({
               aria-label={tab.label}
               aria-selected={active}
               onClick={() => setServiceType(tab.id)}
-              className={`relative flex flex-col gap-3 rounded-2xl border p-5 text-left transition duration-200 motion-safe:hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+              className={`relative flex flex-col gap-3 rounded-2xl border p-5 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-0 motion-safe:hover:-translate-y-0.5 ${
                 active
                   ? "border-primary/50 bg-primary/[0.07] shadow-[inset_0_1px_0_rgba(0,212,255,0.12)]"
                   : "border-white/10 bg-[#071018] hover:border-primary/30 hover:bg-primary/[0.03]"

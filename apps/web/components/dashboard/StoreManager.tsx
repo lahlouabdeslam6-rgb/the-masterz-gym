@@ -303,7 +303,9 @@ function ProductEditor({
   }
 
   async function deleteProduct() {
-    if (!window.confirm(`Supprimer definitivement ${product.name} du Store ?`)) {
+    if (
+      !window.confirm(`Supprimer definitivement ${product.name} du Store ?`)
+    ) {
       return;
     }
     setBusy(true);

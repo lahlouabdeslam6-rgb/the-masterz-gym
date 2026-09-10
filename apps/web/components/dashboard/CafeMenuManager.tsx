@@ -131,7 +131,9 @@ export function CafeMenuManager({ session }: { session: AuthSession }) {
   }
 
   async function deleteItem(item: MenuItem) {
-    if (!window.confirm(`Supprimer definitivement ${item.name} de la carte ?`)) {
+    if (
+      !window.confirm(`Supprimer definitivement ${item.name} de la carte ?`)
+    ) {
       return false;
     }
     setError(null);
@@ -523,7 +525,10 @@ function CafeMediaField({
   function setAsCover(index: number) {
     const selected = value[index];
     if (!selected) return;
-    onChange([selected, ...value.filter((_, itemIndex) => itemIndex !== index)]);
+    onChange([
+      selected,
+      ...value.filter((_, itemIndex) => itemIndex !== index),
+    ]);
   }
 
   function removeMedia(index: number) {
@@ -627,7 +632,8 @@ function CafeMediaField({
           }}
         />
         <p className="text-xs normal-case tracking-normal text-gray-500">
-          Jusqu&apos;a 12 photos ou videos. Le premier media devient la couverture.
+          Jusqu&apos;a 12 photos ou videos. Le premier media devient la
+          couverture.
         </p>
       </div>
 

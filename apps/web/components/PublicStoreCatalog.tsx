@@ -652,9 +652,7 @@ function CatalogMedia({
       <video
         className={`${sizeClasses} w-full ${
           size === "card" ? "bg-black" : "bg-[#071827]"
-        } ${
-          size === "card" ? "object-cover" : "object-contain"
-        }`}
+        } ${size === "card" ? "object-cover" : "object-contain"}`}
         src={resolvedMediaUrl}
         controls
         preload="metadata"
@@ -667,9 +665,7 @@ function CatalogMedia({
       role="img"
       aria-label={"Photo " + product.name}
       className={`${sizeClasses} flex w-full items-center justify-center bg-center bg-no-repeat transition duration-500 group-hover:brightness-[0.97] ${
-        size === "card"
-          ? "bg-[#f4f4f2] bg-cover"
-          : "bg-[#071827] bg-contain"
+        size === "card" ? "bg-[#f4f4f2] bg-cover" : "bg-[#071827] bg-contain"
       }`}
       style={
         resolvedMediaUrl

@@ -22,10 +22,7 @@ const menuItem = {
   category: "Repas",
   description: "Composition choisie par l'equipe.",
   image_url: "/media/cafe-menu/bowl.png",
-  media_urls: [
-    "/media/cafe-menu/bowl.png",
-    "/media/cafe-menu/bowl.mp4",
-  ],
+  media_urls: ["/media/cafe-menu/bowl.png", "/media/cafe-menu/bowl.mp4"],
   price: "49.00",
   currency: "MAD",
   display_order: 1,
@@ -58,7 +55,9 @@ test("affiche la carte Healthy Cafe publique sans reservation", async ({
   await expect(page.getByText("Bowl Test", { exact: true })).toBeVisible();
   await expect(page.getByText("49")).toBeVisible();
   await page.getByRole("button", { name: "Voir", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "Voir Bowl Test" })).toBeVisible();
+  await expect(
+    page.getByRole("dialog", { name: "Voir Bowl Test" }),
+  ).toBeVisible();
   await expect(
     page.getByText("Composition choisie par l'equipe."),
   ).toBeVisible();
@@ -164,10 +163,7 @@ test("permet a l'Admin d'ajouter un repas avec prix et photo", async ({
     price: "49",
     currency: "MAD",
     image_url: "/media/cafe-menu/bowl.png",
-    media_urls: [
-      "/media/cafe-menu/bowl.png",
-      "/media/cafe-menu/bowl.mp4",
-    ],
+    media_urls: ["/media/cafe-menu/bowl.png", "/media/cafe-menu/bowl.mp4"],
   });
   page.once("dialog", (dialog) => dialog.accept());
   await page

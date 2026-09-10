@@ -244,9 +244,7 @@ function CafeItemDialog({
                   key={`${mediaUrl}-${index}`}
                   aria-label={`Afficher media ${index + 1}`}
                   className={`overflow-hidden rounded-sm border ${
-                    activeIndex === index
-                      ? "border-primary"
-                      : "border-white/10"
+                    activeIndex === index ? "border-primary" : "border-white/10"
                   }`}
                   onClick={() => setActiveIndex(index)}
                 >

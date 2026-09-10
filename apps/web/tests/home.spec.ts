@@ -62,7 +62,9 @@ test("separe les abonnements par salle et regroupe le Store avec le Cafe", async
   await expect(
     commercePanel.getByRole("link", { name: /Masterz Store/i }),
   ).toBeVisible();
-  await expect(commercePanel.getByRole("link", { name: /Healthy Café/i })).toBeVisible();
+  await expect(
+    commercePanel.getByRole("link", { name: /Healthy Café/i }),
+  ).toBeVisible();
 });
 
 test("integre l'analyse corporelle au parcours coaching", async ({ page }) => {

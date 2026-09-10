@@ -404,8 +404,12 @@ export function Header() {
               }`}
             >
               <div className="mb-3 flex items-center justify-between px-2 pt-1">
-                <span className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-primary">L’expérience Masterz</span>
-                <span className="text-[0.65rem] text-gray-400">Store & Café</span>
+                <span className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-primary">
+                  L’expérience Masterz
+                </span>
+                <span className="text-[0.65rem] text-gray-400">
+                  Store & Café
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {commerceLinks.map(({ icon: Icon, ...link }) => (
@@ -426,7 +430,10 @@ export function Header() {
                       <span className="commerce-icon flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
                         <Icon className="h-5 w-5" aria-hidden="true" />
                       </span>
-                      <ArrowUpRight className="h-4 w-4 text-gray-500 transition group-hover/item:text-primary" aria-hidden="true" />
+                      <ArrowUpRight
+                        className="h-4 w-4 text-gray-500 transition group-hover/item:text-primary"
+                        aria-hidden="true"
+                      />
                     </div>
                     <span>
                       <span className="block text-xs font-black uppercase tracking-[0.08em] text-white group-hover/item:text-primary">
@@ -436,7 +443,9 @@ export function Header() {
                         {link.description}
                       </span>
                       <span className="mt-4 block text-[0.65rem] font-semibold text-primary">
-                        {link.href === "/store" ? "Explorer les produits" : "Découvrir le menu"}
+                        {link.href === "/store"
+                          ? "Explorer les produits"
+                          : "Découvrir le menu"}
                       </span>
                     </span>
                   </Link>

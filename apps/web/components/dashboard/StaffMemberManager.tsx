@@ -33,12 +33,7 @@ import {
   statusLabels,
 } from "./dashboard-shared";
 import { MemberAvatar, MemberPhotoCapture } from "./MemberPhotoCapture";
-import {
-  ClubBadge,
-  SALLE_1_ID,
-  SALLE_2_ID,
-  clubLabel,
-} from "./ClubSwitcher";
+import { ClubBadge, SALLE_1_ID, SALLE_2_ID, clubLabel } from "./ClubSwitcher";
 
 type PaymentMethod = "cash" | "bank_card";
 export type StaffMemberMode = "full" | "profile" | "payments" | "access";
