@@ -1019,6 +1019,30 @@ export function AdminPlanManager({
     if (result.data) await onReload();
   }
 
+  async function deletePlan(plan: Plan) {
+    const confirmed = window.confirm(
+      `Supprimer definitivement la formule "${plan.name}" ?`,
+    );
+    if (!confirmed) return;
+    setBusy(true);
+    const result = await api.DELETE("/api/v1/membership-plans/{plan_id}", {
+      headers,
+      params: { path: { plan_id: plan.id } },
+    });
+    setBusy(false);
+    const detail = (
+      result.error as { detail?: { message?: unknown } } | undefined
+    )?.detail;
+    setFeedback(
+      result.error
+        ? typeof detail?.message === "string"
+          ? detail.message
+          : "La formule n'a pas pu etre supprimee."
+        : "Formule supprimee.",
+    );
+    if (!result.error) await onReload();
+  }
+
   const visiblePlans = plans.filter(
     (plan) => plan.service_type === activeServiceType,
   );
@@ -1316,7 +1340,7 @@ export function AdminPlanManager({
                       </Field>
                     ) : null}
                   </div>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
+                  <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
                     <Field label="Motif de modification">
                       <Input
                         value={edit.reason}
@@ -1338,6 +1362,16 @@ export function AdminPlanManager({
                       }
                     >
                       <Save className="h-4 w-4" /> Enregistrer
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-red-400/35 text-red-200 hover:border-red-300 hover:bg-red-400/10 hover:text-red-100"
+                      onClick={() => deletePlan(plan)}
+                      disabled={busy}
+                      aria-label={`Supprimer ${plan.name}`}
+                    >
+                      <Trash2 className="h-4 w-4" /> Supprimer
                     </Button>
                   </div>
                 </div>

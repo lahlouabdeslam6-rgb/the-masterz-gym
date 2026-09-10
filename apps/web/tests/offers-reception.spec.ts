@@ -323,7 +323,7 @@ test("informe le membre de ses abonnements avant une nouvelle inscription", asyn
     full_name: "Membre Abonnements",
     phone: "+212600000120",
     email: "membre.abonnements@masterz.test",
-    date_of_birth: null,
+    date_of_birth: "1994-06-18",
     gender: "male",
     role: "member",
     status: "active",
@@ -442,13 +442,21 @@ test("informe le membre de ses abonnements avant une nouvelle inscription", asyn
   await expect(
     page.getByRole("button", { name: /Soumettre la demande/ }),
   ).toBeEnabled();
+  await expect(page.getByLabel("Nom complet *")).toHaveValue(member.full_name);
+  await expect(page.getByLabel("Téléphone *")).toHaveValue(member.phone);
+  await expect(page.getByRole("textbox", { name: "Email" })).toHaveValue(
+    member.email,
+  );
+  await expect(page.getByLabel("Date de naissance")).toHaveValue(
+    member.date_of_birth,
+  );
 
   await page.goto("/recovery");
   await expect(
     page.getByText(/ancienne formule Pack Recovery est terminee/),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Renouveler" }).first(),
+    page.getByRole("link", { name: "Envoyer une demande" }).first(),
   ).toBeVisible();
 
   await page.goto("/espace/membre");
@@ -463,10 +471,24 @@ test("informe le membre de ses abonnements avant une nouvelle inscription", asyn
     page.getByRole("button", { name: "Promotions", exact: true }),
   ).toBeVisible();
   await expect(page.getByText("Salle 1 mois", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Salle 2 Collectif", { exact: true }),
+  ).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Deja paye" })).toBeVisible();
   await expect(page.getByTestId("member-service-recovery")).toContainText(
     "Seances terminees",
   );
+
+  await page.getByRole("button", { name: /^Salle 2/ }).click();
+  await expect(
+    page.getByText("Salle 2 Collectif", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Salle 1 mois", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Envoyer une demande" }).first(),
+  ).toHaveAttribute("href", `/inscription?club=salle-2&plan=${plans[4].id}`);
+
+  await page.getByRole("button", { name: /^Salle 1/ }).click();
 
   await page.getByRole("button", { name: "Promotions", exact: true }).click();
   await expect(

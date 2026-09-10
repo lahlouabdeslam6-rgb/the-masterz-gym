@@ -1,7 +1,7 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import and_, case, or_, select
+from sqlalchemy import and_, case, exists, or_, select
 from sqlalchemy.orm import Session
 
 from app.modules.clubs.models import UserClubAssignment
@@ -45,6 +45,21 @@ class MembershipRepository:
 
     def get_plan(self, plan_id: uuid.UUID) -> MembershipPlan | None:
         return self.session.get(MembershipPlan, plan_id)
+
+    def plan_has_dependencies(self, plan_id: uuid.UUID) -> bool:
+        from app.modules.applications.models import MembershipApplication
+        from app.modules.promotions.models import Promotion
+
+        dependency_checks = (
+            exists().where(Subscription.plan_id == plan_id),
+            exists().where(MembershipApplication.selected_plan_id == plan_id),
+            exists().where(Promotion.base_plan_id == plan_id),
+        )
+        return any(bool(self.session.scalar(select(check))) for check in dependency_checks)
+
+    def delete_plan(self, plan: MembershipPlan) -> None:
+        self.session.delete(plan)
+        self.session.flush()
 
     def list_plans(
         self,

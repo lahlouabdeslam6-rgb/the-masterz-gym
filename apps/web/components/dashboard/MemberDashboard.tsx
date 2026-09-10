@@ -49,7 +49,13 @@ import { ComplaintCenter } from "./ComplaintCenter";
 import { MemberStoreManager } from "./StoreManager";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 import { AccountNotificationBell } from "./AccountNotificationBell";
-import { ClubBadge, SALLE_2_ID } from "./ClubSwitcher";
+import {
+  ClubBadge,
+  ClubSwitcher,
+  SALLE_1_ID,
+  SALLE_2_ID,
+  defaultClubs,
+} from "./ClubSwitcher";
 import {
   ActivityChart,
   activityDays,
@@ -934,15 +940,23 @@ function SubscriptionsPanel({
   const [activeService, setActiveService] = useState<
     "gym" | "coaching" | "recovery" | "martial_arts"
   >("gym");
-  const services = [
-    {
-      id: "gym" as const,
-      label: "Salle musculation",
-    },
-    { id: "coaching" as const, label: "Coaching" },
-    { id: "recovery" as const, label: "Recovery" },
-    { id: "martial_arts" as const, label: "Arts martiaux" },
-  ];
+  const [activeClub, setActiveClub] = useState(SALLE_1_ID);
+  const services =
+    activeClub === SALLE_2_ID
+      ? ([
+          { id: "gym" as const, label: "Pass 4 Fit" },
+          { id: "martial_arts" as const, label: "Arts martiaux" },
+        ] as const)
+      : ([
+          { id: "gym" as const, label: "Salle musculation" },
+          { id: "coaching" as const, label: "Coaching" },
+          { id: "recovery" as const, label: "Recovery" },
+        ] as const);
+
+  function selectClub(clubId: string) {
+    setActiveClub(clubId);
+    setActiveService("gym");
+  }
 
   return (
     <Panel
@@ -972,9 +986,19 @@ function SubscriptionsPanel({
 
       {activeView === "offers" ? (
         <div className="mt-6">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <ClubSwitcher
+            clubs={defaultClubs}
+            selectedClubId={activeClub}
+            onChange={selectClub}
+            title="Offres par salle"
+          />
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {services.map((service) => {
-              const latest = latestSubscriptionFor(subscriptions, service.id);
+              const latest = latestSubscriptionFor(
+                subscriptions,
+                service.id,
+                activeClub,
+              );
               const current = latest ? isCurrentSubscription(latest) : false;
               const sessionsFinished =
                 (latest?.service_type === "recovery" ||
@@ -1031,6 +1055,7 @@ function SubscriptionsPanel({
           <div className="mt-6 border-t border-white/10 pt-6">
             <MembershipPlansList
               serviceType={activeService}
+              clubId={activeClub}
               onViewSubscription={() => setActiveView("history")}
             />
           </div>
@@ -1038,46 +1063,76 @@ function SubscriptionsPanel({
       ) : null}
 
       {activeView === "promotions" ? (
-        <div className="mt-6">
-          <MembershipPlansList serviceType="gym" promotionsOnly />
+        <div className="mt-6 space-y-5">
+          <ClubSwitcher
+            clubs={defaultClubs}
+            selectedClubId={activeClub}
+            onChange={selectClub}
+            title="Promotions par salle"
+          />
+          <MembershipPlansList
+            serviceType="gym"
+            clubId={activeClub}
+            promotionsOnly
+          />
         </div>
       ) : null}
 
       {activeView === "history" ? (
         subscriptions.length ? (
-          <div className="mt-6 grid gap-4 xl:grid-cols-2">
-            {subscriptions.map((subscription) => (
-              <Card key={subscription.id} className="p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-primary">
-                      {subscription.service_type.replaceAll("_", " ")}
-                    </p>
-                    <p className="mt-2 text-lg font-black text-white">
-                      {subscription.plan_name}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-400">
-                      Du {subscription.starts_on} au {subscription.ends_on}
-                    </p>
-                    <p className="mt-2 text-sm font-bold text-primary">
-                      {subscription.price} {subscription.currency}
-                    </p>
-                    {subscription.service_type === "recovery" ||
-                    subscription.service_type === "martial_arts" ? (
-                      <p className="mt-2 text-sm font-bold text-emerald-200">
-                        {subscription.remaining_sessions ?? "-"} /{" "}
-                        {subscription.total_sessions ?? "-"} seance(s)
-                      </p>
-                    ) : null}
+          <div className="mt-6 space-y-8">
+            {defaultClubs.map((club) => {
+              const clubSubscriptions = subscriptions.filter(
+                (subscription) => subscription.club_id === club.id,
+              );
+              if (!clubSubscriptions.length) return null;
+              return (
+                <section key={club.id}>
+                  <div className="mb-4 flex items-center justify-between gap-4">
+                    <ClubBadge clubId={club.id} />
+                    <span className="text-xs font-bold text-gray-500">
+                      {clubSubscriptions.length} abonnement(s)
+                    </span>
                   </div>
-                  <Pill>
-                    {statusLabels[
-                      subscription.effective_status ?? subscription.status
-                    ] ?? subscription.status}
-                  </Pill>
-                </div>
-              </Card>
-            ))}
+                  <div className="grid gap-4 xl:grid-cols-2">
+                    {clubSubscriptions.map((subscription) => (
+                      <Card key={subscription.id} className="p-5">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-primary">
+                              {subscription.service_type.replaceAll("_", " ")}
+                            </p>
+                            <p className="mt-2 text-lg font-black text-white">
+                              {subscription.plan_name}
+                            </p>
+                            <p className="mt-1 text-sm text-gray-400">
+                              Du {subscription.starts_on} au{" "}
+                              {subscription.ends_on}
+                            </p>
+                            <p className="mt-2 text-sm font-bold text-primary">
+                              {subscription.price} {subscription.currency}
+                            </p>
+                            {subscription.service_type === "recovery" ||
+                            subscription.service_type === "martial_arts" ? (
+                              <p className="mt-2 text-sm font-bold text-emerald-200">
+                                {subscription.remaining_sessions ?? "-"} /{" "}
+                                {subscription.total_sessions ?? "-"} seance(s)
+                              </p>
+                            ) : null}
+                          </div>
+                          <Pill>
+                            {statusLabels[
+                              subscription.effective_status ??
+                                subscription.status
+                            ] ?? subscription.status}
+                          </Pill>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         ) : (
           <div className="mt-6">

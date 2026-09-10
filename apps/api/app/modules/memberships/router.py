@@ -50,6 +50,11 @@ def update_plan(plan_id: uuid.UUID, data: MembershipPlanUpdate, session: DbSessi
     return MembershipService(session).update_plan(plan_id, data, actor)
 
 
+@router.delete("/membership-plans/{plan_id}", status_code=204)
+def delete_plan(plan_id: uuid.UUID, session: DbSession, actor: Admin) -> None:
+    MembershipService(session).delete_plan(plan_id, actor)
+
+
 @router.get("/members/subscription-summaries", response_model=list[MemberSubscriptionSummary])
 def list_member_subscription_summaries(
     session: DbSession,

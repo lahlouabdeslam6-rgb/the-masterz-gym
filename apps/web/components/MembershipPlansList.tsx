@@ -433,11 +433,9 @@ export function MembershipPlansList({
                   >
                     {planIsCurrent
                       ? "Deja paye"
-                      : currentSubscription
-                        ? "Voir cette offre"
-                        : memberIsRenewing
-                          ? "Renouveler"
-                          : content.buttonLabel}{" "}
+                      : session?.user.role === "member"
+                        ? "Envoyer une demande"
+                        : content.buttonLabel}{" "}
                     <ArrowUpRight className="h-4 w-4" />
                   </Link>
                 </CardContent>

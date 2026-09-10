@@ -102,9 +102,7 @@ def test_salle_1_reception_cannot_see_or_review_salle_2_applications(
     application_id = application_response.json()["id"]
     assert application_response.json()["club_id"] == str(SALLE_2_ID)
 
-    reception_list = client.get(
-        "/api/v1/membership-applications", headers=reception_headers
-    )
+    reception_list = client.get("/api/v1/membership-applications", headers=reception_headers)
     assert reception_list.status_code == 200, reception_list.text
     assert application_id not in {item["id"] for item in reception_list.json()}
 
@@ -243,3 +241,72 @@ def test_martial_arts_plan_requires_sessions_at_schema_boundary() -> None:
             currency="MAD",
             service_type=ServiceType.MARTIAL_ARTS,
         )
+
+
+def test_admin_can_delete_an_unused_membership_plan(
+    client: TestClient,
+    admin_headers: dict[str, str],
+) -> None:
+    created = client.post(
+        "/api/v1/membership-plans",
+        headers=admin_headers,
+        json={
+            "club_id": str(SALLE_2_ID),
+            "name": "Formule temporaire a supprimer",
+            "duration_months": 1,
+            "price": "450.00",
+            "currency": "MAD",
+            "service_type": "gym",
+            "session_count": None,
+            "is_active": True,
+        },
+    )
+    assert created.status_code == 201, created.text
+
+    deleted = client.delete(
+        f"/api/v1/membership-plans/{created.json()['id']}",
+        headers=admin_headers,
+    )
+    assert deleted.status_code == 204, deleted.text
+    remaining = client.get(
+        "/api/v1/membership-plans",
+        params={"active_only": False, "club_id": str(SALLE_2_ID)},
+    )
+    assert created.json()["id"] not in {item["id"] for item in remaining.json()}
+
+
+def test_admin_cannot_delete_a_membership_plan_used_by_an_application(
+    client: TestClient,
+    admin_headers: dict[str, str],
+) -> None:
+    created = client.post(
+        "/api/v1/membership-plans",
+        headers=admin_headers,
+        json={
+            "club_id": str(SALLE_2_ID),
+            "name": "Pass protege par historique",
+            "duration_months": 1,
+            "price": "550.00",
+            "currency": "MAD",
+            "service_type": "gym",
+            "session_count": None,
+            "is_active": True,
+        },
+    )
+    assert created.status_code == 201, created.text
+    application = client.post(
+        "/api/v1/membership-applications",
+        json={
+            "full_name": "Membre historique",
+            "phone": f"+21265{uuid.uuid4().int % 100_000_000:08d}",
+            "selected_plan_id": created.json()["id"],
+        },
+    )
+    assert application.status_code == 201, application.text
+
+    deleted = client.delete(
+        f"/api/v1/membership-plans/{created.json()['id']}",
+        headers=admin_headers,
+    )
+    assert deleted.status_code == 409, deleted.text
+    assert deleted.json()["detail"]["code"] == "plan_in_use"

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -76,17 +76,22 @@ function InscriptionContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const { subscriptions } = useMemberSubscriptions();
+  const { session, subscriptions } = useMemberSubscriptions();
+  const prefilledMemberId = useRef<string | null>(null);
   const selectedPlan = plans.find(
     (plan) => plan.id === formData.selected_plan_id,
   );
-  const currentSelectedSubscription = selectedPlan
+  const currentServiceSubscription = selectedPlan
     ? currentSubscriptionFor(
         subscriptions,
         selectedPlan.service_type,
         selectedPlan.club_id,
       )
     : null;
+  const currentSelectedSubscription =
+    currentServiceSubscription?.plan_id === selectedPlan?.id
+      ? currentServiceSubscription
+      : null;
   const visiblePlans = plans.filter(
     (plan) => planClubId(plan) === selectedClubId,
   );
@@ -151,6 +156,26 @@ function InscriptionContent() {
       active = false;
     };
   }, [preselectedClub.id, preselectedPlanId, promotionId]);
+
+  useEffect(() => {
+    const user = session?.user;
+    if (
+      !user ||
+      user.role !== "member" ||
+      prefilledMemberId.current === user.id
+    )
+      return;
+
+    prefilledMemberId.current = user.id;
+    setFormData((current) => ({
+      ...current,
+      full_name: user.full_name,
+      phone: user.phone,
+      email: user.email ?? "",
+      date_of_birth: user.date_of_birth ?? "",
+      gender: user.gender ?? current.gender,
+    }));
+  }, [session]);
 
   function chooseClub(clubId: string) {
     if (promotion) return;
@@ -261,7 +286,8 @@ function InscriptionContent() {
             <strong className="text-white">
               {currentSelectedSubscription.ends_on}
             </strong>
-            . Choisissez une offre d&apos;une autre categorie pour continuer.
+            . Cette formule ne peut pas etre demandee une deuxieme fois tant que
+            votre abonnement est actif.
           </p>
           <Link
             href="/espace/membre"
@@ -359,6 +385,12 @@ function InscriptionContent() {
         <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-gray-300">
           3. Vos informations
         </p>
+        {session?.user.role === "member" ? (
+          <div className="rounded-lg border border-primary/25 bg-primary/[0.06] px-4 py-3 text-sm leading-6 text-gray-300">
+            Ces informations ont ete reprises de votre compte. Vous pouvez les
+            corriger avant l&apos;envoi.
+          </div>
+        ) : null}
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Nom complet *" id="full_name">
             <Input
@@ -434,13 +466,24 @@ function InscriptionContent() {
         </Button>
       </form>
       <p className="mt-6 text-center text-sm text-gray-500">
-        Vous avez déjà un compte ?{" "}
-        <Link
-          href="/connexion"
-          className="font-bold text-primary hover:underline"
-        >
-          Se connecter
-        </Link>
+        {session?.user.role === "member" ? (
+          <Link
+            href="/espace/membre"
+            className="font-bold text-primary hover:underline"
+          >
+            Retourner a mon espace
+          </Link>
+        ) : (
+          <>
+            Vous avez deja un compte ?{" "}
+            <Link
+              href="/connexion"
+              className="font-bold text-primary hover:underline"
+            >
+              Se connecter
+            </Link>
+          </>
+        )}
       </p>
     </AuthShell>
   );

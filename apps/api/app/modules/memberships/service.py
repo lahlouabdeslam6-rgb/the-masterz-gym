@@ -113,10 +113,38 @@ class MembershipService:
         )
         return plan
 
+    def delete_plan(self, plan_id: uuid.UUID, actor: User) -> None:
+        plan = self.repository.get_plan(plan_id)
+        if not plan:
+            raise api_error(status.HTTP_404_NOT_FOUND, "plan_not_found", "Formule introuvable.")
+        if self.repository.plan_has_dependencies(plan_id):
+            raise api_error(
+                status.HTTP_409_CONFLICT,
+                "plan_in_use",
+                "Cette formule possede deja des demandes, promotions ou abonnements. "
+                "Masquez-la pour preserver l'historique.",
+            )
+        previous = {
+            "name": plan.name,
+            "club_id": str(plan.club_id),
+            "duration_months": plan.duration_months,
+            "price": str(plan.price),
+            "currency": plan.currency,
+            "service_type": plan.service_type.value,
+            "session_count": plan.session_count,
+            "is_active": plan.is_active,
+        }
+        self.audit.record(
+            actor=actor,
+            action="membership_plan.deleted",
+            entity_type="membership_plan",
+            entity_id=plan.id,
+            previous_value=previous,
+        )
+        self.repository.delete_plan(plan)
+
     @staticmethod
-    def _validate_club_service(
-        club_id: uuid.UUID, service_type: ServiceType
-    ) -> None:
+    def _validate_club_service(club_id: uuid.UUID, service_type: ServiceType) -> None:
         if club_id == SALLE_2_ID and service_type in {
             ServiceType.COACHING,
             ServiceType.RECOVERY,
