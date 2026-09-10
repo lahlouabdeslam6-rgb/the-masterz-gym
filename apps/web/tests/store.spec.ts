@@ -229,7 +229,7 @@ test("le membre reserve un produit depuis son espace", async ({ page }) => {
 
   await storeSession(page, member);
   await page.goto("/espace/membre");
-  await page.getByRole("button", { name: "Store", exact: true }).click();
+  await page.getByRole("button", { name: "Store & Café", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Masterz Store" }),
   ).toBeVisible();

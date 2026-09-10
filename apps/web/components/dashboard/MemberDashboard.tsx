@@ -83,7 +83,6 @@ type MemberSection =
   | "collective"
   | "recovery"
   | "store"
-  | "cafe"
   | "complaints";
 
 const memberSections: Array<{
@@ -148,15 +147,9 @@ const memberSections: Array<{
   },
   {
     id: "store",
-    label: "Store",
-    description: "Produits et reservations",
+    label: "Store & Café",
+    description: "Produits, menu et prix · Salle 1",
     icon: ShoppingBag,
-  },
-  {
-    id: "cafe",
-    label: "Healthy Café",
-    description: "La carte, les photos et les prix · Salle 1",
-    icon: Coffee,
   },
   {
     id: "complaints",
@@ -227,6 +220,7 @@ export function MemberDashboard({
   const [coachingView, setCoachingView] = useState<
     "schedule" | "progress" | "messages"
   >("schedule");
+  const [commerceView, setCommerceView] = useState<"store" | "cafe">("store");
   const [openNavigationGroups, setOpenNavigationGroups] = useState(
     () => new Set(memberNavigationGroups.map((group) => group.id)),
   );
@@ -316,6 +310,7 @@ export function MemberDashboard({
     } else if (kind.startsWith("recovery_")) {
       openSection("recovery");
     } else if (kind.startsWith("store_")) {
+      setCommerceView("store");
       openSection("store");
     } else if (kind.startsWith("complaint_")) {
       openSection("complaints");
@@ -352,9 +347,6 @@ export function MemberDashboard({
           {renderNavigationItem(memberSections[0])}
           {renderNavigationItem(
             memberSections.find((item) => item.id === "store")!,
-          )}
-          {renderNavigationItem(
-            memberSections.find((item) => item.id === "cafe")!,
           )}
           {memberNavigationGroups.map((group) => {
             const GroupIcon = group.icon;
@@ -411,9 +403,9 @@ export function MemberDashboard({
           })}
         </nav>
 
-        <div className="grid grid-cols-2 gap-2 px-3 py-3 lg:hidden">
+        <div className="px-3 py-3 lg:hidden">
           {memberSections
-            .filter((item) => item.id === "store" || item.id === "cafe")
+            .filter((item) => item.id === "store")
             .map((item) => renderNavigationItem(item))}
         </div>
         <button
@@ -557,12 +549,11 @@ export function MemberDashboard({
             </Panel>
           ) : null}
           {activeSection === "store" ? (
-            <Panel
-              title="Masterz Store"
-              subtitle="Consultez les produits disponibles, reservez-les et suivez leur validation par la Reception."
-            >
-              <MemberStoreManager session={session} />
-            </Panel>
+            <MemberCommerceWorkspace
+              session={session}
+              activeView={commerceView}
+              onViewChange={setCommerceView}
+            />
           ) : null}
           {activeSection === "complaints" ? (
             <Panel
@@ -572,9 +563,48 @@ export function MemberDashboard({
               <ComplaintCenter session={session} mode="member" />
             </Panel>
           ) : null}
-          {activeSection === "cafe" ? <HealthyCafeMenu /> : null}
         </div>
       </main>
+    </div>
+  );
+}
+
+function MemberCommerceWorkspace({
+  session,
+  activeView,
+  onViewChange,
+}: {
+  session: AuthSession;
+  activeView: "store" | "cafe";
+  onViewChange: (view: "store" | "cafe") => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <DashboardTabs
+        eyebrow="Achats et restauration · Salle 1"
+        ariaLabel="Choisir entre Store et Healthy Café"
+        activeTab={activeView}
+        onChange={onViewChange}
+        tabs={[
+          { id: "store", label: "Masterz Store", icon: ShoppingBag },
+          { id: "cafe", label: "Healthy Café", icon: Coffee },
+        ]}
+      />
+      {activeView === "store" ? (
+        <Panel
+          title="Masterz Store"
+          subtitle="Consultez les produits disponibles, réservez-les et suivez leur validation par la Réception."
+        >
+          <MemberStoreManager session={session} />
+        </Panel>
+      ) : (
+        <Panel
+          title="Healthy Café"
+          subtitle="Consultez la carte, les photos et les prix. Aucun système de réservation n'est appliqué."
+        >
+          <HealthyCafeMenu />
+        </Panel>
+      )}
     </div>
   );
 }
@@ -689,19 +719,12 @@ function MemberOverview({
           <CalendarDays className="h-4 w-4" /> Voir mes abonnements
         </Button>
       </OverviewHeading>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <OverviewAction
           icon={ShoppingBag}
-          title="Ouvrir le Store"
-          description="Découvrir les produits et suivre mes réservations."
+          title="Store & Healthy Café"
+          description="Produits, réservations Store, menu Café et prix."
           onClick={() => onNavigate("store")}
-          featured
-        />
-        <OverviewAction
-          icon={Coffee}
-          title="Découvrir Healthy Café"
-          description="Salle 1 · La carte, les photos et les prix."
-          onClick={() => onNavigate("cafe")}
           featured
         />
         <OverviewAction

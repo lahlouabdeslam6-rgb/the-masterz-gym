@@ -255,16 +255,15 @@ for (const width of [1440, 390]) {
       page.getByRole("region", { name: "Mon rythme de visite" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Store", exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Healthy Café", exact: true }),
+      page.getByRole("button", { name: "Store & Café", exact: true }),
     ).toBeVisible();
     await page.screenshot({
       path: `test-results/overview-member-${width}.png`,
       fullPage: true,
     });
-    await page.getByRole("button", { name: "Store", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Store & Café", exact: true })
+      .click();
     await expect(page.getByText("Whey Test", { exact: true })).toBeVisible();
     await page
       .getByRole("button", { name: "Healthy Café", exact: true })
