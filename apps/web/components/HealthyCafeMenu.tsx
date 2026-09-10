@@ -93,29 +93,29 @@ export function HealthyCafeMenu() {
             </span>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {categoryItems.map((item) => {
               const mediaUrls = getCafeMediaUrls(item);
               const coverUrl = mediaUrls[0] ?? null;
               return (
                 <article
                   key={item.id}
-                  className="group flex min-h-[28rem] flex-col overflow-hidden rounded-lg border border-white/10 bg-[#081119] shadow-xl transition hover:-translate-y-0.5 hover:border-primary/35"
+                  className="group flex min-h-[22rem] min-w-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#081119] shadow-lg transition hover:-translate-y-0.5 hover:border-primary/35"
                 >
                   <CafeMedia
                     mediaUrl={coverUrl}
                     name={item.name}
-                    className="aspect-[4/3] w-full border-b border-white/10"
+                    className="aspect-[16/10] w-full border-b border-white/10"
                     cover
                   />
-                  <div className="flex min-w-0 flex-1 flex-col p-6">
+                  <div className="flex min-w-0 flex-1 flex-col p-5">
                     <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-primary">
                       {category}
                     </p>
-                    <h3 className="mt-2 font-display text-3xl font-black uppercase leading-tight text-white">
+                    <h3 className="mt-2 line-clamp-2 break-words font-display text-xl font-black uppercase leading-tight text-white">
                       {item.name}
                     </h3>
-                    <p className="mt-auto pt-5 font-display text-3xl font-black text-white">
+                    <p className="mt-auto pt-4 font-display text-2xl font-black text-white">
                       {formatPrice(item.price)}
                       <span className="ml-2 text-sm tracking-[0.12em] text-primary">
                         {item.currency}
@@ -172,12 +172,12 @@ function CafeItemDialog({
       role="dialog"
       aria-modal="true"
       aria-label={`Voir ${item.name}`}
-      className="fixed inset-0 z-[130] overflow-y-auto bg-black/90 p-3 backdrop-blur-md sm:p-6"
+      className="fixed inset-0 z-[130] overflow-y-auto overflow-x-hidden bg-black/90 p-3 backdrop-blur-md sm:p-6"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="relative mx-auto grid min-h-[calc(100vh-1.5rem)] w-full max-w-7xl overflow-hidden rounded-lg border border-white/15 bg-[#050d14] shadow-2xl lg:min-h-[min(52rem,calc(100vh-3rem))] lg:grid-cols-[minmax(0,1.35fr)_minmax(22rem,.65fr)]">
+      <div className="relative mx-auto grid max-h-[88vh] w-full min-w-0 max-w-5xl overflow-y-auto overflow-x-hidden rounded-lg border border-white/15 bg-[#050d14] shadow-2xl lg:h-[84vh] lg:grid-cols-[minmax(0,1.05fr)_minmax(21rem,.95fr)] lg:overflow-hidden">
         <button
           type="button"
           aria-label="Fermer"
@@ -187,11 +187,11 @@ function CafeItemDialog({
           <X className="h-6 w-6" />
         </button>
 
-        <div className="relative flex min-h-[24rem] items-center bg-[#071827] lg:min-h-full">
+        <div className="relative flex min-h-[20rem] items-center bg-[#071827] lg:min-h-full">
           <CafeMedia
             mediaUrl={activeMedia}
             name={item.name}
-            className="absolute inset-0 h-full w-full"
+            className="absolute inset-5 h-[calc(100%-2.5rem)] w-[calc(100%-2.5rem)] sm:inset-8 sm:h-[calc(100%-4rem)] sm:w-[calc(100%-4rem)]"
           />
           {mediaUrls.length > 1 ? (
             <>
@@ -215,14 +215,14 @@ function CafeItemDialog({
           ) : null}
         </div>
 
-        <div className="flex min-w-0 flex-col p-7 pt-20 sm:p-10 sm:pt-20">
+        <div className="flex min-w-0 flex-col overflow-x-hidden p-6 pt-20 sm:p-8 sm:pt-16 lg:overflow-y-auto">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">
             {item.category}
           </p>
-          <h2 className="mt-3 font-display text-4xl font-black uppercase leading-none text-white sm:text-5xl">
+          <h2 className="mt-3 break-words font-display text-3xl font-black uppercase leading-[1.05] text-white [overflow-wrap:anywhere] sm:text-4xl">
             {item.name}
           </h2>
-          <p className="mt-7 border-y border-white/10 py-6 font-display text-5xl font-black text-white">
+          <p className="mt-6 break-words border-y border-white/10 py-5 font-display text-4xl font-black text-white">
             {formatPrice(item.price)}
             <span className="ml-3 text-base tracking-[0.12em] text-primary">
               {item.currency}
@@ -232,7 +232,7 @@ function CafeItemDialog({
             <p className="text-xs font-black uppercase tracking-[0.16em] text-gray-400">
               Description
             </p>
-            <p className="mt-3 whitespace-pre-line text-base leading-8 text-gray-400">
+            <p className="mt-3 whitespace-pre-line break-words text-base leading-7 text-gray-400 [overflow-wrap:anywhere]">
               {item.description || "Aucune description ajoutee pour le moment."}
             </p>
           </div>

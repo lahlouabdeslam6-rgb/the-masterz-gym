@@ -271,11 +271,11 @@ export function PublicStoreCatalog({
       </section>
 
       {visibleProducts.length ? (
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {visibleProducts.map((product) => (
             <article
               key={product.id}
-              className="group flex overflow-hidden rounded-lg border border-white/10 bg-[#080e13] shadow-[0_24px_70px_rgba(0,0,0,0.28)]"
+              className="group flex min-w-0 overflow-hidden rounded-lg border border-white/10 bg-[#080e13] shadow-[0_18px_50px_rgba(0,0,0,0.24)]"
             >
               <div className="flex w-full flex-col">
                 <button
@@ -286,25 +286,25 @@ export function PublicStoreCatalog({
                 >
                   <CatalogMedia product={product} size="card" />
                 </button>
-                <div className="flex flex-1 flex-col p-5">
+                <div className="flex flex-1 flex-col p-4 sm:p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-primary">
                         Masterz Store
                       </p>
-                      <h2 className="mt-2 text-xl font-black leading-tight text-white">
+                      <h2 className="mt-2 line-clamp-2 break-words text-lg font-black leading-tight text-white">
                         {product.name}
                       </h2>
                     </div>
                     <AvailabilityBadge available={product.is_available} />
                   </div>
-                  <p className="mt-5 text-2xl font-black text-white">
+                  <p className="mt-4 text-xl font-black text-white">
                     {product.price}{" "}
                     <span className="text-sm uppercase tracking-[0.1em] text-primary">
                       {product.currency}
                     </span>
                   </p>
-                  <div className="mt-5 grid grid-cols-2 gap-2">
+                  <div className="mt-4 grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       aria-label="Voir le produit"
@@ -410,7 +410,7 @@ function ProductDetails({
 }) {
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-3 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overflow-x-hidden bg-black/85 p-3 backdrop-blur-sm sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="store-product-title"
@@ -418,7 +418,7 @@ function ProductDetails({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <article className="relative max-h-[94vh] w-full max-w-[96rem] overflow-y-auto rounded-xl border border-white/15 bg-[#071019] shadow-[0_30px_120px_rgba(0,0,0,0.7)] lg:overflow-hidden">
+      <article className="relative max-h-[88vh] w-full max-w-6xl overflow-y-auto overflow-x-hidden rounded-xl border border-white/15 bg-[#071019] shadow-[0_30px_120px_rgba(0,0,0,0.7)] lg:overflow-hidden">
         <button
           type="button"
           aria-label="Fermer"
@@ -427,11 +427,11 @@ function ProductDetails({
         >
           <X className="h-5 w-5" />
         </button>
-        <div className="grid lg:h-[94vh] lg:grid-cols-[minmax(0,1.45fr)_minmax(28rem,0.75fr)]">
+        <div className="grid min-w-0 lg:h-[86vh] lg:grid-cols-[minmax(0,1.08fr)_minmax(22rem,0.92fr)]">
           <ProductGallery product={product} />
           <div
             data-testid="product-details-scroll"
-            className="flex flex-col justify-center p-7 sm:p-10 lg:h-full lg:justify-start lg:overflow-y-auto lg:p-12 lg:pt-20"
+            className="flex min-w-0 flex-col justify-center overflow-x-hidden p-6 sm:p-8 lg:h-full lg:justify-start lg:overflow-y-auto lg:p-9 lg:pt-16"
           >
             <div className="flex flex-wrap items-center justify-between gap-4">
               <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">
@@ -441,7 +441,7 @@ function ProductDetails({
             </div>
             <h2
               id="store-product-title"
-              className="mt-5 font-display text-4xl font-black uppercase leading-tight text-white sm:text-5xl"
+              className="mt-5 break-words font-display text-3xl font-black uppercase leading-[1.05] text-white [overflow-wrap:anywhere] sm:text-4xl"
             >
               {product.name}
             </h2>
@@ -449,7 +449,7 @@ function ProductDetails({
               <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">
                 Prix
               </p>
-              <p className="mt-2 text-5xl font-black text-white">
+              <p className="mt-2 break-words text-4xl font-black text-white">
                 {product.price}{" "}
                 <span className="text-base uppercase tracking-[0.12em] text-primary">
                   {product.currency}
@@ -460,7 +460,7 @@ function ProductDetails({
               <h3 className="text-xs font-black uppercase tracking-[0.18em] text-white">
                 Description du produit
               </h3>
-              <p className="mt-3 whitespace-pre-line text-base leading-8 text-gray-400">
+              <p className="mt-3 whitespace-pre-line break-words text-base leading-7 text-gray-400 [overflow-wrap:anywhere]">
                 {product.description || "Produit disponible au Masterz Store."}
               </p>
             </div>
@@ -566,7 +566,7 @@ function ProductGallery({ product }: { product: CatalogProduct }) {
     >
       <div
         data-testid="product-media-viewport"
-        className="relative h-full min-h-0 overflow-hidden"
+        className="relative h-full min-h-0 overflow-hidden p-5 sm:p-8 lg:p-10"
       >
         <CatalogMedia
           product={product}
@@ -644,8 +644,8 @@ function CatalogMedia({
   );
   const sizeClasses =
     size === "detail"
-      ? "h-[62vh] min-h-[28rem] lg:h-full lg:min-h-0 lg:max-h-none"
-      : "h-60 sm:h-72";
+      ? "h-[44vh] min-h-[20rem] lg:h-full lg:min-h-0 lg:max-h-none"
+      : "h-48 sm:h-52";
 
   if (resolvedMediaUrl && isMediaVideo(resolvedMediaUrl)) {
     return (

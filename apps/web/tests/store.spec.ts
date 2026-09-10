@@ -96,6 +96,8 @@ test("le visiteur consulte le catalogue Store public", async ({ page }) => {
   await expect(page.getByText("2 produits")).toBeVisible();
   await expect(page.getByText("Whey Protein Masterz")).toBeVisible();
   await expect(page.getByText("Disponible", { exact: true })).toBeVisible();
+  const productCard = await page.locator("article").first().boundingBox();
+  expect(productCard?.width).toBeLessThan(450);
   await expect(
     page.getByText("Proteine disponible au Masterz Store.", { exact: true }),
   ).toHaveCount(0);
@@ -131,6 +133,11 @@ test("le visiteur consulte le catalogue Store public", async ({ page }) => {
   await page.getByRole("button", { name: "Voir le produit" }).first().click();
   const productDialog = page.getByRole("dialog");
   await expect(productDialog).toBeVisible();
+  expect(
+    await productDialog.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+  ).toBe(true);
   await expect(productDialog.getByTestId("product-details-scroll")).toHaveCSS(
     "overflow-y",
     "auto",

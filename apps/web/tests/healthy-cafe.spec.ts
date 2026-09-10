@@ -54,10 +54,16 @@ test("affiche la carte Healthy Cafe publique sans reservation", async ({
   ).toBeVisible();
   await expect(page.getByText("Bowl Test", { exact: true })).toBeVisible();
   await expect(page.getByText("49")).toBeVisible();
+  const menuCard = await page.locator("article").first().boundingBox();
+  expect(menuCard?.width).toBeLessThan(450);
   await page.getByRole("button", { name: "Voir", exact: true }).click();
-  await expect(
-    page.getByRole("dialog", { name: "Voir Bowl Test" }),
-  ).toBeVisible();
+  const dialog = page.getByRole("dialog", { name: "Voir Bowl Test" });
+  await expect(dialog).toBeVisible();
+  expect(
+    await dialog.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+  ).toBe(true);
   await expect(
     page.getByText("Composition choisie par l'equipe."),
   ).toBeVisible();
