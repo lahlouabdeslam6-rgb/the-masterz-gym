@@ -7,8 +7,14 @@ import {
   type AuthSession,
 } from "./auth";
 
-export const apiBaseUrl =
+const configuredApiBaseUrl =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+export const apiBaseUrl = configuredApiBaseUrl.startsWith("/")
+  ? typeof window === "undefined"
+    ? "http://api:8000"
+    : `${window.location.origin}${configuredApiBaseUrl}`
+  : configuredApiBaseUrl;
 
 export function resolveApiMediaUrl(mediaUrl: string | null | undefined) {
   if (!mediaUrl) return null;
