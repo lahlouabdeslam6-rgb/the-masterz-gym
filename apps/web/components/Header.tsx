@@ -521,6 +521,7 @@ export function Header() {
 
         <details
           ref={mobileMenuRef}
+          suppressHydrationWarning
           className="group/mobile relative ml-auto lg:hidden"
           onToggle={(event) => {
             document.body.style.overflow = event.currentTarget.open
