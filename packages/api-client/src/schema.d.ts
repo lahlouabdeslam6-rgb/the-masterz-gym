@@ -2928,10 +2928,15 @@ export interface components {
         };
         /** DashboardSubscriptionStatus */
         DashboardSubscriptionStatus: {
-            status: components["schemas"]["SubscriptionStatus"];
+            status: components["schemas"]["DashboardSubscriptionStatusValue"];
             /** Count */
             count: number;
         };
+        /**
+         * DashboardSubscriptionStatusValue
+         * @enum {string}
+         */
+        DashboardSubscriptionStatusValue: "active" | "expiring_soon" | "grace_period" | "suspended" | "expired" | "cancelled" | "sessions_exhausted" | "service_completed";
         /** ExistingMemberActivationConfirm */
         ExistingMemberActivationConfirm: {
             /**

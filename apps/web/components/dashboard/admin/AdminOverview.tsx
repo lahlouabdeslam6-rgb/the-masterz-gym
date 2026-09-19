@@ -45,6 +45,8 @@ const statusLabels = {
   suspended: "Suspendus",
   expired: "Expires",
   cancelled: "Annules",
+  sessions_exhausted: "Seances epuisees",
+  service_completed: "Services termines",
 } as const;
 
 const statusColors = {
@@ -54,6 +56,8 @@ const statusColors = {
   suspended: "#8b9bb1",
   expired: "#ef476f",
   cancelled: "#5f6b7a",
+  sessions_exhausted: "#f97316",
+  service_completed: "#8b5cf6",
 } as const;
 
 const shortcuts = [

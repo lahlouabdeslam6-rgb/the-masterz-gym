@@ -14,7 +14,9 @@ from app.modules.analytics.schemas import (
     DashboardPaymentMethod,
     DashboardServiceRevenue,
     DashboardSubscriptionStatus,
+    DashboardSubscriptionStatusValue,
 )
+from app.modules.memberships.models import Subscription
 from app.modules.memberships.service import MembershipService
 from app.shared.enums import (
     AccountStatus,
@@ -61,10 +63,16 @@ class AnalyticsService:
             self.memberships.effective_status(subscription, today, expiring_days=expiring_days)
             for subscription in subscriptions
         ]
+        dashboard_statuses = [
+            self._dashboard_subscription_status(subscription, effective_status)
+            for subscription, effective_status in zip(
+                subscriptions, effective_statuses, strict=True
+            )
+        ]
         active_statuses = {
-            SubscriptionStatus.ACTIVE,
-            SubscriptionStatus.EXPIRING_SOON,
-            SubscriptionStatus.GRACE_PERIOD,
+            DashboardSubscriptionStatusValue.ACTIVE,
+            DashboardSubscriptionStatusValue.EXPIRING_SOON,
+            DashboardSubscriptionStatusValue.GRACE_PERIOD,
         }
 
         monthly = {
@@ -97,7 +105,7 @@ class AnalyticsService:
             method_counts[payment.method] += 1
             currencies[payment.currency] += 1
 
-        status_counts = Counter(effective_statuses)
+        status_counts = Counter(dashboard_statuses)
         currency = (
             currencies.most_common(1)[0][0] if currencies else self.repository.first_plan_currency()
         )
@@ -116,9 +124,11 @@ class AnalyticsService:
                     member.status == AccountStatus.ACTIVE for member in members
                 ),
                 active_subscriptions=sum(
-                    status in active_statuses for status in effective_statuses
+                    status in active_statuses for status in dashboard_statuses
                 ),
-                expiring_subscriptions=status_counts[SubscriptionStatus.EXPIRING_SOON],
+                expiring_subscriptions=status_counts[
+                    DashboardSubscriptionStatusValue.EXPIRING_SOON
+                ],
                 pending_applications=sum(
                     application.status == ApplicationStatus.PENDING for application in applications
                 ),
@@ -145,6 +155,24 @@ class AnalyticsService:
             ],
             subscription_statuses=[
                 DashboardSubscriptionStatus(status=status, count=status_counts[status])
-                for status in SubscriptionStatus
+                for status in DashboardSubscriptionStatusValue
             ],
         )
+
+    @staticmethod
+    def _dashboard_subscription_status(
+        subscription: Subscription,
+        effective_status: SubscriptionStatus,
+    ) -> DashboardSubscriptionStatusValue:
+        if (
+            subscription.service_type in {ServiceType.RECOVERY, ServiceType.MARTIAL_ARTS}
+            and subscription.remaining_sessions == 0
+            and subscription.status != SubscriptionStatus.CANCELLED
+        ):
+            return DashboardSubscriptionStatusValue.SESSIONS_EXHAUSTED
+        if (
+            subscription.service_type == ServiceType.COACHING
+            and effective_status == SubscriptionStatus.EXPIRED
+        ):
+            return DashboardSubscriptionStatusValue.SERVICE_COMPLETED
+        return DashboardSubscriptionStatusValue(effective_status.value)

@@ -1,9 +1,21 @@
 from datetime import datetime
 from decimal import Decimal
+from enum import StrEnum
 
 from pydantic import BaseModel
 
-from app.shared.enums import PaymentMethod, ServiceType, SubscriptionStatus
+from app.shared.enums import PaymentMethod, ServiceType
+
+
+class DashboardSubscriptionStatusValue(StrEnum):
+    ACTIVE = "active"
+    EXPIRING_SOON = "expiring_soon"
+    GRACE_PERIOD = "grace_period"
+    SUSPENDED = "suspended"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+    SESSIONS_EXHAUSTED = "sessions_exhausted"
+    SERVICE_COMPLETED = "service_completed"
 
 
 class DashboardMetrics(BaseModel):
@@ -39,7 +51,7 @@ class DashboardPaymentMethod(BaseModel):
 
 
 class DashboardSubscriptionStatus(BaseModel):
-    status: SubscriptionStatus
+    status: DashboardSubscriptionStatusValue
     count: int
 
 

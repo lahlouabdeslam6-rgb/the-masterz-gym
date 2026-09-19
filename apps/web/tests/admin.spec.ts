@@ -287,6 +287,8 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
           { status: "suspended", count: 0 },
           { status: "expired", count: 2 },
           { status: "cancelled", count: 1 },
+          { status: "sessions_exhausted", count: 1 },
+          { status: "service_completed", count: 1 },
         ],
       };
     }
@@ -588,6 +590,8 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Etat des abonnements" }),
   ).toBeVisible();
+  await expect(page.getByText("Seances epuisees")).toBeVisible();
+  await expect(page.getByText("Services termines")).toBeVisible();
   const revenueCard = page
     .getByTestId("admin-kpi-card")
     .filter({ hasText: "Revenu sur 6 mois" });

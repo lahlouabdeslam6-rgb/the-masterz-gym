@@ -61,6 +61,94 @@ def test_admin_dashboard_rejects_reception(client: TestClient, db_session: Sessi
     assert response.status_code == 403
 
 
+def test_admin_dashboard_separates_exhausted_sessions_and_completed_services(
+    client: TestClient,
+    db_session: Session,
+    admin_headers: dict[str, str],
+) -> None:
+    before_response = client.get("/api/v1/admin/analytics/dashboard", headers=admin_headers)
+    assert before_response.status_code == 200, before_response.text
+    before = {
+        item["status"]: item["count"] for item in before_response.json()["subscription_statuses"]
+    }
+
+    admin = UserRepository(db_session).by_phone("+212600000001")
+    assert admin is not None
+    suffix = uuid.uuid4().hex[:8]
+    member = User(
+        full_name="Membre Statuts Services",
+        phone=f"+2128{suffix}",
+        role=UserRole.MEMBER,
+        status=AccountStatus.ACTIVE,
+        member_number=f"TMG-STATUS-{suffix.upper()}",
+    )
+    recovery_plan = MembershipPlan(
+        name=f"Recovery analytics {suffix}",
+        duration_months=1,
+        price=Decimal("200.00"),
+        currency="MAD",
+        service_type=ServiceType.RECOVERY,
+        session_count=4,
+        is_active=True,
+    )
+    coaching_plan = MembershipPlan(
+        name=f"Coaching analytics {suffix}",
+        duration_months=1,
+        price=Decimal("300.00"),
+        currency="MAD",
+        service_type=ServiceType.COACHING,
+        is_active=True,
+    )
+    db_session.add_all([member, recovery_plan, coaching_plan])
+    db_session.flush()
+
+    today = local_today()
+    db_session.add_all(
+        [
+            Subscription(
+                member_id=member.id,
+                plan_id=recovery_plan.id,
+                status=SubscriptionStatus.ACTIVE,
+                starts_on=today - timedelta(days=5),
+                ends_on=today + timedelta(days=1),
+                grace_ends_on=today + timedelta(days=5),
+                plan_name=recovery_plan.name,
+                duration_months=1,
+                price=recovery_plan.price,
+                currency=recovery_plan.currency,
+                service_type=ServiceType.RECOVERY,
+                total_sessions=4,
+                remaining_sessions=0,
+                created_by_id=admin.id,
+            ),
+            Subscription(
+                member_id=member.id,
+                plan_id=coaching_plan.id,
+                status=SubscriptionStatus.ACTIVE,
+                starts_on=today - timedelta(days=32),
+                ends_on=today - timedelta(days=1),
+                grace_ends_on=today + timedelta(days=3),
+                plan_name=coaching_plan.name,
+                duration_months=1,
+                price=coaching_plan.price,
+                currency=coaching_plan.currency,
+                service_type=ServiceType.COACHING,
+                created_by_id=admin.id,
+            ),
+        ]
+    )
+    db_session.flush()
+
+    response = client.get("/api/v1/admin/analytics/dashboard", headers=admin_headers)
+    assert response.status_code == 200, response.text
+    after = {item["status"]: item["count"] for item in response.json()["subscription_statuses"]}
+
+    assert after["sessions_exhausted"] == before["sessions_exhausted"] + 1
+    assert after["service_completed"] == before["service_completed"] + 1
+    assert after["expired"] == before["expired"]
+    assert after["expiring_soon"] == before["expiring_soon"]
+
+
 def test_cancelled_subscription_payment_is_excluded_from_analytics(
     db_session: Session,
 ) -> None:
