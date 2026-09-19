@@ -13,6 +13,36 @@ test("affiche la page d’accueil premium", async ({ page }) => {
   ).toBeVisible();
 });
 
+test.describe("navigation telephone", () => {
+  test.use({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+
+  test("ouvre et ferme la navigation sur telephone", async ({ page }) => {
+    await page.goto("/");
+
+    const menuToggle = page.locator(
+      'summary[aria-controls="mobile-navigation"]',
+    );
+    const mobileMenu = page.locator("details").filter({ has: menuToggle });
+    await expect(menuToggle).toBeVisible();
+    await menuToggle.tap();
+
+    const mobileNavigation = page.getByRole("navigation", {
+      name: "Navigation mobile",
+    });
+    await expect(mobileNavigation).toBeVisible();
+    await expect(mobileMenu).toHaveAttribute("open", "");
+    await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
+
+    await menuToggle.tap();
+    await expect(mobileNavigation).toBeHidden();
+    await expect(mobileMenu).not.toHaveAttribute("open", "");
+  });
+});
+
 test("separe les abonnements par salle et regroupe le Store avec le Cafe", async ({
   page,
 }) => {

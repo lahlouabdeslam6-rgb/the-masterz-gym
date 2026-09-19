@@ -92,7 +92,6 @@ const commerceLinks = [
 ];
 
 export function Header() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isClubMenuOpen, setIsClubMenuOpen] = useState(false);
   const [isMembershipMenuOpen, setIsMembershipMenuOpen] = useState(false);
   const [isCommerceMenuOpen, setIsCommerceMenuOpen] = useState(false);
@@ -100,6 +99,7 @@ export function Header() {
   const membershipMenuRef = useRef<HTMLDivElement>(null);
   const clubMenuRef = useRef<HTMLDivElement>(null);
   const commerceMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDetailsElement>(null);
   const membershipMenuPinnedRef = useRef(false);
   const clubMenuPinnedRef = useRef(false);
   const commerceMenuPinnedRef = useRef(false);
@@ -111,6 +111,11 @@ export function Header() {
   const clubActive = pathname.startsWith("/clubs/") || pathname === "/la-salle";
   const commerceActive = commerceLinks.some((link) => link.href === pathname);
 
+  const closeMobileMenu = () => {
+    mobileMenuRef.current?.removeAttribute("open");
+    document.body.style.overflow = "";
+  };
+
   useEffect(() => {
     const syncSession = () => setSession(getSession());
     syncSession();
@@ -119,6 +124,13 @@ export function Header() {
     return () => {
       window.removeEventListener(AUTH_CHANGED_EVENT, syncSession);
       window.removeEventListener("storage", syncSession);
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    closeMobileMenu();
+    return () => {
+      document.body.style.overflow = "";
     };
   }, [pathname]);
 
@@ -507,193 +519,194 @@ export function Header() {
           )}
         </div>
 
-        <button
-          type="button"
-          className="ml-auto flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-white/[0.025] text-white transition hover:border-primary hover:bg-primary/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary lg:hidden"
-          onClick={() => setIsMobileMenuOpen((open) => !open)}
-          aria-expanded={isMobileMenuOpen}
-          aria-controls="mobile-navigation"
-          aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+        <details
+          ref={mobileMenuRef}
+          className="group/mobile relative ml-auto lg:hidden"
+          onToggle={(event) => {
+            document.body.style.overflow = event.currentTarget.open
+              ? "hidden"
+              : "";
+          }}
         >
-          {isMobileMenuOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
-        </button>
-      </div>
-
-      {isMobileMenuOpen ? (
-        <div
-          id="mobile-navigation"
-          className="absolute left-0 top-full h-[calc(100svh-126px)] w-full overflow-y-auto border-t border-white/10 bg-[#071018] shadow-2xl sm:h-[calc(100svh-113px)] lg:hidden"
-        >
-          <nav
-            className="mx-auto grid max-w-3xl gap-1 p-5 sm:p-7"
-            aria-label="Navigation mobile"
+          <summary
+            className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-xl border border-white/15 bg-white/[0.025] text-white transition marker:content-none hover:border-primary hover:bg-primary/10 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden"
+            aria-controls="mobile-navigation"
+            aria-label="Ouvrir ou fermer le menu"
           >
-            {mainNavLinks.slice(0, 1).map((link) => {
-              const active = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`border-l-2 px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-colors hover:border-primary hover:bg-white/5 hover:text-primary ${
-                    active
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-transparent text-gray-300"
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              );
-            })}
-
-            <details className="group border-y border-white/10 py-2">
-              <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-black uppercase tracking-[0.1em] text-white marker:content-none [&::-webkit-details-marker]:hidden">
-                Nos clubs
-                <ChevronDown className="h-4 w-4 text-primary transition-transform group-open:rotate-180" />
-              </summary>
-              <div className="grid gap-1 pb-2 pl-3">
-                {publicClubs.map((club, index) => {
-                  const Icon = index === 0 ? Dumbbell : UsersRound;
-                  return (
-                    <Link
-                      key={club.id}
-                      href={club.href}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-3 border-l-2 border-white/10 px-4 py-3 text-xs font-black uppercase tracking-[0.08em] text-gray-300 transition hover:border-primary hover:bg-white/5 hover:text-primary"
-                    >
-                      <Icon className="h-4 w-4 shrink-0" />
-                      <span>
-                        <span className="block">{club.name}</span>
-                        <span className="mt-1 block text-[0.58rem] text-primary">
-                          {club.signature}
-                        </span>
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </details>
-
-            <details className="group border-y border-white/10 py-2">
-              <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-black uppercase tracking-[0.1em] text-white marker:content-none [&::-webkit-details-marker]:hidden">
-                Abonnements
-                <ChevronDown className="h-4 w-4 text-primary transition-transform group-open:rotate-180" />
-              </summary>
-              <div className="grid gap-4 px-3 pb-3">
-                {membershipGroups.map((group) => (
-                  <section
-                    key={group.club.id}
-                    aria-label={group.club.internalName}
-                  >
-                    <p className="px-4 py-2 text-[0.62rem] font-black uppercase tracking-[0.14em] text-primary">
-                      {group.club.internalName} · {group.club.name}
-                    </p>
-                    <div className="grid gap-1">
-                      {group.links.map(({ icon: Icon, ...link }) => (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                          className="flex items-center gap-3 border-l-2 border-white/10 px-4 py-3 text-xs font-black uppercase tracking-[0.08em] text-gray-300 transition hover:border-primary hover:bg-white/5 hover:text-primary"
-                        >
-                          <Icon className="h-4 w-4 shrink-0" /> {link.name}
-                        </Link>
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            </details>
-
-            <details className="group border-b border-white/10 py-2">
-              <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-black uppercase tracking-[0.1em] text-white marker:content-none [&::-webkit-details-marker]:hidden">
-                Store & Café
-                <ChevronDown className="h-4 w-4 text-primary transition-transform group-open:rotate-180" />
-              </summary>
-              <div className="grid gap-1 pb-2 pl-3">
-                {commerceLinks.map(({ icon: Icon, ...link }) => (
+            <Menu className="h-6 w-6 group-open/mobile:hidden" />
+            <X className="hidden h-6 w-6 group-open/mobile:block" />
+          </summary>
+          <div
+            id="mobile-navigation"
+            className="absolute right-0 top-[calc(100%+17px)] hidden max-h-[calc(100dvh-7rem)] w-screen overflow-y-auto overscroll-contain border-t border-white/10 bg-[#071018] shadow-2xl group-open/mobile:block"
+          >
+            <nav
+              className="mx-auto grid max-w-3xl gap-1 p-5 sm:p-7"
+              aria-label="Navigation mobile"
+            >
+              {mainNavLinks.slice(0, 1).map((link) => {
+                const active = pathname === link.href;
+                return (
                   <Link
                     key={link.href}
                     href={link.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 border-l-2 border-white/10 px-4 py-3 text-xs font-black uppercase tracking-[0.08em] text-gray-300 transition hover:border-primary hover:bg-white/5 hover:text-primary"
+                    onClick={closeMobileMenu}
+                    className={`border-l-2 px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-colors hover:border-primary hover:bg-white/5 hover:text-primary ${
+                      active
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-transparent text-gray-300"
+                    }`}
                   >
-                    <Icon className="h-4 w-4 shrink-0" /> {link.name}
+                    {link.name}
                   </Link>
-                ))}
-              </div>
-            </details>
+                );
+              })}
 
-            {mainNavLinks.slice(1).map((link) => {
-              const active = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`border-l-2 px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-colors hover:border-primary hover:bg-white/5 hover:text-primary ${
-                    active
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-transparent text-gray-300"
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              );
-            })}
-            <div className="mt-4 grid gap-3 border-t border-white/10 pt-5 sm:grid-cols-2">
-              {session ? (
-                <>
+              <details className="group border-y border-white/10 py-2">
+                <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-black uppercase tracking-[0.1em] text-white marker:content-none [&::-webkit-details-marker]:hidden">
+                  Nos clubs
+                  <ChevronDown className="h-4 w-4 text-primary transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="grid gap-1 pb-2 pl-3">
+                  {publicClubs.map((club, index) => {
+                    const Icon = index === 0 ? Dumbbell : UsersRound;
+                    return (
+                      <Link
+                        key={club.id}
+                        href={club.href}
+                        onClick={closeMobileMenu}
+                        className="flex items-center gap-3 border-l-2 border-white/10 px-4 py-3 text-xs font-black uppercase tracking-[0.08em] text-gray-300 transition hover:border-primary hover:bg-white/5 hover:text-primary"
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span>
+                          <span className="block">{club.name}</span>
+                          <span className="mt-1 block text-[0.58rem] text-primary">
+                            {club.signature}
+                          </span>
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </details>
+
+              <details className="group border-y border-white/10 py-2">
+                <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-black uppercase tracking-[0.1em] text-white marker:content-none [&::-webkit-details-marker]:hidden">
+                  Abonnements
+                  <ChevronDown className="h-4 w-4 text-primary transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="grid gap-4 px-3 pb-3">
+                  {membershipGroups.map((group) => (
+                    <section
+                      key={group.club.id}
+                      aria-label={group.club.internalName}
+                    >
+                      <p className="px-4 py-2 text-[0.62rem] font-black uppercase tracking-[0.14em] text-primary">
+                        {group.club.internalName} · {group.club.name}
+                      </p>
+                      <div className="grid gap-1">
+                        {group.links.map(({ icon: Icon, ...link }) => (
+                          <Link
+                            key={link.href}
+                            href={link.href}
+                            onClick={closeMobileMenu}
+                            className="flex items-center gap-3 border-l-2 border-white/10 px-4 py-3 text-xs font-black uppercase tracking-[0.08em] text-gray-300 transition hover:border-primary hover:bg-white/5 hover:text-primary"
+                          >
+                            <Icon className="h-4 w-4 shrink-0" /> {link.name}
+                          </Link>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </details>
+
+              <details className="group border-b border-white/10 py-2">
+                <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-black uppercase tracking-[0.1em] text-white marker:content-none [&::-webkit-details-marker]:hidden">
+                  Store & Café
+                  <ChevronDown className="h-4 w-4 text-primary transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="grid gap-1 pb-2 pl-3">
+                  {commerceLinks.map(({ icon: Icon, ...link }) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={closeMobileMenu}
+                      className="flex items-center gap-3 border-l-2 border-white/10 px-4 py-3 text-xs font-black uppercase tracking-[0.08em] text-gray-300 transition hover:border-primary hover:bg-white/5 hover:text-primary"
+                    >
+                      <Icon className="h-4 w-4 shrink-0" /> {link.name}
+                    </Link>
+                  ))}
+                </div>
+              </details>
+
+              {mainNavLinks.slice(1).map((link) => {
+                const active = pathname === link.href;
+                return (
                   <Link
-                    href={dashboardPath(session.user.role)}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={buttonStyles({ className: "w-full" })}
+                    key={link.href}
+                    href={link.href}
+                    onClick={closeMobileMenu}
+                    className={`border-l-2 px-4 py-3 text-sm font-black uppercase tracking-[0.1em] transition-colors hover:border-primary hover:bg-white/5 hover:text-primary ${
+                      active
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-transparent text-gray-300"
+                    }`}
                   >
-                    Mon espace
+                    {link.name}
                   </Link>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      void handleLogout();
-                    }}
-                    className={buttonStyles({
-                      variant: "outline",
-                      className: "w-full",
-                    })}
-                  >
-                    Se déconnecter
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/connexion"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={buttonStyles({
-                      variant: "outline",
-                      className: "w-full",
-                    })}
-                  >
-                    Se connecter
-                  </Link>
-                  <Link
-                    href="/inscription"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={buttonStyles({ className: "w-full" })}
-                  >
-                    S’inscrire
-                  </Link>
-                </>
-              )}
-            </div>
-          </nav>
-        </div>
-      ) : null}
+                );
+              })}
+              <div className="mt-4 grid gap-3 border-t border-white/10 pt-5 sm:grid-cols-2">
+                {session ? (
+                  <>
+                    <Link
+                      href={dashboardPath(session.user.role)}
+                      onClick={closeMobileMenu}
+                      className={buttonStyles({ className: "w-full" })}
+                    >
+                      Mon espace
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeMobileMenu();
+                        void handleLogout();
+                      }}
+                      className={buttonStyles({
+                        variant: "outline",
+                        className: "w-full",
+                      })}
+                    >
+                      Se déconnecter
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/connexion"
+                      onClick={closeMobileMenu}
+                      className={buttonStyles({
+                        variant: "outline",
+                        className: "w-full",
+                      })}
+                    >
+                      Se connecter
+                    </Link>
+                    <Link
+                      href="/inscription"
+                      onClick={closeMobileMenu}
+                      className={buttonStyles({ className: "w-full" })}
+                    >
+                      S’inscrire
+                    </Link>
+                  </>
+                )}
+              </div>
+            </nav>
+          </div>
+        </details>
+      </div>
     </header>
   );
 }

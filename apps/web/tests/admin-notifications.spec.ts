@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { apiRequestUrl } from "./support/api-request";
+
 const admin = {
   id: "00000000-0000-0000-0000-000000000410",
   full_name: "Administrateur Notifications",
@@ -42,7 +44,7 @@ test("le jaras Admin kaym7i ra9em l9dim w kay7el page li m3niya", async ({
   page,
 }) => {
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = admin;
     if (url.pathname === "/api/v1/admin/analytics/dashboard") {
@@ -100,7 +102,7 @@ test("le jaras Reception kaybayan les actions w kaydi l page li m3niya", async (
   };
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = receptionist;
     if (url.pathname === "/api/v1/clubs/my-access") {

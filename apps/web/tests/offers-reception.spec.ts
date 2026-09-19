@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { apiRequestUrl } from "./support/api-request";
+
 const SALLE_1_ID = "11111111-1111-4111-8111-111111111111";
 const SALLE_2_ID = "22222222-2222-4222-8222-222222222222";
 
@@ -106,7 +108,7 @@ const memberPromotion = {
 
 test("affiche chaque offre dans sa page publique", async ({ page }) => {
   await page.route("**/api/v1/membership-plans**", async (route) => {
-    const serviceType = new URL(route.request().url()).searchParams.get(
+    const serviceType = apiRequestUrl(route.request().url()).searchParams.get(
       "service_type",
     );
     await route.fulfill({
@@ -162,7 +164,7 @@ test("separe les formules publiques et la demande par salle", async ({
   page,
 }) => {
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/membership-plans") {
       const serviceType = url.searchParams.get("service_type");
@@ -249,7 +251,7 @@ test("separe les taches de la reception en pages", async ({ page }) => {
   };
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = receptionist;
     if (url.pathname === "/api/v1/clubs/my-access") {
@@ -377,7 +379,7 @@ test("informe le membre de ses abonnements avant une nouvelle inscription", asyn
   ];
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     let status = 200;
     if (url.pathname === "/api/v1/users/me") body = member;
@@ -551,7 +553,7 @@ test("la reception accepte clairement une nouvelle demande", async ({
   }
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = receptionist;
     if (url.pathname === "/api/v1/clubs/my-access") {

@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { apiRequestUrl } from "./support/api-request";
+
 const SALLE_1_ID = "11111111-1111-4111-8111-111111111111";
 
 const admin = {
@@ -18,7 +20,9 @@ const admin = {
   updated_at: "2026-08-15T12:00:00Z",
 };
 
-test("permet a l'admin de supprimer une formule inutilisee", async ({ page }) => {
+test("permet a l'admin de supprimer une formule inutilisee", async ({
+  page,
+}) => {
   const plan = {
     id: "00000000-0000-0000-0000-000000000010",
     club_id: SALLE_1_ID,
@@ -36,7 +40,7 @@ test("permet a l'admin de supprimer une formule inutilisee", async ({ page }) =>
   let deletedPlanId: string | null = null;
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     if (url.pathname === "/api/v1/users/me") {
       await route.fulfill({ json: admin });
       return;
@@ -66,9 +70,7 @@ test("permet a l'admin de supprimer une formule inutilisee", async ({ page }) =>
   await page.goto("/espace/admin/formules");
 
   page.once("dialog", (dialog) => dialog.accept());
-  await page
-    .getByRole("button", { name: `Supprimer ${plan.name}` })
-    .click();
+  await page.getByRole("button", { name: `Supprimer ${plan.name}` }).click();
 
   await expect(page.getByText("Formule supprimee.")).toBeVisible();
   expect(deletedPlanId).toBe(plan.id);

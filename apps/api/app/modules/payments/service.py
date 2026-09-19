@@ -270,9 +270,7 @@ class PaymentService:
             SubscriptionStatus.SUSPENDED,
             SubscriptionStatus.EXPIRED,
             SubscriptionStatus.CANCELLED,
-        } and not (
-            service_type in session_services and current.remaining_sessions == 0
-        ):
+        } and not (service_type in session_services and current.remaining_sessions == 0):
             raise api_error(
                 status.HTTP_409_CONFLICT,
                 "active_subscription",

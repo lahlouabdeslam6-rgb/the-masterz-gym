@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { apiRequestPath } from "./support/api-request";
+
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 function dateAtOffset(days: number, hour: number) {
@@ -159,7 +161,7 @@ test("coach ajoute un creneau et confirme explicitement un conflit", async ({
 
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
-    const path = new URL(request.url()).pathname;
+    const path = apiRequestPath(request.url());
     let body: unknown = [];
     let status = 200;
 
@@ -310,7 +312,7 @@ test("membre reserve un creneau propose par son coach", async ({ page }) => {
 
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
-    const path = new URL(request.url()).pathname;
+    const path = apiRequestPath(request.url());
     let body: unknown = [];
 
     if (path === "/api/v1/users/me") body = member;

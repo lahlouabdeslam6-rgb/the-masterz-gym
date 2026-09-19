@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { apiRequestUrl } from "./support/api-request";
+
 const member = {
   id: "00000000-0000-0000-0000-000000000510",
   full_name: "Client Store Test",
@@ -174,7 +176,7 @@ test("le membre reserve un produit depuis son espace", async ({ page }) => {
   const reservations: Array<Record<string, unknown>> = [];
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     let status = 200;
     if (url.pathname === "/api/v1/users/me") body = member;
@@ -271,7 +273,7 @@ test("ladmin cree un produit avec son prix et son stock", async ({ page }) => {
   const products: Array<Record<string, unknown>> = [];
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     let status = 200;
     if (url.pathname === "/api/v1/users/me") body = admin;
@@ -413,7 +415,7 @@ test("la reception valide une reservation et le stock se met a jour", async ({
   }
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = receptionist;
     if (url.pathname === "/api/v1/clubs/my-access") {

@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { apiRequestUrl } from "./support/api-request";
+
 const SALLE_2_ID = "22222222-2222-4222-8222-222222222222";
 
 function dateAfterToday(days: number) {
@@ -230,7 +232,7 @@ test("separe les fonctions de l'administration en pages", async ({ page }) => {
   let coachingAssignmentCalls = 0;
   let auditBusinessOnly = "";
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     if (route.request().method() === "OPTIONS") {
       await route.fulfill({
         status: 204,

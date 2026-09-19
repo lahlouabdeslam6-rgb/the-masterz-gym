@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { apiRequestUrl } from "./support/api-request";
+
 const now = "2026-09-09T10:00:00Z";
 const salle1 = "11111111-1111-4111-8111-111111111111";
 const salle2 = "22222222-2222-4222-8222-222222222222";
@@ -40,7 +42,7 @@ async function setup(
   }, user);
   const requests: URL[] = [];
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     requests.push(url);
     const path = url.pathname;
     let body: unknown = [];

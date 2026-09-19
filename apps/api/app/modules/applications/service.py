@@ -62,9 +62,7 @@ class ApplicationService:
         self.purge_stale_pending()
         return self.applications.get(application_id)
 
-    def get_for_actor(
-        self, application_id: uuid.UUID, actor: User
-    ) -> MembershipApplication | None:
+    def get_for_actor(self, application_id: uuid.UUID, actor: User) -> MembershipApplication | None:
         application = self.get(application_id)
         if application:
             ClubService(self.session).require_access(actor, application.club_id)
@@ -115,8 +113,7 @@ class ApplicationService:
             if (
                 current
                 and not (
-                    current.service_type in session_services
-                    and current.remaining_sessions == 0
+                    current.service_type in session_services and current.remaining_sessions == 0
                 )
                 and self.membership_service.effective_status(current)
                 not in {

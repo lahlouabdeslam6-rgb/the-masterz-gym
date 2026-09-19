@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { apiRequestPath } from "./support/api-request";
+
 const coach = {
   id: "00000000-0000-0000-0000-000000000601",
   full_name: "Coach Messages",
@@ -105,7 +107,7 @@ test("coach ychof conversation dyal client w ysift message", async ({
 
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
-    const path = new URL(request.url()).pathname;
+    const path = apiRequestPath(request.url());
     let body: unknown = [];
     let status = 200;
 

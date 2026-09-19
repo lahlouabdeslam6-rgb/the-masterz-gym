@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { apiRequestUrl } from "./support/api-request";
+
 const admin = {
   id: "00000000-0000-0000-0000-000000000801",
   full_name: "Admin Cafe",
@@ -37,7 +39,7 @@ test("affiche la carte Healthy Cafe publique sans reservation", async ({
   page,
 }) => {
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     const body = url.pathname === "/api/v1/cafe/menu" ? [menuItem] : [];
     await route.fulfill({
       status: 200,
@@ -80,7 +82,7 @@ test("permet a l'Admin d'ajouter un repas avec prix et photo", async ({
   let uploadedMediaCount = 0;
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     if (route.request().method() === "OPTIONS") {
       await route.fulfill({
         status: 204,

@@ -45,9 +45,7 @@ class RecoveryRepository:
             )
         )
 
-    def list_subscriptions(
-        self, member_id: uuid.UUID, club_id: uuid.UUID
-    ) -> list[Subscription]:
+    def list_subscriptions(self, member_id: uuid.UUID, club_id: uuid.UUID) -> list[Subscription]:
         return list(
             self.session.scalars(
                 select(Subscription)

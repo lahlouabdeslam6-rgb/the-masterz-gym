@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { apiRequestUrl } from "./support/api-request";
+
 const receptionist = {
   id: "00000000-0000-0000-0000-000000000210",
   full_name: "Reception Recovery",
@@ -43,7 +45,7 @@ test("enregistre un passage recovery et retire une seule seance", async ({
   }
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     if (route.request().method() === "OPTIONS") {
       await route.fulfill({
         status: 204,
@@ -170,7 +172,7 @@ test("explique pourquoi un passage est bloque pour un pack annule", async ({
   };
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = receptionist;
     if (url.pathname === "/api/v1/clubs/my-access") {

@@ -64,15 +64,11 @@ class RecoveryServiceManager:
             member_number=member.member_number or "",
             subscriptions=[
                 self._subscription_summary(subscription)
-                for subscription in self.recovery.list_subscriptions(
-                    member.id, SALLE_1_ID
-                )
+                for subscription in self.recovery.list_subscriptions(member.id, SALLE_1_ID)
             ],
             visits=[
                 self._visit_read(visit)
-                for visit in self.recovery.list_visits(
-                    member.id, SALLE_1_ID, limit=limit
-                )
+                for visit in self.recovery.list_visits(member.id, SALLE_1_ID, limit=limit)
             ],
         )
 
@@ -100,9 +96,7 @@ class RecoveryServiceManager:
                 "Un passage recovery ne peut pas etre enregistre dans le futur.",
             )
         on_date = data.occurred_at.astimezone(ZoneInfo(settings.gym_timezone)).date()
-        subscription = self.recovery.usable_subscription_for_update(
-            member.id, SALLE_1_ID, on_date
-        )
+        subscription = self.recovery.usable_subscription_for_update(member.id, SALLE_1_ID, on_date)
         if not subscription:
             raise api_error(
                 status.HTTP_409_CONFLICT,

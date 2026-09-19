@@ -220,9 +220,14 @@ export function Info({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function formatDate(value: string) {
+export function formatDate(value: string | null | undefined) {
+  if (!value) return "Non renseignée";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Non renseignée";
+
   return new Intl.DateTimeFormat("fr-MA", {
     dateStyle: "medium",
     timeStyle: value.includes("T") ? "short" : undefined,
-  }).format(new Date(value));
+  }).format(date);
 }

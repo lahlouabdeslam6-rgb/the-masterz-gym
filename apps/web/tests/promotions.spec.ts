@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { apiRequestUrl } from "./support/api-request";
+
 const admin = {
   id: "00000000-0000-0000-0000-000000000201",
   full_name: "Admin Promotions",
@@ -58,7 +60,7 @@ test("permet a l'Admin de creer et mettre en avant une promotion", async ({
   let submitted: Record<string, unknown> | null = null;
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     if (route.request().method() === "OPTIONS") {
       await route.fulfill({
         status: 204,
@@ -145,7 +147,7 @@ test("affiche l'offre au visiteur et la joint a sa demande", async ({
   let applicationBody: Record<string, unknown> | null = null;
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     if (route.request().method() === "OPTIONS") {
       await route.fulfill({
         status: 204,

@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { apiRequestUrl } from "./support/api-request";
+
 const member = {
   id: "00000000-0000-0000-0000-000000000310",
   full_name: "Membre Notification",
@@ -50,7 +52,7 @@ test("garde les anciennes notifications lues et affiche seulement les nouvelles"
   }
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = member;
     if (url.pathname === "/api/v1/notifications") {
@@ -227,7 +229,7 @@ test("le jaras Coach affiche l'alerte et ouvre directement le planning", async (
   };
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = coach;
     if (url.pathname === "/api/v1/notifications") {

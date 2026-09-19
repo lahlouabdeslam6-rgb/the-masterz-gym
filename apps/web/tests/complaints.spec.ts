@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { apiRequestUrl } from "./support/api-request";
+
 const member = {
   id: "00000000-0000-0000-0000-000000000410",
   full_name: "Membre Reclamation",
@@ -31,7 +33,7 @@ test("le membre cree une reclamation dirigee vers la reception", async ({
   const complaints: Array<Record<string, unknown>> = [];
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     let status = 200;
     if (url.pathname === "/api/v1/users/me") body = member;
@@ -149,7 +151,7 @@ test("la reception repond et change le statut dans sa page", async ({
   }
 
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
+    const url = apiRequestUrl(route.request().url());
     let body: unknown = [];
     if (url.pathname === "/api/v1/users/me") body = receptionist;
     if (url.pathname === "/api/v1/clubs/my-access") {
