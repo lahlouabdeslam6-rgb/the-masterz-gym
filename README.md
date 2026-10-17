@@ -57,7 +57,7 @@ npm install
 npm run generate:api-client
 ```
 
-L'API locale doit être disponible pour la génération. Ne pas ajouter des routes supposées dans le frontend : le contrat backend fait référence.
+Cette commande utilise le contrat `packages/api-client/openapi.json` versionné dans le dépôt. Actualiser ce contrat depuis le backend lorsque l'API évolue ; ne pas ajouter des routes supposées dans le frontend.
 
 ## Vérification
 
