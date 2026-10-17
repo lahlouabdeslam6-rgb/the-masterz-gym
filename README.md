@@ -1,81 +1,83 @@
-# The Masterz Gym
+# The Masterz Gym · Plateforme de gestion
 
-Fondation technique du site public premium et de la future plateforme de gestion de The Masterz Gym, salle mixte située à Kénitra, Maroc.
+Un site public et une plateforme de gestion pour une salle de sport à Kénitra : adhésions, abonnements, réservations, présences et opérations de réception.
 
-## Périmètre actuel
+**Next.js · TypeScript · FastAPI · PostgreSQL · Redis · Docker**
 
-La Phase 2 ajoute au socle : authentification JWT/OTP, utilisateurs et rôles, demandes
-d'adhésion, formules, abonnements et renouvellements, paiements en réception, reçus,
-présences et audit. Coaching, recovery, Healthy Cafe, finance, messagerie,
-notifications, analytique et IA restent volontairement hors périmètre.
+## Le projet en pratique
 
-## Prérequis
+- Site public et interfaces adaptées aux rôles membre, réception, coach et administration.
+- Authentification JWT/OTP, demandes d'adhésion, formules, abonnements et renouvellements.
+- Suivi des présences, paiements en réception, reçus et traces d'audit.
+- Modules métier présents dans le dépôt pour les cours collectifs, le coaching, le recovery, la boutique, le café, les réclamations et les notifications.
 
-- Docker Desktop avec Docker Compose
-- Node.js 20+ et npm 10+ pour l'exécution hors Docker
-- Python 3.12+ pour l'exécution hors Docker
+Le périmètre évolue par phases. La présence d'un module dans le code ne signifie pas que tous ses parcours sont finalisés ; la [feuille de route](docs/PRODUCT_ROADMAP.md) distingue le travail prévu et les étapes du projet.
 
-## Démarrage rapide
+## Architecture
 
-```bash
-cp .env.example .env
-docker compose up --build
+**Monolithe modulaire** dans un monorepo : les règles métier restent regroupées dans le backend, avec une séparation routeurs / services / repositories. Le contrat OpenAPI de FastAPI alimente le client TypeScript généré.
+
+```mermaid
+flowchart LR
+    Web[Next.js / React] --> Client[Client TypeScript généré]
+    Client --> API[FastAPI / OpenAPI]
+    API --> Services[Services métier]
+    Services --> PG[(PostgreSQL)]
+    Services --> Redis[(Redis)]
 ```
 
-- Site : http://localhost:3000
-- API : http://localhost:8000/api/v1/health
-- Swagger : http://localhost:8000/docs
+| Dossier | Contenu |
+| --- | --- |
+| `apps/web/` | Site et interfaces de gestion |
+| `apps/api/` | Backend, migrations, seed et tests |
+| `packages/` | Composants et code partagés |
+| `docs/` | Spécification, phases et feuille de route |
 
-Les valeurs de `.env.example` sont exclusivement destinées au développement local.
+## Démarrage local
 
-## Développement hors Docker
+Prérequis : Docker Desktop et Docker Compose. Pour les outils hors Docker : Node.js 20+, npm 10+ et Python 3.12+.
 
-```bash
-npm install
-npm run dev:web
-
-cd apps/api
-python -m venv .venv
-python -m pip install -e ".[dev]"
-fastapi dev app/main.py --port 8000
-```
-
-## Initialisation Phase 2
-
-```bash
+```powershell
+git clone https://github.com/lahlouabdeslam6-rgb/the-masterz-gym.git
+cd the-masterz-gym
+Copy-Item .env.example .env
+docker compose up -d --build
 docker compose run --rm api alembic upgrade head
 docker compose run --rm api python -m app.seed
+```
+
+Avec les ports de `.env.example` : site sur http://localhost:3000, documentation API sur http://localhost:8000/docs et santé sur http://localhost:8000/api/v1/health.
+
+Le seed crée des comptes de démonstration strictement locaux, décrits dans le [guide de démarrage de la phase 2](docs/setup-phase-2.md). Les valeurs de développement doivent être remplacées pour tout autre environnement.
+
+### Régénérer le client API
+
+```powershell
+npm install
 npm run generate:api-client
 ```
 
-Comptes strictement locaux créés par le seed :
+L'API locale doit être disponible pour la génération. Ne pas ajouter des routes supposées dans le frontend : le contrat backend fait référence.
 
-| Rôle | Téléphone | Mot de passe de développement |
-|---|---|---|
-| Admin | `+212600000001` | `AdminLocal123!` |
-| Réception | `+212600000002` | `ReceptionLocal123!` |
-| Membre | `+212600000003` | `MemberLocal123!` |
-| Coach | `+212600000004` | `CoachLocal123!` |
-| Client recovery | `+212600000005` | `RecoveryLocal123!` |
-| Employé café | `+212600000006` | `CafeLocal123!` |
+## Vérification
 
-Le fournisseur OTP local écrit le code dans les logs de développement avec le numéro
-masqué. Il refuse de fonctionner lorsque `ENVIRONMENT` n'est pas `development`.
-
-## Qualité
-
-```bash
+```powershell
 cd apps/api
+python -m pip install -e ".[dev]"
 pytest
 ruff check .
 ruff format --check .
-
 cd ../..
 npm run lint:web
 npm run build:web
 ```
 
-La documentation d'architecture et de cadrage est disponible dans [`docs/`](docs/PROJECT_SPEC.md).
-Les workflows et commandes de la Phase 2 sont détaillés dans
-[`docs/PHASE_2.md`](docs/PHASE_2.md). La suite fonctionnelle validée est organisée dans
-[`docs/PRODUCT_ROADMAP.md`](docs/PRODUCT_ROADMAP.md).
+Les tests d'intégration nécessitent l'environnement de données configuré. Ces commandes décrivent les contrôles du dépôt, sans constituer une promesse de validation en production.
+
+## Documentation
+
+- [Spécification du projet](docs/PROJECT_SPEC.md)
+- [Phase 2 : parcours et commandes](docs/PHASE_2.md)
+- [Feuille de route](docs/PRODUCT_ROADMAP.md)
+
+**Auteur : [Ismail Lahlou](https://github.com/lahlouabdeslam6-rgb)** · [Portfolio](https://portfolio-ismail-lahlou.alvarezvcarlosr44274.chatgpt.site/)
