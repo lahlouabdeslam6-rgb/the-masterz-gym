@@ -75,7 +75,7 @@ npm run lint:web
 npm run build:web
 ```
 
-La documentation d'architecture et de cadrage est disponible dans [`docs/`](docs/PROJECT_SPEC.md).
+La documentation d'architecture et de cadrage est disponible dans [`PROJECT_SPEC.md`](PROJECT_SPEC.md).
 Les workflows et commandes de la Phase 2 sont détaillés dans
-[`docs/PHASE_2.md`](docs/PHASE_2.md). La suite fonctionnelle validée est organisée dans
-[`docs/PRODUCT_ROADMAP.md`](docs/PRODUCT_ROADMAP.md).
+[`PHASE_2.md`](PHASE_2.md). La suite fonctionnelle validée est organisée dans
+[`PRODUCT_ROADMAP.md`](PRODUCT_ROADMAP.md).
